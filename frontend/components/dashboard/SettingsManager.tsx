@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { apiMutate } from "@/lib/api";
+import { apiMutate, apiUpload, mediaUrl } from "@/lib/api";
 import type { SiteSettings } from "@/lib/types";
 
 const SOCIAL_FIELDS: { key: string; label: string; placeholder: string }[] = [
@@ -20,8 +20,15 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
   const [langAr, setLangAr] = useState(initial?.lang_ar_enabled ?? true);
   const [langEn, setLangEn] = useState(initial?.lang_en_enabled ?? true);
   const [toastVisible, setToastVisible] = useState(false);
+  const [logo, setLogo] = useState(initial?.logo ?? null);
+  const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
+  // The toast used to fire from inside the catch, so a save that failed looked
+  // exactly like one that worked.
   const save = async () => {
+    setError("");
     try {
       await apiMutate("/settings/", "PUT", {
         site_name: siteName,
@@ -31,9 +38,28 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
         lang_ar_enabled: langAr,
         lang_en_enabled: langEn,
       });
-    } catch {}
-    setToastVisible(true);
-    setTimeout(() => setToastVisible(false), 2500);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2500);
+    } catch {
+      setError("تعذّر حفظ الإعدادات. لم تُحفظ التغييرات — حاول مرة أخرى.");
+    }
+  };
+
+  const uploadLogo = async (file: File) => {
+    setError("");
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("logo", file);
+      const saved = await apiUpload<{ logo: string | null }>("/settings/", "PUT", form);
+      setLogo(saved.logo);
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 2500);
+    } catch {
+      setError("تعذّر رفع اللوجو. تأكد أنه صورة (PNG أو SVG أو JPG) وحاول مرة أخرى.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const Switch = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
@@ -50,10 +76,41 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
             حفظ التغييرات
           </button>
         </div>
+        {error && (
+          <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+            {error}
+          </div>
+        )}
         <div className="flex flex-col gap-3.5 rounded-card border border-line bg-paper p-5">
           <div className="text-[15px] font-extrabold">هوية الموقع</div>
           <div className="flex flex-wrap items-center gap-4">
-            <div className="h-[72px] w-[72px] flex-shrink-0 rounded-lg bg-surface" />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              title="ارفع لوجو الموقع"
+              className="flex h-[72px] w-[112px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-1.5 text-[11px] text-ink-3 hover:border-brand hover:text-brand disabled:opacity-60"
+            >
+              {uploading ? (
+                "جارٍ الرفع…"
+              ) : logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={mediaUrl(logo)} alt="لوجو الموقع" className="h-full w-full object-contain" />
+              ) : (
+                "ارفع اللوجو"
+              )}
+            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/svg+xml,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadLogo(f);
+                e.target.value = "";
+              }}
+            />
             <div className="flex min-w-[200px] flex-1 flex-col gap-2.5">
               <input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="rounded-lg border border-line px-3 py-2.5 text-[13.5px] outline-none focus:border-brand" />
               <input value={tagline} onChange={(e) => setTagline(e.target.value)} className="rounded-lg border border-line px-3 py-2.5 text-[13.5px] outline-none focus:border-brand" />
