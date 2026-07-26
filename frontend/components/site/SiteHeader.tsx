@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import NavDrawer from "@/components/site/NavDrawer";
 import PrayerStrip from "@/components/site/PrayerStrip";
+import BreakingAlertsToggle from "@/components/site/BreakingAlertsToggle";
 import SearchBox from "@/components/site/SearchBox";
 import { getBreakingNews, getPrayerTimes, getSections } from "@/lib/api";
 
@@ -79,6 +80,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
             {isAr ? <PrayerStrip times={prayer} /> : null}
           </div>
           <div className="flex items-center gap-4">
+            {isAr ? <BreakingAlertsToggle /> : null}
             <Link href="/login" className="text-[13px] text-header-muted no-underline hover:text-header-ink">
               {isAr ? "تسجيل الدخول" : "Log in"}
             </Link>

@@ -1,18 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { apiMutate } from "@/lib/api";
+import { API_URL, apiMutate } from "@/lib/api";
 import type { BreakingNewsItem } from "@/lib/types";
+
+type PushInfo = { configured: boolean; subscribers: number };
 
 export default function BreakingManager({ items: initial }: { items: BreakingNewsItem[] }) {
   const [items, setItems] = useState(initial);
   const [draft, setDraft] = useState("");
+  const [error, setError] = useState("");
+  const [note, setNote] = useState("");
+  const [push, setPush] = useState<PushInfo | null>(null);
+  const [sending, setSending] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`${API_URL}/push/status/`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setPush)
+      .catch(() => setPush(null));
+  }, []);
+
+  // A save that fails has to say so. These handlers used to swallow the error
+  // and, in addItem's case, insert a fake local row — so a failed write looked
+  // exactly like a successful one until the page was reloaded.
+  const fail = (what: string) => setError(`تعذّر ${what}. لم يُحفظ التغيير — حدّث الصفحة وحاول مرة أخرى.`);
 
   const addItem = async () => {
     const text = draft.trim();
     if (!text) return;
-    setDraft("");
+    setError("");
     try {
       const created = await apiMutate<BreakingNewsItem>("/breaking/", "POST", {
         text,
@@ -21,8 +39,9 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
         expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
       });
       setItems((it) => [created, ...it]);
+      setDraft("");
     } catch {
-      setItems((it) => [{ id: Date.now(), text, order: 0, active: true, expires_at: "", created_at: "" }, ...it]);
+      fail("إضافة الخبر العاجل");
     }
   };
 
@@ -30,31 +49,79 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
     const i = items.findIndex((x) => x.id === id);
     const j = i + dir;
     if (j < 0 || j >= items.length) return;
+    const before = items;
     const arr = [...items];
     [arr[i], arr[j]] = [arr[j], arr[i]];
     setItems(arr);
+    setError("");
     try {
-      await Promise.all([apiMutate(`/breaking/${arr[i].id}/`, "PATCH", { order: i }), apiMutate(`/breaking/${arr[j].id}/`, "PATCH", { order: j })]);
-    } catch {}
+      await Promise.all([
+        apiMutate(`/breaking/${arr[i].id}/`, "PATCH", { order: i }),
+        apiMutate(`/breaking/${arr[j].id}/`, "PATCH", { order: j }),
+      ]);
+    } catch {
+      setItems(before);
+      fail("إعادة الترتيب");
+    }
   };
 
   const toggle = async (id: number) => {
-    setItems((it) => it.map((x) => (x.id === id ? { ...x, active: !x.active } : x)));
     const item = items.find((x) => x.id === id);
+    if (!item) return;
+    setItems((it) => it.map((x) => (x.id === id ? { ...x, active: !x.active } : x)));
+    setError("");
     try {
-      await apiMutate(`/breaking/${id}/`, "PATCH", { active: !item?.active });
-    } catch {}
+      await apiMutate(`/breaking/${id}/`, "PATCH", { active: !item.active });
+    } catch {
+      setItems((it) => it.map((x) => (x.id === id ? { ...x, active: item.active } : x)));
+      fail("تغيير الحالة");
+    }
   };
 
   const remove = async (id: number) => {
+    const before = items;
     setItems((it) => it.filter((x) => x.id !== id));
+    setError("");
     try {
       await apiMutate(`/breaking/${id}/`, "DELETE");
-    } catch {}
+    } catch {
+      setItems(before);
+      fail("الحذف");
+    }
+  };
+
+  const broadcast = async (item: BreakingNewsItem) => {
+    setSending(item.id);
+    setError("");
+    setNote("");
+    try {
+      const res = await apiMutate<{ sent: number; failed: number; pruned: number }>("/push/broadcast/", "POST", {
+        title: "عاجل",
+        body: item.text,
+        url: "/",
+      });
+      setNote(`أُرسل التنبيه إلى ${res.sent} متصفح${res.failed ? ` · فشل ${res.failed}` : ""}.`);
+      setPush((p) => (p ? { ...p, subscribers: Math.max(0, p.subscribers - res.pruned) } : p));
+    } catch {
+      fail("إرسال التنبيه");
+    } finally {
+      setSending(null);
+    }
   };
 
   return (
     <>
+      {error && (
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+          {error}
+        </div>
+      )}
+      {note && (
+        <div role="status" className="rounded-card border border-up bg-up-tint px-4 py-3 text-[13px] font-semibold text-up">
+          {note}
+        </div>
+      )}
+
       <div className="flex gap-2.5 rounded-card border border-line bg-paper p-4">
         <input
           value={draft}
@@ -67,6 +134,15 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
           إضافة
         </button>
       </div>
+
+      {push && (
+        <div className="rounded-card border border-line bg-paper px-4 py-2.5 text-[12.5px] text-ink-3">
+          {push.configured
+            ? `تنبيهات المتصفح مفعّلة · ${push.subscribers} مشترك`
+            : "تنبيهات المتصفح غير مفعّلة على الخادم (VAPID غير مضبوط)."}
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-card border border-line bg-paper">
         {items.map((it) => (
           <div key={it.id} className="flex min-h-[44px] items-center gap-3 border-t border-line px-4 py-3 first:border-t-0">
@@ -79,6 +155,18 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
               </span>
             </div>
             <span className="flex-1 text-[13.5px] text-ink">{it.text}</span>
+
+            {push?.configured && push.subscribers > 0 && (
+              <button
+                onClick={() => broadcast(it)}
+                disabled={sending === it.id}
+                title="أرسل هذا الخبر كتنبيه لكل المشتركين"
+                className="flex-shrink-0 rounded-pill border border-line px-3 py-1 text-[12px] font-semibold text-ink-2 hover:border-brand hover:text-brand disabled:opacity-60"
+              >
+                {sending === it.id ? "…" : "🔔 تنبيه"}
+              </button>
+            )}
+
             <span
               onClick={() => toggle(it.id)}
               className={`relative h-5 w-9 flex-shrink-0 cursor-pointer rounded-pill transition-colors duration-fast ${it.active ? "bg-brand" : "bg-line-strong"}`}
