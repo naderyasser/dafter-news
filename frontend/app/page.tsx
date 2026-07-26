@@ -4,6 +4,7 @@ import ArrowCarousel from "@/components/site/ArrowCarousel";
 import ArticleCard from "@/components/site/ArticleCard";
 import HeroSlider from "@/components/site/HeroSlider";
 import LatestNewsTabs from "@/components/site/LatestNewsTabs";
+import MatchesRail from "@/components/site/MatchesRail";
 import MostReadList from "@/components/site/MostReadList";
 import OpinionCarousel from "@/components/site/OpinionCarousel";
 import SectionBlock from "@/components/site/SectionBlock";
@@ -11,7 +12,7 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import StoriesRail from "@/components/site/StoriesRail";
-import { getArticles, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
+import { getArticles, getMatches, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import type { ArticleCard as ArticleCardType, Badge } from "@/lib/types";
 
@@ -29,7 +30,7 @@ function toSectionCard(a: ArticleCardType) {
 }
 
 export default async function HomePage() {
-  const [recent, egypt, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories] = await Promise.all([
+  const [recent, egypt, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches] = await Promise.all([
     getArticles("?ordering=-published_at&page_size=12"),
     getArticles("?section__key=egypt&ordering=-published_at&page_size=6"),
     getArticles("?section__key=economy&ordering=-published_at&page_size=6"),
@@ -42,6 +43,7 @@ export default async function HomePage() {
     getTags(),
     getArticles("?ordering=-comment_count&page_size=6"),
     getStories(),
+    getMatches(),
   ]);
 
   // The hero rotates the top stories; the side rail carries what isn't in it.
@@ -148,6 +150,7 @@ export default async function HomePage() {
       <SectionBlock lang="ar" title="لقطة وتعليق" seeAllHref="/video" cards={videoCards} initialCount={4} />
       <SectionDivider />
       <SectionBlock lang="ar" title="جوّه الجون" seeAllHref="/section/sports" cards={sports.results.map(toSectionCard)} initialCount={4} />
+      <MatchesRail matches={matches.results} />
 
       <OpinionCarousel lang="ar" items={opinionItems} seeAllHref="/opinion" />
 

@@ -10,8 +10,12 @@ import type {
   DashUser,
   LiveStream,
   MediaAsset,
+  Match,
+  PrayerTimes,
   Story,
+  SyncLog,
   WelcomeAlert,
+  WireArticle,
   Paginated,
   Section,
   SiteSettings,
@@ -128,6 +132,19 @@ export const getStories = () =>
 
 export const getWelcomeAlert = () =>
   safeGet<WelcomeAlert | null>(`/welcome-alert/`, null);
+
+// ------------------------------------------------------- external feeds
+export const getPrayerTimes = (city = "cairo") =>
+  safeGet<PrayerTimes | null>(`/prayer-times/?city=${encodeURIComponent(city)}`, null, { revalidate: 900 });
+
+export const getMatches = (query = "?ordering=-kickoff_at&page_size=6") =>
+  safeGet<Paginated<Match>>(`/matches/${query}`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 120 });
+
+export const getWireArticles = (query = "?page_size=6") =>
+  safeGet<Paginated<WireArticle>>(`/wire/${query}`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 300 });
+
+export const getSyncLogs = () =>
+  safeGet<Paginated<SyncLog>>(`/sync-logs/`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 0 });
 
 // -------------------------------------------------------------- mutations
 export async function apiMutate<T>(path: string, method: "POST" | "PATCH" | "PUT" | "DELETE", body?: unknown): Promise<T> {

@@ -1,8 +1,9 @@
 import Link from "next/link";
 
 import NavDrawer from "@/components/site/NavDrawer";
+import PrayerStrip from "@/components/site/PrayerStrip";
 import SearchBox from "@/components/site/SearchBox";
-import { getBreakingNews, getSections } from "@/lib/api";
+import { getBreakingNews, getPrayerTimes, getSections } from "@/lib/api";
 
 type NavItem = { key: string; label: string; href: string };
 
@@ -25,7 +26,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
   const altLangHref = isAr ? "/en" : "/";
   const liveHref = "/live";
 
-  const [breakingRes, sectionsRes] = await Promise.all([getBreakingNews(), getSections()]);
+  const [breakingRes, sectionsRes, prayer] = await Promise.all([getBreakingNews(), getSections(), getPrayerTimes()]);
   const breaking = breakingRes;
   const sections = sectionsRes.results;
 
@@ -66,9 +67,9 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
       {/* topbar */}
       <div className="bg-header-bg text-[13px] text-header-muted">
         <div className="mx-auto flex max-w-container flex-wrap items-center justify-between gap-4 px-6 py-1.5">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="whitespace-nowrap text-header-ink">{today}</span>
-            <span className="tnum flex items-center gap-1 whitespace-nowrap">☀ 34°</span>
+            {isAr ? <PrayerStrip times={prayer} /> : null}
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-[13px] text-header-muted no-underline hover:text-header-ink">

@@ -32,6 +32,7 @@ const GROUPS: Group[] = [
     items: [
       { key: "ads", label: "الإعلانات", href: "/dashboard/ads", icon: "▭" },
       { key: "ticker", label: "شريط الأسواق", href: "/dashboard/ticker", icon: "↗" },
+      { key: "feeds", label: "المصادر الخارجية", href: "/dashboard/feeds", icon: "⟳" },
       { key: "media", label: "الوسائط", href: "/dashboard/media", icon: "🖼" },
       { key: "taxonomy", label: "الأقسام والوسوم", href: "/dashboard/taxonomy", icon: "#" },
     ],
