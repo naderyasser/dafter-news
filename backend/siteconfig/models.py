@@ -17,6 +17,11 @@ class SiteSettings(models.Model):
 
     def save(self, *args, **kwargs):
         self.pk = 1
+        # Pinning the pk means a second objects.create() would try to INSERT
+        # over an existing row and raise IntegrityError instead of behaving
+        # like the singleton it claims to be — drop the forced insert so the
+        # write always lands as an upsert on row 1.
+        kwargs.pop("force_insert", None)
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

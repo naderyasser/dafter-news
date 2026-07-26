@@ -40,8 +40,15 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     only unless ?status= is passed) and DashArticles.dc.html (all statuses).
     """
 
-    queryset = Article.objects.select_related("section", "author").prefetch_related("tags", "blocks").annotate(
-        comment_count=Count("comments", distinct=True)
+    # NB: annotate() drops Meta.ordering, which leaves the paginator with an
+    # unordered queryset — rows can then repeat or vanish between pages. Re-
+    # apply the ordering explicitly, with pk last as a stable tie-breaker
+    # (published_at is NULL for drafts, so it can't disambiguate on its own).
+    queryset = (
+        Article.objects.select_related("section", "author")
+        .prefetch_related("tags", "blocks")
+        .annotate(comment_count=Count("comments", distinct=True))
+        .order_by("-published_at", "-created_at", "-pk")
     )
     permission_classes = [AllowAny]
     filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug"]

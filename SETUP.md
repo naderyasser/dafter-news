@@ -39,6 +39,32 @@ npm run dev
 
 Site: `http://localhost:3000/` · Dashboard: `http://localhost:3000/dashboard`
 
+## Tests
+
+```sh
+cd backend  && . .venv/bin/activate && python manage.py test   # 113 tests
+cd frontend && npm test                                        # 96 tests
+```
+
+**Backend (113)** — model behaviour (unicode slug derivation, read-time
+maths, CTR, duration labels, the settings singleton), serializers, and the
+API surface (filters, published-only defaults, slug-or-id lookup,
+pagination stability, every dashboard write path).
+
+**Frontend (96)** — `lib/format.ts` and `lib/api.ts` (param decoding, slug
+encoding, graceful degradation when the API is down), plus the
+presentational components (`ArticleCard` in all four variants,
+`StatusBadge`, `StatCard`, `MostReadList`, `MarketsTicker`).
+
+Tests double as executable specification for the brief's hard rules: that
+market movement uses the up/down tokens and never the brand red (§10.3),
+that data figures carry `tabular-nums` (§3), that ranked Arabic lists use
+Eastern numerals (§3), that the ▶ glyph mirrors in RTL (§4), and that badge
+placement uses logical properties rather than left/right (§4).
+
+Cases fixing a previously-shipped defect are marked `regression:` in their
+docstring, so it's clear why an odd-looking assertion matters.
+
 ## What's real vs. presentational
 
 - All content (articles, sections, tags, videos, live coverage, ads,
