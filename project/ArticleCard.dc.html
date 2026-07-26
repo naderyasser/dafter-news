@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>@keyframes daftar-pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.35); } }</style>
+</helmet>
+<sc-if value="{{ isStandard }}" hint-placeholder-val="{{ true }}">
+<a href="{{ href }}" style="{{ cardLinkStyle }}">
+  <div style="position:relative;aspect-ratio:16/9;border-radius:6px 6px 0 0;overflow:hidden;background:#EBEDF0">
+    <image-slot id="{{ imageId }}" shape="rect" placeholder="{{ imgPlaceholder }}"></image-slot>
+    <sc-if value="{{ badge.show }}" hint-placeholder-val="{{ false }}">
+      <span style="{{ badgeStyle }}"><sc-if value="{{ badge.dot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:#fff;display:inline-block;margin-inline-end:4px;animation:daftar-pulse-dot 1.4s ease-in-out infinite"></span></sc-if>{{ badge.label }}</span>
+    </sc-if>
+    <sc-if value="{{ isVideo }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+        <span style="{{ playCircleStyle }}" style-hover="background:#B01F2E"><span style="{{ playGlyphStyle }}">▶</span></span>
+      </div>
+      <span style="position:absolute;inset-inline-start:8px;inset-block-end:8px;background:rgba(23,26,31,.75);color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;font-variant-numeric:tabular-nums">{{ videoDuration }}</span>
+    </sc-if>
+  </div>
+  <div style="padding:14px 2px 4px">
+    <span style="color:#B01F2E;font-size:12px;font-weight:700">{{ section }}</span>
+    <div style="{{ titleStyle }}">{{ title }}</div>
+    <div style="color:#6A727C;font-size:13px;margin-top:6px">{{ time }}</div>
+    <sc-if value="{{ isVideo }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;gap:14px;margin-top:8px;color:#6A727C;font-size:13px">
+        <span>💬 {{ comments }}</span>
+        <span>{{ shareGlyph }} {{ shareLabel }}</span>
+      </div>
+    </sc-if>
+  </div>
+</a>
+</sc-if>
+<sc-if value="{{ isCompact }}" hint-placeholder-val="{{ false }}">
+<a href="{{ href }}" style="{{ cardLinkStyleRow }}">
+  <div style="position:relative;flex-shrink:0;width:120px;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#EBEDF0">
+    <image-slot id="{{ imageId }}" shape="rect" placeholder="{{ imgPlaceholder }}"></image-slot>
+    <sc-if value="{{ badge.show }}" hint-placeholder-val="{{ false }}">
+      <span style="{{ badgeStyleSm }}">{{ badge.label }}</span>
+    </sc-if>
+  </div>
+  <div style="flex:1;min-width:0">
+    <div style="{{ titleStyleSm }}">{{ title }}</div>
+    <div style="color:#6A727C;font-size:12px;margin-top:6px">{{ time }}</div>
+  </div>
+</a>
+</sc-if>
+<sc-if value="{{ isText }}" hint-placeholder-val="{{ false }}">
+<a href="{{ href }}" style="display:block;text-decoration:none;padding-block:14px;border-block-end:1px solid #E2E5E9">
+  <div style="{{ titleStyle }}">{{ title }}</div>
+  <sc-if value="{{ hasExcerpt }}" hint-placeholder-val="{{ false }}">
+    <div style="color:#3C434C;font-size:14px;margin-top:6px;line-height:1.6">{{ excerpt }}</div>
+  </sc-if>
+  <div style="color:#6A727C;font-size:13px;margin-top:8px">{{ time }}</div>
+</a>
+</sc-if>
+<sc-if value="{{ isHero }}" hint-placeholder-val="{{ false }}">
+<a href="{{ href }}" style="position:relative;display:block;border-radius:6px;overflow:hidden;aspect-ratio:16/10;text-decoration:none">
+  <image-slot id="{{ imageId }}" shape="rect" placeholder="{{ imgPlaceholder }}"></image-slot>
+  <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(10,11,13,.88), rgba(10,11,13,.15) 55%, rgba(10,11,13,0));pointer-events:none"></div>
+  <sc-if value="{{ badge.show }}" hint-placeholder-val="{{ false }}">
+    <span style="{{ badgeStyle }}">{{ badge.label }}</span>
+  </sc-if>
+  <div style="position:absolute;inset-inline:0;inset-block-end:0;padding:20px">
+    <span style="color:#FBEEEF;font-size:12px;font-weight:700">{{ section }}</span>
+    <div style="{{ heroTitleStyle }}">{{ title }}</div>
+  </div>
+</a>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:320},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;ar&quot;,&quot;options&quot;:[&quot;ar&quot;,&quot;en&quot;],&quot;tsType&quot;:&quot;'ar'|'en'&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;standard&quot;,&quot;options&quot;:[&quot;standard&quot;,&quot;compact&quot;,&quot;text&quot;,&quot;hero&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;href&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Article.dc.html&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;section&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;time&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;excerpt&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;imageId&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;badge&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;none&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;breaking&quot;,&quot;live&quot;,&quot;exclusive&quot;],&quot;tsType&quot;:&quot;string&quot;},&quot;isVideo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;videoDuration&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;03:24&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;comments&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const lang = this.props.lang === 'en' ? 'en' : 'ar';
+    const isAr = lang === 'ar';
+    const variant = this.props.variant || 'standard';
+    const fontDisplay = isAr ? "'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif" : "'Inter',system-ui,sans-serif";
+    const badgeType = this.props.badge || 'none';
+    const badgeMap = {
+      breaking: { bg: '#D71F30', label: isAr ? 'عاجل' : 'Breaking', dot: false },
+      live: { bg: '#D71F30', label: isAr ? 'مباشر' : 'Live', dot: true },
+      exclusive: { bg: '#A97E14', label: isAr ? 'خاص' : 'Exclusive', dot: false },
+    };
+    const b = badgeMap[badgeType];
+    const badge = { show: !!b, label: b ? b.label : '', dot: b ? b.dot : false, bg: b ? b.bg : '#000' };
+    const badgeStyle = { position: 'absolute', insetInlineStart: '8px', insetBlockStart: '8px', background: badge.bg, color: '#FFFFFF', fontSize: '12px', fontWeight: 700, padding: '3px 9px', borderRadius: '4px', display: 'flex', alignItems: 'center', zIndex: 2 };
+    const badgeStyleSm = Object.assign({}, badgeStyle, { fontSize: '10px', padding: '2px 6px' });
+
+    return {
+      isStandard: variant === 'standard', isCompact: variant === 'compact', isText: variant === 'text', isHero: variant === 'hero',
+      href: this.props.href || '#', title: this.props.title || '', section: this.props.section || '',
+      time: this.props.time || '', excerpt: this.props.excerpt || '', hasExcerpt: !!this.props.excerpt,
+      imageId: this.props.imageId || ('card-' + Math.random().toString(36).slice(2)),
+      imgPlaceholder: isAr ? 'أفلت صورة الخبر هنا' : 'Drop image here',
+      isVideo: !!this.props.isVideo, videoDuration: this.props.videoDuration || '00:00',
+      comments: this.props.comments != null ? this.props.comments : 0,
+      shareLabel: isAr ? 'مشاركة' : 'Share',
+      shareGlyph: isAr ? '↖' : '↗',
+      playCircleStyle: { width: '52px', height: '52px', borderRadius: '50%', background: 'rgba(23,26,31,.5)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', pointerEvents: 'auto' },
+      playGlyphStyle: { display: 'inline-block', transform: isAr ? 'scaleX(-1)' : 'none' },
+      badge, badgeStyle, badgeStyleSm,
+      cardLinkStyle: { display: 'block', textDecoration: 'none', background: '#FFFFFF', borderRadius: '6px', border: '1px solid #E2E5E9', overflow: 'hidden' },
+      cardLinkStyleRow: { display: 'flex', gap: '12px', textDecoration: 'none', padding: '10px 0' },
+      titleStyle: { fontFamily: fontDisplay, fontWeight: 700, fontSize: '18px', color: '#171A1F', lineHeight: 1.5, marginTop: '8px' },
+      titleStyleSm: { fontFamily: fontDisplay, fontWeight: 700, fontSize: '15px', color: '#171A1F', lineHeight: 1.45 },
+      heroTitleStyle: { fontFamily: fontDisplay, fontWeight: 800, fontSize: 'clamp(1.25rem, 1rem + 1.6vw, 1.75rem)', color: '#FFFFFF', lineHeight: 1.4, marginTop: '6px' },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="{{ sectionKey }}" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+    <main style="flex:2 1 560px;min-width:0">
+      <div style="{{ headingRowStyle }}">
+        <h1 style="{{ pageTitleStyle }}">{{ sectionName }}</h1>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ showLatest }}" style="{{ tabLatestStyle }}">الأحدث</button>
+          <button onClick="{{ showPopular }}" style="{{ tabPopularStyle }}">الأكثر قراءة</button>
+        </div>
+      </div>
+      <div style="{{ gridStyle }}">
+        <sc-for list="{{ visibleCards }}" as="c" hint-placeholder-count="6">
+          <dc-import name="ArticleCard" lang="ar" variant="standard" href="{{ c.href }}" title="{{ c.title }}" section="{{ c.section }}" time="{{ c.time }}" badge="{{ c.badge }}" image-id="{{ c.imageId }}" hint-size="100%,260px"></dc-import>
+        </sc-for>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:32px">
+        <sc-for list="{{ pages }}" as="p" hint-placeholder-count="2">
+          <button onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button>
+        </sc-for>
+      </div>
+    </main>
+    <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+      <dc-import name="MostReadList" lang="ar" hint-size="100%,360px"></dc-import>
+    </aside>
+  </div>
+
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = (() => {
+    let section = 'egypt';
+    try { section = new URLSearchParams(window.location.search).get('section') || 'egypt'; } catch (e) {}
+    return { section, page: 1, tab: 'latest' };
+  })();
+  componentDidMount() {
+    try {
+      const s = new URLSearchParams(window.location.search).get('section');
+      if (s && s !== this.state.section) this.setState({ section: s, page: 1 });
+    } catch (e) {}
+  }
+  go = (n) => this.setState({ page: n });
+  renderVals() {
+    const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const toRank = (n) => String(n).split('').map((d) => eastern[+d]).join('');
+    const mk = (title, section, time, badge, imageId) => ({ href: 'Article.dc.html', title, section, time, badge: badge || 'none', imageId });
+    const datasets = {
+      egypt: { name: 'مصر', cards: [
+        mk('الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد', 'مصر', 'منذ 30 دقيقة', 'breaking', 'sec-egypt-1'),
+        mk('مجلس الوزراء يوافق على حزمة حوافز جديدة للمصانع الصغيرة', 'مصر', 'منذ ساعة', 'none', 'sec-egypt-2'),
+        mk('افتتاح أول محطة لتحلية مياه البحر على الساحل الشمالي', 'مصر', 'منذ ساعتين', 'exclusive', 'sec-egypt-3'),
+        mk('محافظ القاهرة يتابع أعمال تطوير ميدان رمسيس', 'مصر', 'منذ 3 ساعات', 'none', 'sec-egypt-4'),
+        mk('توسعات جديدة في شبكة المترو تشمل خط حلوان', 'مصر', 'منذ 4 ساعات', 'none', 'sec-egypt-5'),
+        mk('وزارة الصحة تطلق مبادرة الكشف المبكر عن الأمراض المزمنة', 'مصر', 'أمس', 'none', 'sec-egypt-6'),
+        mk('الأرصاد تحذر من رياح نشطة على السواحل الشمالية غداً', 'مصر', 'أمس', 'none', 'sec-egypt-7'),
+        mk('إطلاق مبادرة قومية لدعم الحرف اليدوية في الصعيد', 'مصر', 'أمس', 'none', 'sec-egypt-8'),
+        mk('توقيع بروتوكول تعاون بين القاهرة ونيروبي', 'مصر', 'منذ يومين', 'none', 'sec-egypt-9'),
+      ]},
+      economy: { name: 'اقتصاد', cards: [
+        mk('البنك المركزي يثبّت أسعار الفائدة للاجتماع الثالث على التوالي', 'اقتصاد', 'منذ ساعة', 'breaking', 'sec-econ-1'),
+        mk('الجنيه يسجل استقراراً أمام الدولار للأسبوع الثالث', 'اقتصاد', 'منذ ساعتين', 'none', 'sec-econ-2'),
+        mk('بورصة مصر تغلق على ارتفاع بقيادة أسهم البنوك', 'اقتصاد', 'منذ 3 ساعات', 'exclusive', 'sec-econ-3'),
+        mk('صندوق النقد يشيد ببرنامج الإصلاح الاقتصادي المصري', 'اقتصاد', 'منذ 4 ساعات', 'none', 'sec-econ-4'),
+        mk('ارتفاع صادرات الغزل والنسيج 18% خلال النصف الأول', 'اقتصاد', 'أمس', 'none', 'sec-econ-5'),
+        mk('قرار جديد بشأن رسوم استيراد السيارات', 'اقتصاد', 'أمس', 'none', 'sec-econ-6'),
+        mk('ارتفاع أسعار الذهب عالمياً مع تصاعد التوترات', 'اقتصاد', 'أمس', 'none', 'sec-econ-7'),
+        mk('الحكومة ترد على شائعات رفع أسعار الوقود', 'اقتصاد', 'منذ يومين', 'none', 'sec-econ-8'),
+        mk('إطلاق منصة رقمية موحدة لخدمات الشهر العقاري', 'اقتصاد', 'منذ يومين', 'none', 'sec-econ-9'),
+      ]},
+      sports: { name: 'رياضة', cards: [
+        mk('الأهلي يتأهل لنهائي دوري أبطال أفريقيا بعد فوز كاسح', 'رياضة', 'منذ ساعتين', 'breaking', 'sec-sports-1'),
+        mk('الأهلي يحسم صفقة نجم الوسط قبل ساعات من إغلاق القيد', 'رياضة', 'منذ 3 ساعات', 'exclusive', 'sec-sports-2'),
+        mk('الزمالك يتعاقد مع مدرب جديد قبل بداية الموسم', 'رياضة', 'منذ 4 ساعات', 'none', 'sec-sports-3'),
+        mk('المنتخب الوطني يستعد لمواجهة حاسمة في تصفيات المونديال', 'رياضة', 'أمس', 'none', 'sec-sports-4'),
+        mk('نجم الكرة المصرية يفوز بجائزة أفضل لاعب في القارة', 'رياضة', 'أمس', 'none', 'sec-sports-5'),
+        mk('حوار خاص مع مدير المنتخب الوطني', 'رياضة', 'أمس', 'none', 'sec-sports-6'),
+        mk('الزمالك يخوض مرانه الأخير قبل مواجهة القمة', 'رياضة', 'منذ يومين', 'none', 'sec-sports-7'),
+        mk('اتحاد الكرة يعلن موعد قرعة كأس مصر', 'رياضة', 'منذ يومين', 'none', 'sec-sports-8'),
+        mk('نادي المصري يفوز بلقب دوري المحليين', 'رياضة', 'منذ يومين', 'none', 'sec-sports-9'),
+      ]},
+    };
+    const data = datasets[this.state.section] || datasets.egypt;
+    const cards = this.state.tab === 'popular' ? data.cards.slice().reverse() : data.cards;
+    const pageSize = 6;
+    const totalPages = Math.max(1, Math.ceil(cards.length / pageSize));
+    const page = Math.min(this.state.page, totalPages);
+    const visibleCards = cards.slice((page - 1) * pageSize, page * pageSize);
+    const pageBtnBase = { width: '36px', height: '36px', border: '1px solid #E2E5E9', borderRadius: '6px', fontSize: '14px', fontWeight: 700, cursor: 'pointer', fontVariantNumeric: 'tabular-nums' };
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => ({
+      label: toRank(n), go: () => this.go(n),
+      style: Object.assign({}, pageBtnBase, n === page ? { background: '#B01F2E', borderColor: '#B01F2E', color: '#FFFFFF' } : { background: '#FFFFFF', color: '#171A1F' }),
+    }));
+    const tabBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' };
+    return {
+      sectionKey: this.state.section, sectionName: data.name,
+      headingRowStyle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '16px', marginBottom: '20px', flexWrap: 'wrap' },
+      pageTitleStyle: { fontFamily: "'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif", fontWeight: 800, fontSize: 'clamp(1.5rem, 1.2rem + 1.2vw, 2rem)', color: '#171A1F', margin: 0 },
+      gridStyle: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' },
+      visibleCards, pages,
+      tabLatestStyle: Object.assign({}, tabBase, this.state.tab === 'latest' ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }),
+      tabPopularStyle: Object.assign({}, tabBase, this.state.tab === 'popular' ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }),
+      showLatest: () => this.setState({ tab: 'latest', page: 1 }),
+      showPopular: () => this.setState({ tab: 'popular', page: 1 }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

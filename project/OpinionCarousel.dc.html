@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;600&family=Inter:wght@400;600;700;800&display=swap"/>
+<script src="./image-slot.js"></script>
+</helmet>
+<section style="{{ rootStyle }}">
+  <div style="max-width:1200px;margin:0 auto;padding-inline:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:16px">
+      <span style="{{ headingStyle }}">{{ heading }}</span>
+      <a href="{{ seeAllHref }}" style="color:#9AA1AA;font-size:13px;text-decoration:none" style-hover="color:#FFFFFF">{{ seeAllLabel }}</a>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button onClick="{{ prev }}" style="width:36px;height:36px;border-radius:50%;border:1px solid #3C434C;background:transparent;color:#FFFFFF;cursor:pointer;font-size:15px" style-hover="background:#B01F2E;border-color:#B01F2E">‹</button>
+      <button onClick="{{ next }}" style="width:36px;height:36px;border-radius:50%;border:1px solid #3C434C;background:transparent;color:#FFFFFF;cursor:pointer;font-size:15px" style-hover="background:#B01F2E;border-color:#B01F2E">›</button>
+    </div>
+  </div>
+  <div ref="{{ containerRef }}" style="max-width:1200px;margin:0 auto;padding-inline:24px;display:flex;gap:16px;overflow-x:auto;scroll-behavior:smooth">
+    <sc-for list="{{ items }}" as="op" hint-placeholder-count="4">
+      <a href="{{ op.href }}" style="flex:0 0 300px;background:#1B1F26;border-radius:6px;padding:24px;text-decoration:none;display:flex;flex-direction:column;gap:14px">
+        <span style="color:#B01F2E;font-size:40px;font-weight:800;line-height:.6;font-family:Georgia,serif">"</span>
+        <div style="font-size:16px;color:#FFFFFF;font-weight:600;line-height:1.6;flex:1">{{ op.quote }}</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <div style="width:40px;height:40px;border-radius:50%;border:2px solid #B01F2E;background:#2A2F37;color:#F5F6F7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">{{ op.initial }}</div>
+          <span style="color:#9AA1AA;font-size:13px">{{ op.name }}</span>
+          <span style="{{ arrowStyle }}">→</span>
+        </div>
+      </a>
+    </sc-for>
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:320},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;ar&quot;,&quot;options&quot;:[&quot;ar&quot;,&quot;en&quot;],&quot;tsType&quot;:&quot;'ar'|'en'&quot;},&quot;items&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Array&lt;{name:string,quote:string,href:string}&gt;&quot;}}">
+class Component extends DCLogic {
+  containerRef = React.createRef();
+  scroll(dir) {
+    const el = this.containerRef.current;
+    if (!el) return;
+    const isAr = this.props.lang !== 'en';
+    el.scrollBy({ left: 320 * dir * (isAr ? -1 : 1), behavior: 'smooth' });
+  }
+  renderVals() {
+    const lang = this.props.lang === 'en' ? 'en' : 'ar';
+    const isAr = lang === 'ar';
+    const fontDisplay = isAr ? "'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif" : "'Inter',system-ui,sans-serif";
+    const defaultItems = isAr ? [
+      { name: 'د. سامية فاروق', quote: 'الإصلاح الاقتصادي ليس رقماً في موازنة.. بل قرار مجتمع بأكمله', href: '#' },
+      { name: 'كريم عبد الوهاب', quote: 'لماذا يفوز المنتخب في الملعب الخطأ كل مرة؟', href: '#' },
+      { name: 'منى الشربيني', quote: 'جيل جديد من القراء.. وصحافة لم تتغيّر بعد', href: '#' },
+      { name: 'أحمد لبيب', quote: 'الذكاء الاصطناعي في غرفة الأخبار: تهديد أم أداة؟', href: '#' },
+    ] : [
+      { name: 'Dr. Samia Farouk', quote: 'Economic reform is not a budget line — it is a decision by an entire society', href: '#' },
+      { name: 'Karim Abdel Wahab', quote: 'Why does the national team keep winning on the wrong pitch?', href: '#' },
+      { name: 'Mona Elsherbiny', quote: 'A new generation of readers, and a press that has not caught up', href: '#' },
+      { name: 'Ahmed Labib', quote: 'AI in the newsroom: threat or tool?', href: '#' },
+    ];
+    const items = (this.props.items || defaultItems).map((it, i) => Object.assign({}, it, { avatarId: 'opinion-avatar-' + i, initial: (it.name || '?').replace('د. ', '').replace('Dr. ', '').charAt(0) }));
+    return {
+      rootStyle: { background: '#14171C', fontFamily: isAr ? "'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif" : "'Inter',system-ui,sans-serif", padding: '40px 0' },
+      headingStyle: { borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '12px', fontFamily: fontDisplay, fontWeight: 800, fontSize: '22px', color: '#FFFFFF' },
+      heading: isAr ? 'بالعقل والمنطق' : 'By Reason & Logic',
+      seeAllLabel: isAr ? 'عرض الكل' : 'See all', seeAllHref: this.props.seeAllHref || (isAr ? 'Opinion.dc.html' : '#'),
+      arrowStyle: { marginInlineStart: 'auto', fontSize: '18px', color: '#B01F2E', display: 'inline-block', transform: isAr ? 'scaleX(-1)' : 'none' },
+      items, containerRef: this.containerRef,
+      prev: () => this.scroll(-1), next: () => this.scroll(1),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

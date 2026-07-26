@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F;position:relative">
+  <dc-import name="AdminSidebar" active="settings" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;max-width:720px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / النظام</div>
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+            <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">الإعدادات</h1>
+          </div>
+        </div>
+        <button onClick="{{ save }}" style="background:#B01F2E;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#8E1624">حفظ التغييرات</button>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:14px">
+        <div style="font-weight:800;font-size:15px">هوية الموقع</div>
+        <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+          <div style="width:72px;height:72px;border-radius:6px;overflow:hidden;flex-shrink:0">
+            <image-slot id="settings-logo" shape="rounded" placeholder="لوجو"></image-slot>
+          </div>
+          <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:10px">
+            <input type="text" value="الدفتر نيوز" style="box-sizing:border-box;padding:9px 12px;border-radius:6px;border:1px solid #E2E5E9;font-size:13.5px;outline:none" style-focus="border-color:#B01F2E"/>
+            <input type="text" value="سِجلّ اليوم.. خبراً خبراً" style="box-sizing:border-box;padding:9px 12px;border-radius:6px;border:1px solid #E2E5E9;font-size:13.5px;outline:none" style-focus="border-color:#B01F2E"/>
+          </div>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-weight:800;font-size:15px;margin-bottom:4px">روابط التواصل الاجتماعي</div>
+        <sc-for list="{{ socialFields }}" as="f" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="width:70px;color:#6A727C;font-size:13px">{{ f.label }}</span>
+            <input type="text" placeholder="{{ f.placeholder }}" style="flex:1;box-sizing:border-box;padding:8px 12px;border-radius:6px;border:1px solid #E2E5E9;font-size:13px;outline:none" style-focus="border-color:#B01F2E"/>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-weight:800;font-size:15px;margin-bottom:4px">SEO الافتراضي</div>
+        <input type="text" placeholder="عنوان meta الافتراضي" style="box-sizing:border-box;padding:9px 12px;border-radius:6px;border:1px solid #E2E5E9;font-size:13.5px;outline:none" style-focus="border-color:#B01F2E"/>
+        <textarea placeholder="وصف meta الافتراضي" style="box-sizing:border-box;padding:9px 12px;border-radius:6px;border:1px solid #E2E5E9;font-size:13.5px;outline:none;min-height:60px;resize:vertical;font-family:inherit" style-focus="border-color:#B01F2E"></textarea>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-weight:800;font-size:15px">اللغات المفعّلة</div>
+        <sc-for list="{{ langs }}" as="l" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13.5px;font-weight:600">{{ l.label }}</span>
+            <span onClick="{{ l.toggle }}" style="{{ l.switchTrackStyle }}"><span style="{{ l.switchDotStyle }}"></span></span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;top:20px;inset-inline-end:24px;background:#171A1F;color:#fff;padding:12px 20px;border-radius:8px;font-size:13.5px;font-weight:600;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.2)">✓ تم حفظ الإعدادات بنجاح</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { toastVisible: false, langs: { ar: true, en: true } };
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const socialFields = [
+      ['فيسبوك', 'facebook.com/aldaftarnews'], ['X', 'x.com/aldaftarnews'],
+      ['إنستغرام', 'instagram.com/aldaftarnews'], ['يوتيوب', 'youtube.com/@aldaftarnews'],
+    ].map(([label, placeholder]) => ({ label, placeholder }));
+    const langs = [['ar', 'العربية'], ['en', 'English']].map(([key, label]) => ({
+      label, toggle: () => this.setState((s) => ({ langs: { ...s.langs, [key]: !s.langs[key] } })),
+      switchTrackStyle: { width: '36px', height: '20px', borderRadius: '999px', background: this.state.langs[key] ? '#B01F2E' : '#C9CED4', position: 'relative', cursor: 'pointer' },
+      switchDotStyle: { position: 'absolute', top: '2px', insetInlineStart: this.state.langs[key] ? '18px' : '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#FFFFFF', transition: '120ms ease' },
+    }));
+    return {
+      socialFields, langs, toastVisible: this.state.toastVisible,
+      save: () => { this.setState({ toastVisible: true }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toastVisible: false }), 2500); },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

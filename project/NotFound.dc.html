@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:600px;margin:0 auto;padding:64px 24px;text-align:center">
+    <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:96px;color:#B01F2E;line-height:1;font-variant-numeric:tabular-nums">404</div>
+    <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:24px;margin:16px 0 8px;color:#171A1F">هذه الصفحة غير موجودة</h1>
+    <p style="color:#6A727C;font-size:15px;margin:0 0 24px">ربما تم نقل الخبر أو حذفه، أو أن الرابط غير صحيح</p>
+    <a href="Home.dc.html" style="display:inline-block;background:#B01F2E;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:14px;padding:12px 28px;border-radius:999px" style-hover="background:#8E1624">العودة للرئيسية</a>
+  </div>
+  <div style="max-width:480px;margin:0 auto;padding:0 24px 48px">
+    <dc-import name="MostReadList" lang="ar" hint-size="100%,360px"></dc-import>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}"></script>
+</body>
+</html>

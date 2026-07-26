@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<template id="__bundler_thumbnail" data-bg-color="#B01F2E"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#B01F2E"></rect><rect x="30" y="30" width="40" height="40" rx="4" fill="#FFFFFF"></rect><rect x="36" y="30" width="3" height="40" fill="#B01F2E"></rect><rect x="44" y="38" width="20" height="4" rx="2" fill="#171A1F"></rect><rect x="44" y="48" width="20" height="3" rx="1.5" fill="#9AA1AA"></rect><rect x="44" y="55" width="14" height="3" rx="1.5" fill="#9AA1AA"></rect></svg></template>
+<style>
+body { margin:0; }
+@keyframes daftar-pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.35); } }
+@keyframes daftar-marquee-rtl { from { transform:translateX(0); } to { transform:translateX(50%); } }
+</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F;padding-bottom:52px">
+
+  <div style="position:sticky;top:0;z-index:50">
+    <div style="background:#14171C;color:#9AA1AA;font-size:13px">
+      <div style="max-width:1200px;margin:0 auto;padding:6px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:16px">
+          <span style="color:#F5F6F7;white-space:nowrap">{{ today }}</span>
+          <span style="display:flex;align-items:center;gap:4px;white-space:nowrap">☀ <span style="font-variant-numeric:tabular-nums">34°</span></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <a href="#/markets" style="color:#9AA1AA;text-decoration:none;font-size:13px" style-hover="color:#F5F6F7">الأسواق</a>
+          <span style="width:1px;height:12px;background:#3C434C"></span>
+          <a href="#/about" style="color:#F5F6F7;text-decoration:none;font-weight:600;font-size:13px">من نحن</a>
+        </div>
+      </div>
+    </div>
+    <div style="background:#FFFFFF;border-bottom:1px solid #E2E5E9">
+      <div style="max-width:1200px;margin:0 auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
+        <a href="#/home" style="text-decoration:none;display:flex;flex-direction:column;gap:3px;border-inline-start:3px solid #B01F2E;padding-inline-start:14px;flex-shrink:0">
+          <span style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:26px;color:#171A1F;letter-spacing:-0.4px;line-height:1">الدفتر نيوز</span>
+          <span style="color:#6A727C;font-size:12px;font-weight:500;letter-spacing:.2px">سِجلّ اليوم.. خبراً خبراً</span>
+        </a>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+          <a href="#/video" style="display:flex;align-items:center;gap:7px;border:1px solid #E2E5E9;color:#171A1F;padding:9px 16px;border-radius:999px;text-decoration:none;font-weight:700;font-size:13.5px;white-space:nowrap" style-hover="border-color:#B01F2E;color:#B01F2E">لقطة وتعليق</a>
+          <a href="#/live" style="display:flex;align-items:center;gap:8px;background:#B01F2E;color:#FFFFFF;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;white-space:nowrap" style-hover="background:#8E1624">
+            <span style="width:8px;height:8px;border-radius:50%;background:#FFFFFF;animation:daftar-pulse-dot 1.4s ease-in-out infinite;flex-shrink:0"></span>بث مباشر
+          </a>
+        </div>
+      </div>
+    </div>
+    <nav style="background:#FFFFFF;border-bottom:1px solid #E2E5E9;box-shadow:0 1px 2px rgba(23,26,31,.06)">
+      <div style="max-width:1200px;margin:0 auto;padding-inline:24px;height:44px;display:flex;align-items:stretch;gap:28px;overflow-x:auto">
+        <sc-for list="{{ navItems }}" as="n" hint-placeholder-count="8">
+          <a href="{{ n.href }}" style="{{ n.style }}">{{ n.label }}</a>
+        </sc-for>
+      </div>
+    </nav>
+    <div style="background:#D71F30;overflow:hidden;position:relative;height:36px;display:flex;align-items:stretch">
+      <span style="flex-shrink:0;background:#8E1624;color:#FFFFFF;font-weight:800;font-size:13px;padding-inline:14px;display:flex;align-items:center;position:relative;z-index:2">عاجل</span>
+      <div style="flex:1;overflow:hidden;position:relative;display:flex;align-items:center;min-width:0">
+        <div style="white-space:nowrap;display:inline-flex;animation:daftar-marquee-rtl 32s linear infinite;color:#FFFFFF;font-size:13px;font-weight:600;padding-inline-start:24px" style-hover="animation-play-state:paused">
+          <span style="padding-inline-end:48px;white-space:nowrap">{{ breakingText }}</span>
+          <span style="padding-inline-end:48px;white-space:nowrap">{{ breakingText }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+    <div style="max-width:1200px;margin:0 auto;padding:24px;display:flex;gap:20px;flex-wrap:wrap">
+      <a href="#/article" style="flex:2 1 480px;min-width:0;position:relative;display:block;border-radius:6px;overflow:hidden;aspect-ratio:16/10;text-decoration:none;background:#EBEDF0;box-shadow:0 4px 14px rgba(23,26,31,.10)">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9AA1AA;font-size:13px;font-weight:600">صورة الخبر الرئيسي</div>
+        <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(10,11,13,.88), rgba(10,11,13,.15) 55%, rgba(10,11,13,0));pointer-events:none"></div>
+        <span style="position:absolute;inset-inline-start:12px;inset-block-start:12px;background:#D71F30;color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:4px;z-index:2">عاجل</span>
+        <div style="position:absolute;inset-inline:0;inset-block-end:0;padding:clamp(16px, 3vw, 28px)">
+          <span style="color:#FBEEEF;font-size:12px;font-weight:800;letter-spacing:.3px">مصر</span>
+          <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.25rem, 1rem + 1.6vw, 1.75rem);color:#FFFFFF;line-height:1.45;margin-top:8px;text-wrap:pretty">الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد بتكلفة 12 مليار جنيه</div>
+          <div style="color:#C9CED4;font-size:13px;margin-top:10px">منذ 30 دقيقة</div>
+        </div>
+      </a>
+      <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column">
+        <sc-for list="{{ heroSide }}" as="h" hint-placeholder-count="3">
+          <a href="#/article" style="{{ h.rowStyle }}">
+            <div style="position:relative;flex-shrink:0;width:110px;aspect-ratio:4/3;border-radius:6px;overflow:hidden;background:#EBEDF0;display:flex;align-items:center;justify-content:center;color:#9AA1AA;font-size:11px">صورة</div>
+            <div style="flex:1;min-width:0">
+              <span style="color:#B01F2E;font-size:11px;font-weight:800;letter-spacing:.3px">{{ h.section }}</span>
+              <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:700;font-size:15px;color:#171A1F;line-height:1.5;margin-top:5px;text-wrap:pretty">{{ h.title }}</div>
+              <div style="color:#6A727C;font-size:12px;margin-top:6px">{{ h.time }}</div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-for list="{{ homeBlocks }}" as="blk" hint-placeholder-count="3">
+      <section style="max-width:1200px;margin:0 auto;padding:32px 24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-inline-start:3px solid #B01F2E;padding-inline-start:14px;margin-bottom:20px;flex-wrap:wrap">
+          <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.1875rem, 1rem + 0.8vw, 1.375rem);color:#171A1F;margin:0">{{ blk.title }}</h2>
+          <a href="{{ blk.href }}" style="color:#B01F2E;font-size:14px;font-weight:600;text-decoration:none;white-space:nowrap" style-hover="color:#8E1624">عرض الكل ←</a>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:20px">
+          <sc-for list="{{ blk.cards }}" as="c" hint-placeholder-count="4">
+            <a href="{{ c.href }}" style="display:flex;flex-direction:column;text-decoration:none;background:#FFFFFF;border-radius:6px;border:1px solid #E2E5E9;overflow:hidden;transition:box-shadow 220ms ease, border-color 220ms ease" style-hover="box-shadow:0 4px 14px rgba(23,26,31,.10);border-color:#C9CED4">
+              <div style="position:relative;aspect-ratio:16/9;background:#EBEDF0;display:flex;align-items:center;justify-content:center;color:#9AA1AA;font-size:12px;font-weight:600">
+                {{ c.imgLabel }}
+                <sc-if value="{{ c.hasBadge }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ c.badgeStyle }}">{{ c.badgeLabel }}</span>
+                </sc-if>
+              </div>
+              <div style="padding:16px 16px 14px;display:flex;flex-direction:column;gap:8px;flex:1">
+                <span style="color:#B01F2E;font-size:11.5px;font-weight:800;letter-spacing:.3px">{{ c.section }}</span>
+                <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:700;font-size:17px;color:#171A1F;line-height:1.55;text-wrap:pretty">{{ c.title }}</div>
+                <div style="color:#6A727C;font-size:12.5px;margin-top:auto;padding-top:4px">{{ c.time }}</div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </section>
+    </sc-for>
+
+    <section style="background:#14171C;padding:40px 0">
+      <div style="max-width:1200px;margin:0 auto;padding-inline:24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:16px">
+          <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;color:#FFFFFF">بالعقل والمنطق</span>
+          <a href="#/opinion" style="color:#9AA1AA;font-size:13px;text-decoration:none" style-hover="color:#FFFFFF">عرض الكل</a>
+        </div>
+      </div>
+      <div style="max-width:1200px;margin:0 auto;padding-inline:24px;display:flex;gap:16px;overflow-x:auto">
+        <sc-for list="{{ opinionItems }}" as="op" hint-placeholder-count="4">
+          <a href="#/opinion" style="flex:0 0 300px;background:#1B1F26;border:1px solid #2A2F37;border-radius:6px;padding:24px;text-decoration:none;display:flex;flex-direction:column;gap:14px;transition:border-color 220ms ease" style-hover="border-color:#B01F2E">
+            <span style="color:#B01F2E;font-size:40px;font-weight:800;line-height:.6;font-family:Georgia,serif">"</span>
+            <div style="font-size:16px;color:#FFFFFF;font-weight:600;line-height:1.6;flex:1">{{ op.quote }}</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+              <div style="width:40px;height:40px;border-radius:50%;border:2px solid #B01F2E;background:#2A2F37;color:#F5F6F7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">{{ op.initial }}</div>
+              <span style="color:#9AA1AA;font-size:13px">{{ op.name }}</span>
+              <span style="margin-inline-start:auto;font-size:18px;color:#B01F2E;display:inline-block;transform:scaleX(-1)">→</span>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+      <div style="flex:2 1 480px;min-width:0">
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px;margin-bottom:12px">
+          <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.1875rem, 1rem + 0.8vw, 1.375rem);color:#171A1F;margin:0">أحدث الأخبار</h2>
+        </div>
+        <sc-for list="{{ latestNews }}" as="n" hint-placeholder-count="6">
+          <a href="#/article" style="display:flex;gap:14px;align-items:baseline;text-decoration:none;padding-block:16px;border-block-end:1px solid #E2E5E9">
+            <span style="color:#B01F2E;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0;min-width:74px">{{ n.time }}</span>
+            <span style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:700;font-size:17px;color:#171A1F;line-height:1.55;text-wrap:pretty">{{ n.title }}</span>
+          </a>
+        </sc-for>
+      </div>
+      <div style="flex:1 1 300px;min-width:0">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:17px;color:#171A1F;margin-bottom:8px">الأكثر قراءة</div>
+          <sc-for list="{{ mostRead }}" as="it" hint-placeholder-count="5">
+            <a href="#/article" style="{{ it.itemStyle }}">
+              <span style="font-size:26px;font-weight:800;color:#B01F2E;font-variant-numeric:tabular-nums;line-height:1;flex-shrink:0;min-width:28px">{{ it.rank }}</span>
+              <span style="color:#171A1F;font-size:14px;font-weight:600;line-height:1.5">{{ it.title }}</span>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isArticle }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+      <main style="flex:2 1 480px;max-width:680px;min-width:0">
+        <div style="color:#6A727C;font-size:13px;margin-bottom:16px">
+          <a href="#/home" style="color:#6A727C;text-decoration:none" style-hover="color:#B01F2E">الرئيسية</a>
+          <span style="margin:0 6px">/</span>
+          <a href="#/section/egypt" style="color:#6A727C;text-decoration:none" style-hover="color:#B01F2E">مصر</a>
+        </div>
+        <span style="background:#D71F30;color:#FFFFFF;font-size:12px;font-weight:700;padding:4px 10px;border-radius:4px">عاجل</span>
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.375rem, 1rem + 1.6vw, 1.75rem);line-height:1.5;color:#171A1F;margin:14px 0 12px">الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد بتكلفة 12 مليار جنيه</h1>
+        <p style="color:#3C434C;font-size:clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);line-height:1.7;font-weight:500;margin:0 0 16px">المشروع يهدف إلى تقليص زمن الرحلة بين القاهرة والدلتا إلى النصف، ويأتي ضمن خطة الدولة لتطوير الشبكة القومية للطرق والمحاور الإقليمية.</p>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#6A727C;font-size:14px;padding-block:12px;border-block:1px solid #E2E5E9;margin-bottom:8px">
+          <span style="color:#3C434C;font-weight:700">محمد العدوي</span>
+          <span>•</span><span>25 يوليو 2026</span><span>•</span><span>◔ ٥ دقائق قراءة</span>
+          <span style="display:flex;align-items:center;gap:8px;margin-inline-start:auto">
+            <sc-for list="{{ shareIcons }}" as="sh" hint-placeholder-count="3">
+              <span style="width:28px;height:28px;border-radius:50%;border:1px solid #C9CED4;color:#6A727C;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0" style-hover="background:#B01F2E;border-color:#B01F2E;color:#FFFFFF" title="{{ sh.label }}">{{ sh.glyph }}</span>
+            </sc-for>
+          </span>
+        </div>
+        <figure style="margin:16px 0 4px">
+          <div style="border-radius:6px;overflow:hidden;aspect-ratio:16/9;background:#EBEDF0;display:flex;align-items:center;justify-content:center;color:#9AA1AA;font-size:13px;font-weight:600">صورة غلاف الخبر</div>
+          <figcaption style="color:#6A727C;font-size:13px;margin-top:8px;padding-bottom:12px;border-bottom:1px solid #E2E5E9">افتتاح المرحلة الثانية من المحور الجديد — تصوير: الدفتر نيوز</figcaption>
+        </figure>
+        <div style="display:flex;align-items:center;gap:14px;background:#F4F5F7;border:1px solid #E2E5E9;border-radius:999px;padding:10px 18px;margin:20px 0">
+          <button onClick="{{ togglePlay }}" style="width:40px;height:40px;border-radius:50%;background:#B01F2E;color:#fff;border:none;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;cursor:pointer">{{ playIcon }}</button>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+            <div onClick="{{ seek }}" style="position:relative;height:6px;background:#E2E5E9;border-radius:999px;cursor:pointer">
+              <div style="{{ barFillStyle }}"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;color:#6A727C;font-size:12px;font-variant-numeric:tabular-nums">
+              <span>{{ elapsedLabel }}</span><span>{{ totalLabel }}</span>
+            </div>
+          </div>
+          <button onClick="{{ cycleSpeed }}" style="border:1px solid #C9CED4;background:#FFFFFF;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;color:#171A1F;flex-shrink:0;cursor:pointer;font-variant-numeric:tabular-nums">x{{ speedLabel }}</button>
+        </div>
+        <sc-for list="{{ blocks }}" as="blk" hint-placeholder-count="6">
+          <sc-if value="{{ blk.isParagraph }}" hint-placeholder-val="{{ false }}">
+            <p style="color:#171A1F;font-size:clamp(1.125rem, 1rem + 0.3vw, 1.1875rem);line-height:1.95;margin:0 0 20px">{{ blk.text }}</p>
+          </sc-if>
+          <sc-if value="{{ blk.isHeading }}" hint-placeholder-val="{{ false }}">
+            <h2 style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;color:#171A1F;margin:32px 0 16px">{{ blk.text }}</h2>
+          </sc-if>
+          <sc-if value="{{ blk.isImage }}" hint-placeholder-val="{{ false }}">
+            <figure style="margin:24px 0">
+              <div style="border-radius:6px;overflow:hidden;aspect-ratio:16/9;background:#EBEDF0;display:flex;align-items:center;justify-content:center;color:#9AA1AA;font-size:13px;font-weight:600">صورة داخل الخبر</div>
+              <figcaption style="color:#6A727C;font-size:13px;margin-top:8px;padding-bottom:16px;border-bottom:1px solid #E2E5E9">{{ blk.caption }}</figcaption>
+            </figure>
+          </sc-if>
+          <sc-if value="{{ blk.isQuote }}" hint-placeholder-val="{{ false }}">
+            <blockquote style="border-inline-start:3px solid #B01F2E;padding-inline-start:20px;color:#3C434C;font-size:20px;font-weight:600;line-height:1.7;margin:28px 0">{{ blk.text }}</blockquote>
+          </sc-if>
+          <sc-if value="{{ blk.isRelated }}" hint-placeholder-val="{{ false }}">
+            <a href="#/article" style="display:flex;flex-direction:column;gap:6px;background:#F4F5F7;border-radius:6px;padding:16px 18px;margin:24px 0;text-decoration:none">
+              <span style="color:#B01F2E;font-size:13px;font-weight:800">اقرأ أيضاً</span>
+              <span style="color:#171A1F;font-size:16px;font-weight:700;line-height:1.5">{{ blk.title }}</span>
+            </a>
+          </sc-if>
+        </sc-for>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin:28px 0 8px">
+          <sc-for list="{{ articleTags }}" as="tg" hint-placeholder-count="4">
+            <a href="#/section/egypt" style="background:#FBEEEF;color:#B01F2E;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;text-decoration:none" style-hover="background:#B01F2E;color:#FFFFFF">{{ tg }}</a>
+          </sc-for>
+        </div>
+      </main>
+      <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:17px;color:#171A1F;margin-bottom:8px">الأكثر قراءة</div>
+          <sc-for list="{{ mostRead }}" as="it" hint-placeholder-count="5">
+            <a href="#/article" style="{{ it.itemStyle }}">
+              <span style="font-size:26px;font-weight:800;color:#B01F2E;font-variant-numeric:tabular-nums;line-height:1;flex-shrink:0;min-width:28px">{{ it.rank }}</span>
+              <span style="color:#171A1F;font-size:14px;font-weight:600;line-height:1.5">{{ it.title }}</span>
+            </a>
+          </sc-for>
+        </div>
+      </aside>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isSection }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+      <main style="flex:2 1 560px;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:20px;flex-wrap:wrap">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);color:#171A1F;margin:0">{{ sectionName }}</h1>
+          <div style="display:flex;gap:8px">
+            <button onClick="{{ showLatest }}" style="{{ tabLatestStyle }}">الأحدث</button>
+            <button onClick="{{ showPopular }}" style="{{ tabPopularStyle }}">الأكثر قراءة</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:20px">
+          <sc-for list="{{ sectionCards }}" as="c" hint-placeholder-count="6">
+            <a href="#/article" style="display:flex;flex-direction:column;text-decoration:none;background:#FFFFFF;border-radius:6px;border:1px solid #E2E5E9;overflow:hidden;transition:box-shadow 220ms ease, border-color 220ms ease" style-hover="box-shadow:0 4px 14px rgba(23,26,31,.10);border-color:#C9CED4">
+              <div style="position:relative;aspect-ratio:16/9;background:#EBEDF0;display:flex;align-items:center;justify-content:center;color:#9AA1AA;font-size:12px;font-weight:600">
+                صورة الخبر
+                <sc-if value="{{ c.hasBadge }}" hint-placeholder-val="{{ false }}">
+                  <span style="{{ c.badgeStyle }}">{{ c.badgeLabel }}</span>
+                </sc-if>
+              </div>
+              <div style="padding:16px 16px 14px;display:flex;flex-direction:column;gap:8px;flex:1">
+                <span style="color:#B01F2E;font-size:11.5px;font-weight:800;letter-spacing:.3px">{{ c.section }}</span>
+                <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:700;font-size:17px;color:#171A1F;line-height:1.55;text-wrap:pretty">{{ c.title }}</div>
+                <div style="color:#6A727C;font-size:12.5px;margin-top:auto;padding-top:4px">{{ c.time }}</div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </main>
+      <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:17px;color:#171A1F;margin-bottom:8px">الأكثر قراءة</div>
+          <sc-for list="{{ mostRead }}" as="it" hint-placeholder-count="5">
+            <a href="#/article" style="{{ it.itemStyle }}">
+              <span style="font-size:26px;font-weight:800;color:#B01F2E;font-variant-numeric:tabular-nums;line-height:1;flex-shrink:0;min-width:28px">{{ it.rank }}</span>
+              <span style="color:#171A1F;font-size:14px;font-weight:600;line-height:1.5">{{ it.title }}</span>
+            </a>
+          </sc-for>
+        </div>
+      </aside>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isOpinion }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:24px">
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);color:#171A1F;margin:0">بالعقل والمنطق</h1>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px">
+        <sc-for list="{{ opinionAll }}" as="op" hint-placeholder-count="8">
+          <a href="#/article" style="display:flex;flex-direction:column;gap:14px;background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:22px;text-decoration:none">
+            <span style="color:#B01F2E;font-size:36px;font-weight:800;line-height:.6;font-family:Georgia,serif">"</span>
+            <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-size:16px;color:#171A1F;font-weight:700;line-height:1.6;flex:1">{{ op.quote }}</div>
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:38px;height:38px;border-radius:50%;border:2px solid #B01F2E;background:#FBEEEF;color:#B01F2E;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">{{ op.initial }}</div>
+              <span style="color:#3C434C;font-size:13px;font-weight:600">{{ op.name }}</span>
+              <span style="color:#6A727C;font-size:12px;margin-inline-start:auto">{{ op.time }}</span>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isVideo }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:24px">
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);color:#171A1F;margin:0">لقطة وتعليق</h1>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:20px">
+        <sc-for list="{{ videos }}" as="v" hint-placeholder-count="6">
+          <a href="#/live" style="display:block;text-decoration:none;background:#FFFFFF;border-radius:6px;border:1px solid #E2E5E9;overflow:hidden">
+            <div style="position:relative;aspect-ratio:16/9;background:#EBEDF0;display:flex;align-items:center;justify-content:center">
+              <span style="width:52px;height:52px;border-radius:50%;background:rgba(23,26,31,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px" style-hover="background:#B01F2E"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span>
+              <span style="position:absolute;inset-inline-start:8px;inset-block-end:8px;background:rgba(23,26,31,.75);color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;font-variant-numeric:tabular-nums">{{ v.duration }}</span>
+            </div>
+            <div style="padding:14px 12px 12px">
+              <span style="color:#B01F2E;font-size:12px;font-weight:700">{{ v.section }}</span>
+              <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:700;font-size:17px;color:#171A1F;line-height:1.5;margin-top:8px">{{ v.title }}</div>
+              <div style="display:flex;gap:14px;margin-top:8px;color:#6A727C;font-size:13px">
+                <span>💬 {{ v.comments }}</span><span>↖ مشاركة</span>
+              </div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isLive }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+      <main style="flex:2 1 560px;min-width:0">
+        <div style="position:relative;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#14171C;display:flex;align-items:center;justify-content:center">
+          <span style="width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px" style-hover="background:#B01F2E"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span>
+          <span style="position:absolute;inset-inline-start:12px;inset-block-start:12px;background:#D71F30;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:4px;display:flex;align-items:center;gap:5px">
+            <span style="width:6px;height:6px;border-radius:50%;background:#fff;animation:daftar-pulse-dot 1.4s ease-in-out infinite"></span>مباشر
+          </span>
+        </div>
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.375rem, 1rem + 1.4vw, 1.75rem);margin:18px 0 24px;color:#171A1F">تغطية لحظية: مؤتمر البنك المركزي حول أسعار الفائدة</h1>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px;margin-bottom:20px">
+          <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:18px;margin:0;color:#171A1F">التغطية لحظة بلحظة</h2>
+        </div>
+        <div style="position:relative;padding-inline-start:24px">
+          <div style="position:absolute;inset-inline-start:7px;top:6px;bottom:6px;width:2px;background:#E2E5E9"></div>
+          <sc-for list="{{ liveUpdates }}" as="u" hint-placeholder-count="5">
+            <div style="position:relative;padding-bottom:28px">
+              <div style="position:absolute;inset-inline-start:-24px;top:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;border:3px solid #B01F2E"></div>
+              <div style="color:#B01F2E;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;margin-bottom:4px">{{ u.time }}</div>
+              <div style="color:#171A1F;font-size:15px;line-height:1.7">{{ u.text }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </main>
+      <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:17px;color:#171A1F;margin-bottom:8px">الأكثر قراءة</div>
+          <sc-for list="{{ mostRead }}" as="it" hint-placeholder-count="5">
+            <a href="#/article" style="{{ it.itemStyle }}">
+              <span style="font-size:26px;font-weight:800;color:#B01F2E;font-variant-numeric:tabular-nums;line-height:1;flex-shrink:0;min-width:28px">{{ it.rank }}</span>
+              <span style="color:#171A1F;font-size:14px;font-weight:600;line-height:1.5">{{ it.title }}</span>
+            </a>
+          </sc-for>
+        </div>
+      </aside>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isMarkets }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:24px">
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);color:#171A1F;margin:0">الأسواق</h1>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:20px;align-items:start">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+          <div style="font-weight:800;font-size:16px;margin-bottom:14px">أسعار العملات</div>
+          <sc-for list="{{ currencies }}" as="c" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding-block:12px;border-block-end:1px solid #E2E5E9">
+              <span style="font-weight:700;font-size:14px;width:52px">{{ c.code }}</span>
+              <svg width="60" height="22" viewBox="0 0 60 22" style="flex-shrink:0">
+                <polyline points="{{ c.points }}" fill="none" style="{{ c.strokeStyle }}"></polyline>
+              </svg>
+              <span style="margin-inline-start:auto;text-align:end">
+                <div style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">{{ c.sell }}</div>
+                <div style="font-variant-numeric:tabular-nums;color:#6A727C;font-size:11px">شراء {{ c.buy }}</div>
+              </span>
+              <span style="{{ c.chipStyle }}">{{ c.change }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <span style="font-weight:800;font-size:16px">أسعار الذهب</span>
+            <span style="display:flex;align-items:center;gap:5px;color:#0E8A4C;font-size:12px;font-weight:700">
+              <span style="width:6px;height:6px;border-radius:50%;background:#0E8A4C;animation:daftar-pulse-dot 1.4s ease-in-out infinite"></span>تحديث مباشر
+            </span>
+          </div>
+          <sc-for list="{{ gold }}" as="g" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding-block:12px;border-block-end:1px solid #E2E5E9">
+              <span style="font-weight:700;font-size:14px">{{ g.label }}</span>
+              <span style="margin-inline-start:auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">{{ g.price }} ج.م</span>
+              <span style="{{ g.chipStyle }}">{{ g.change }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+            <sc-for list="{{ cities }}" as="ct" hint-placeholder-count="4">
+              <button onClick="{{ ct.go }}" style="{{ ct.style }}">{{ ct.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <span style="font-size:44px">{{ weather.icon }}</span>
+            <div>
+              <div style="font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:#171A1F">{{ weather.temp }}°</div>
+              <div style="color:#6A727C;font-size:13px;margin-top:6px">عليا {{ weather.hi }}° • دنيا {{ weather.lo }}° • رطوبة {{ weather.humidity }}%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isAbout }}" hint-placeholder-val="{{ false }}">
+    <div style="max-width:680px;margin:0 auto;padding:48px 24px">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:20px">
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:28px;margin:0;color:#171A1F">من نحن</h1>
+      </div>
+      <p style="font-size:17px;line-height:1.9;color:#171A1F;margin:0 0 32px">الدفتر نيوز منصة إخبارية مستقلة تأسست بهدف تقديم تغطية دقيقة وسريعة لأخبار مصر والمنطقة، اقتصاداً ورياضة ومجتمعاً، مع التزام صارم بالمصدرية والتحقق قبل النشر.</p>
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:16px">
+        <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:20px;margin:0;color:#171A1F">رسالتنا</h2>
+      </div>
+      <p style="font-size:17px;line-height:1.9;color:#171A1F;margin:0 0 32px">نؤمن أن القارئ يستحق خبراً واضحاً بلا ضجيج، لذلك نفصل بين الخبر والرأي بوضوح، ونمنح كل قصة الوقت الكافي للتحقق قبل أن تصل إليك.</p>
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:16px">
+        <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:20px;margin:0;color:#171A1F">تواصل معنا</h2>
+      </div>
+      <p style="font-size:17px;line-height:1.9;color:#171A1F;margin:0">للاستفسارات والشراكات: <a href="#/about" style="color:#B01F2E;text-decoration:none;font-weight:600">info@aldaftarnews.com</a></p>
+    </div>
+  </sc-if>
+
+  <footer style="background:#14171C">
+    <div style="max-width:1200px;margin:0 auto;padding:48px 24px 24px;display:flex;flex-wrap:wrap;gap:40px">
+      <div style="flex:2 1 260px;min-width:220px">
+        <div style="display:inline-flex;align-items:center;border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:20px;color:#F5F6F7">الدفتر نيوز</div>
+        <p style="color:#9AA1AA;font-size:14px;line-height:1.7;max-width:320px;margin:16px 0 20px">سِجلّ اليوم.. خبراً خبراً</p>
+      </div>
+      <div style="flex:1 1 160px;min-width:160px">
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:10px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:700;font-size:15px;color:#F5F6F7;margin-bottom:16px">الأقسام</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <a href="#/section/egypt" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">مصر</a>
+          <a href="#/section/economy" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">اقتصاد</a>
+          <a href="#/section/sports" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">رياضة</a>
+          <a href="#/opinion" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">بالعقل والمنطق</a>
+          <a href="#/video" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">لقطة وتعليق</a>
+        </div>
+      </div>
+      <div style="flex:1 1 160px;min-width:160px">
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:10px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:700;font-size:15px;color:#F5F6F7;margin-bottom:16px">الشركة</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <a href="#/about" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">من نحن</a>
+          <a href="#/markets" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">الأسواق</a>
+          <a href="#/live" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">البث المباشر</a>
+          <a href="#/video" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">لقطة وتعليق</a>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid #3C434C">
+      <div style="max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <span style="color:#6A727C;font-size:13px">© 2026 aldaftarnews.com</span>
+        <span style="color:#6A727C;font-size:13px">الدفتر نيوز © جميع الحقوق محفوظة</span>
+      </div>
+    </div>
+  </footer>
+
+  <a href="#/markets" style="position:fixed;inset-inline-start:0;inset-inline-end:0;bottom:0;height:52px;background:#FFFFFF;border-top:1px solid #E2E5E9;box-shadow:0 -2px 12px rgba(23,26,31,.12);z-index:40;text-decoration:none;display:block">
+    <div style="max-width:1200px;width:100%;margin:0 auto;padding-inline:24px;height:100%;display:flex;align-items:center;gap:28px;overflow-x:auto;box-sizing:border-box">
+      <sc-for list="{{ tickerItems }}" as="t" hint-placeholder-count="5">
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;padding-inline-end:20px;border-inline-end:1px solid #E2E5E9">
+          <span style="color:#6A727C;font-size:13px;white-space:nowrap">{{ t.label }}</span>
+          <span style="color:#171A1F;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap">{{ t.value }}</span>
+          <span style="{{ t.chipStyle }}">{{ t.change }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </a>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { route: '', playing: false, progress: 6, speed: 1, tab: 'latest', city: 'cairo' };
+  componentDidMount() {
+    this._onHash = () => { this.setState({ route: (window.location.hash || '').replace(/^#\/?/, '') }); window.scrollTo(0, 0); };
+    this._onHash();
+    window.addEventListener('hashchange', this._onHash);
+  }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._onHash); clearInterval(this._t); }
+  togglePlay = () => {
+    if (this.state.playing) { clearInterval(this._t); this.setState({ playing: false }); return; }
+    this._t = setInterval(() => {
+      this.setState((s) => {
+        const next = Math.min(100, s.progress + (100 / 255) * 0.25 * s.speed);
+        if (next >= 100) clearInterval(this._t);
+        return { progress: next };
+      });
+    }, 250);
+    this.setState({ playing: true });
+  };
+  cycleSpeed = () => this.setState((s) => ({ speed: s.speed === 1 ? 1.25 : s.speed === 1.25 ? 1.5 : 1 }));
+  seek = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    this.setState({ progress: Math.max(0, Math.min(100, ((rect.right - e.clientX) / rect.width) * 100)) });
+  };
+  renderVals() {
+    const parts = (this.state.route || 'home').split('/');
+    const view = parts[0] || 'home';
+    const sectionKey = parts[1] || 'egypt';
+    const fmt = (secs) => { const m = Math.floor(secs / 60); const s = Math.floor(secs % 60); return m + ':' + String(s).padStart(2, '0'); };
+    const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const toRank = (n) => String(n).split('').map((d) => eastern[+d]).join('');
+    const badge = (kind) => kind === 'breaking'
+      ? { hasBadge: true, badgeLabel: 'عاجل', badgeStyle: { position: 'absolute', insetInlineStart: '8px', insetBlockStart: '8px', background: '#D71F30', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '3px 9px', borderRadius: '4px' } }
+      : kind === 'exclusive'
+        ? { hasBadge: true, badgeLabel: 'خاص', badgeStyle: { position: 'absolute', insetInlineStart: '8px', insetBlockStart: '8px', background: '#A97E14', color: '#fff', fontSize: '12px', fontWeight: 700, padding: '3px 9px', borderRadius: '4px' } }
+        : { hasBadge: false, badgeLabel: '', badgeStyle: {} };
+    const card = (title, section, time, kind) => Object.assign({ href: '#/article', title, section, time, imgLabel: 'صورة الخبر' }, badge(kind));
+
+    const egyptCards = [
+      card('مجلس الوزراء يوافق على حزمة حوافز جديدة للمصانع الصغيرة', 'مصر', 'منذ ساعة', 'none'),
+      card('افتتاح أول محطة لتحلية مياه البحر على الساحل الشمالي', 'مصر', 'منذ ساعتين', 'exclusive'),
+      card('محافظ القاهرة يتابع أعمال تطوير ميدان رمسيس', 'مصر', 'منذ 3 ساعات', 'none'),
+      card('توسعات جديدة في شبكة المترو تشمل خط حلوان', 'مصر', 'منذ 4 ساعات', 'none'),
+    ];
+    const econCards = [
+      card('الجنيه يسجل استقراراً أمام الدولار للأسبوع الثالث', 'اقتصاد', 'منذ ساعة', 'none'),
+      card('بورصة مصر تغلق على ارتفاع بقيادة أسهم البنوك', 'اقتصاد', 'منذ ساعتين', 'exclusive'),
+      card('صندوق النقد يشيد ببرنامج الإصلاح الاقتصادي المصري', 'اقتصاد', 'منذ 4 ساعات', 'none'),
+      card('ارتفاع صادرات الغزل والنسيج 18% خلال النصف الأول', 'اقتصاد', 'أمس', 'none'),
+    ];
+    const sportsCards = [
+      card('الأهلي يتأهل لنهائي دوري أبطال أفريقيا بعد فوز كاسح', 'رياضة', 'منذ ساعتين', 'none'),
+      card('الزمالك يتعاقد مع مدرب جديد قبل بداية الموسم', 'رياضة', 'منذ 3 ساعات', 'none'),
+      card('المنتخب الوطني يستعد لمواجهة حاسمة في تصفيات المونديال', 'رياضة', 'منذ 4 ساعات', 'exclusive'),
+      card('نجم الكرة المصرية يفوز بجائزة أفضل لاعب في القارة', 'رياضة', 'أمس', 'none'),
+    ];
+    const sections = { egypt: { name: 'مصر', cards: egyptCards }, economy: { name: 'اقتصاد', cards: econCards }, sports: { name: 'رياضة', cards: sportsCards } };
+    const sec = sections[sectionKey] || sections.egypt;
+    const sectionCards = this.state.tab === 'popular' ? sec.cards.slice().reverse() : sec.cards;
+
+    const navRaw = [['home', 'الرئيسية', '#/home'], ['egypt', 'مصر', '#/section/egypt'], ['economy', 'اقتصاد', '#/section/economy'], ['sports', 'رياضة', '#/section/sports'], ['opinion', 'بالعقل والمنطق', '#/opinion'], ['video', 'لقطة وتعليق', '#/video'], ['live', 'بث مباشر', '#/live'], ['markets', 'الأسواق', '#/markets']];
+    const activeKey = view === 'section' ? sectionKey : view;
+    const navItems = navRaw.map(([key, label, href]) => {
+      const on = key === activeKey;
+      return { key, label, href, style: { display: 'flex', alignItems: 'center', height: '100%', padding: '0 4px', color: on ? '#B01F2E' : '#171A1F', fontWeight: on ? 700 : 600, fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap', borderBlockEnd: on ? '3px solid #B01F2E' : '3px solid transparent', flexShrink: 0 } };
+    });
+
+    const opinionRaw = [
+      { name: 'د. سامية فاروق', quote: 'الإصلاح الاقتصادي ليس رقماً في موازنة.. بل قرار مجتمع بأكمله', time: 'منذ يوم' },
+      { name: 'كريم عبد الوهاب', quote: 'لماذا يفوز المنتخب في الملعب الخطأ كل مرة؟', time: 'منذ يومين' },
+      { name: 'منى الشربيني', quote: 'جيل جديد من القراء.. وصحافة لم تتغيّر بعد', time: 'منذ 3 أيام' },
+      { name: 'أحمد لبيب', quote: 'الذكاء الاصطناعي في غرفة الأخبار: تهديد أم أداة؟', time: 'منذ 4 أيام' },
+      { name: 'ياسمين توفيق', quote: 'الصعيد ليس هامشاً.. هو متن الحكاية المصرية', time: 'منذ 5 أيام' },
+      { name: 'محمد العدوي', quote: 'الطرق الجديدة تبني اقتصاداً.. إن أُحسنت إدارتها', time: 'منذ أسبوع' },
+    ].map((o) => Object.assign({}, o, { initial: o.name.replace('د. ', '').charAt(0) }));
+
+    const mostReadRaw = [
+      'الحكومة تعلن حزمة دعم جديدة للصناعات الصغيرة',
+      'ارتفاع تاريخي لمؤشر البورصة المصرية في ختام التعاملات',
+      'اتفاق ثنائي لتعزيز التبادل التجاري مع دول الخليج',
+      'نجم المنتخب يوجه رسالة قبل نهائي البطولة',
+      'خبراء: موجة الطقس الحالية تتراجع نهاية الأسبوع',
+    ];
+    const mostRead = mostReadRaw.map((title, i) => ({ title, rank: toRank(i + 1), itemStyle: { display: 'flex', gap: '14px', alignItems: 'flex-start', paddingBlock: '14px', textDecoration: 'none', borderBlockEnd: i === mostReadRaw.length - 1 ? 'none' : '1px solid #E2E5E9' } }));
+
+    const rawBlocks = [
+      { type: 'paragraph', text: 'قال مسؤولون في وزارة النقل إن المرحلة الثانية من المحور الجديد تمتد لمسافة 48 كيلومتراً، وتشمل ثلاث كباري علوية وأربع محطات خدمة رئيسية على طول الطريق.' },
+      { type: 'image', caption: 'جانب من مراسم افتتاح المرحلة الثانية من المحور أمس' },
+      { type: 'paragraph', text: 'وأوضحت الوزارة أن العمل بدأ في المرحلة الثالثة والأخيرة من المشروع، والمقرر الانتهاء منها في الربع الأول من العام المقبل، بما يكتمل معه الربط الكامل بين القاهرة ومحافظات الدلتا.' },
+      { type: 'heading', text: 'تفاصيل المشروع' },
+      { type: 'paragraph', text: 'يأتي المشروع في إطار خطة الدولة لتطوير شبكة الطرق القومية، بتكلفة إجمالية تجاوزت 12 مليار جنيه، بتمويل مشترك بين الخزانة العامة وهيئات دولية مانحة.' },
+      { type: 'quote', text: 'هذا المحور ليس مجرد طريق.. إنه إعادة رسم لخريطة الحركة التجارية بين القاهرة والدلتا لعقود قادمة.' },
+      { type: 'related', title: 'مجلس الوزراء يوافق على حزمة حوافز جديدة للمصانع الصغيرة' },
+      { type: 'paragraph', text: 'ويرى مراقبون أن المشروع سيخفف الضغط عن الطريق الزراعي القديم، ويعزز من قدرة المناطق الصناعية الجديدة على استقبال شاحنات نقل البضائع بشكل أسرع وأكثر أماناً.' },
+    ];
+    const blocks = rawBlocks.map((b) => Object.assign({}, b, { isParagraph: b.type === 'paragraph', isHeading: b.type === 'heading', isImage: b.type === 'image', isQuote: b.type === 'quote', isRelated: b.type === 'related' }));
+
+    const chip = (up) => ({ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '12px', fontWeight: 700, padding: '2px 6px', borderRadius: '999px', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', background: up ? '#E7F4ED' : '#FBEDED', color: up ? '#0E8A4C' : '#C93030' });
+    const toPoints = (series) => { const w = 60, h = 22, max = Math.max(...series), min = Math.min(...series), range = (max - min) || 1; return series.map((v, i) => (i * (w / (series.length - 1))).toFixed(1) + ',' + (h - ((v - min) / range) * h).toFixed(1)).join(' '); };
+    const currencies = [
+      { code: 'USD', buy: '48.70', sell: '48.85', up: true, change: '▲0.3%', series: [48.2, 48.3, 48.5, 48.4, 48.6, 48.7, 48.8, 48.85] },
+      { code: 'EUR', buy: '51.90', sell: '52.10', up: false, change: '▼0.15%', series: [52.6, 52.5, 52.4, 52.3, 52.2, 52.2, 52.1, 52.1] },
+      { code: 'GBP', buy: '60.20', sell: '60.55', up: true, change: '▲0.2%', series: [59.8, 60.0, 59.9, 60.1, 60.2, 60.3, 60.4, 60.55] },
+      { code: 'SAR', buy: '13.00', sell: '13.05', up: true, change: '▲0.1%', series: [12.9, 12.95, 13.0, 12.98, 13.0, 13.02, 13.03, 13.05] },
+    ].map((c) => Object.assign({}, c, { points: toPoints(c.series), strokeStyle: { stroke: c.up ? '#0E8A4C' : '#C93030', strokeWidth: 2 }, chipStyle: chip(c.up) }));
+    const gold = [
+      { label: 'عيار 24', price: '4,220', up: true, change: '▲0.9%' },
+      { label: 'عيار 21', price: '3,550', up: true, change: '▲0.8%' },
+      { label: 'عيار 18', price: '3,050', up: true, change: '▲0.7%' },
+      { label: 'جنيه ذهب', price: '33,760', up: false, change: '▼0.2%' },
+    ].map((g) => Object.assign({}, g, { chipStyle: chip(g.up) }));
+    const weatherData = { cairo: { icon: '☀️', temp: 34, hi: 36, lo: 24, humidity: 32 }, alex: { icon: '⛅', temp: 29, hi: 31, lo: 23, humidity: 58 }, luxor: { icon: '☀️', temp: 41, hi: 43, lo: 27, humidity: 15 }, aswan: { icon: '☀️', temp: 43, hi: 45, lo: 29, humidity: 12 } };
+    const cityBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' };
+    const cities = [['cairo', 'القاهرة'], ['alex', 'الإسكندرية'], ['luxor', 'الأقصر'], ['aswan', 'أسوان']].map(([k, l]) => ({ label: l, go: () => this.setState({ city: k }), style: Object.assign({}, cityBase, this.state.city === k ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }) }));
+
+    const tabBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' };
+    const breakingItems = ['الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد', 'البنك المركزي يثبّت أسعار الفائدة في اجتماعه الدوري', 'المنتخب يتأهل لنهائي البطولة الأفريقية بعد فوز مثير', 'ارتفاع طفيف في أسعار الذهب مع تراجع الدولار عالمياً'];
+
+    return {
+      today: new Intl.DateTimeFormat('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date()),
+      breakingText: breakingItems.join('   •   '),
+      navItems,
+      isHome: view === 'home', isArticle: view === 'article', isSection: view === 'section', isOpinion: view === 'opinion',
+      isVideo: view === 'video', isLive: view === 'live', isMarkets: view === 'markets',
+      isAbout: view === 'about',
+      heroSide: [
+        { title: 'البنك المركزي يثبّت أسعار الفائدة للاجتماع الثالث على التوالي', section: 'اقتصاد', time: 'منذ ساعة' },
+        { title: 'الأهلي يحسم صفقة نجم الوسط قبل ساعات من إغلاق القيد', section: 'رياضة', time: 'منذ ساعتين' },
+        { title: 'ارتفاع درجات الحرارة إلى 38 درجة في القاهرة الكبرى اليوم', section: 'مصر', time: 'منذ 3 ساعات' },
+      ].map((h, i, arr) => Object.assign({}, h, { rowStyle: { display: 'flex', gap: '12px', textDecoration: 'none', paddingBlock: '14px', borderBlockEnd: i === arr.length - 1 ? 'none' : '1px solid #E2E5E9' } })),
+      homeBlocks: [
+        { title: 'مصر', href: '#/section/egypt', cards: egyptCards },
+        { title: 'اقتصاد', href: '#/section/economy', cards: econCards },
+        { title: 'رياضة', href: '#/section/sports', cards: sportsCards },
+      ],
+      opinionItems: opinionRaw.slice(0, 4), opinionAll: opinionRaw,
+      latestNews: [
+        { title: 'التعليم العالي يعلن مواعيد تنسيق المرحلة الثانية', time: '10:42' },
+        { title: 'ارتفاع أسعار الذهب عالمياً مع تصاعد التوترات', time: '10:15' },
+        { title: 'توقيع بروتوكول تعاون بين القاهرة ونيروبي', time: '09:38' },
+        { title: 'إطلاق منصة رقمية موحدة لخدمات الشهر العقاري', time: '08:54' },
+        { title: 'استمرار غلق مدارس بورسعيد بسبب سوء الطقس', time: '08:20' },
+        { title: 'تراجع أسعار الطماطم والخضروات في الأسواق', time: '07:45' },
+      ],
+      mostRead,
+      sectionName: sec.name, sectionCards,
+      tabLatestStyle: Object.assign({}, tabBase, this.state.tab === 'latest' ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }),
+      tabPopularStyle: Object.assign({}, tabBase, this.state.tab === 'popular' ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }),
+      showLatest: () => this.setState({ tab: 'latest' }), showPopular: () => this.setState({ tab: 'popular' }),
+      videos: [
+        { title: 'لحظة إنقاذ طفل من الغرق على شاطئ الإسكندرية', section: 'مصر', duration: '03:12', comments: 42 },
+        { title: 'تعليق الكابتن على أداء المنتخب في المباراة الأخيرة', section: 'رياضة', duration: '05:44', comments: 118 },
+        { title: 'جولة داخل أكبر مصنع سيارات كهربائية في مصر', section: 'اقتصاد', duration: '07:20', comments: 27 },
+        { title: 'ردود الفعل الأولى بعد قرار البنك المركزي', section: 'اقتصاد', duration: '02:58', comments: 63 },
+        { title: 'ملخص مباراة الأهلي والترجي في أفريقيا', section: 'رياضة', duration: '04:10', comments: 205 },
+        { title: 'جولة ميدانية داخل محور الدلتا الجديد', section: 'مصر', duration: '06:02', comments: 51 },
+      ],
+      liveUpdates: [
+        { time: '12:41', text: 'محافظ البنك المركزي يبدأ كلمته بالإشارة إلى استقرار معدلات التضخم خلال الربع الأخير.' },
+        { time: '12:33', text: 'بدء المؤتمر الصحفي بحضور نواب المحافظ وممثلي البنوك الكبرى.' },
+        { time: '12:20', text: 'تجمع صحفي كبير أمام مقر البنك المركزي قبل بدء المؤتمر.' },
+        { time: '12:05', text: 'مصادر: القرار المرتقب لن يشمل تغييراً في سعر الإيداع الليلي.' },
+        { time: '11:50', text: 'انطلاق التغطية المباشرة لاجتماع لجنة السياسة النقدية.' },
+      ],
+      currencies, gold, cities, weather: weatherData[this.state.city],
+      blocks,
+      articleTags: ['البنية التحتية', 'مصر', 'النقل', 'الدلتا الجديدة'],
+      shareIcons: [{ label: 'فيسبوك', glyph: 'f' }, { label: 'X', glyph: 'X' }, { label: 'نسخ الرابط', glyph: '↗' }],
+      playIcon: this.state.playing ? '❚❚' : '▶',
+      speedLabel: this.state.speed,
+      barFillStyle: { position: 'absolute', insetInlineStart: 0, top: 0, bottom: 0, width: this.state.progress + '%', background: '#B01F2E', borderRadius: '999px' },
+      elapsedLabel: fmt((this.state.progress / 100) * 255), totalLabel: fmt(255),
+      tickerItems: [
+        { label: 'دولار/جنيه', value: '48.85', change: '▲ 0.3%', chipStyle: chip(true) },
+        { label: 'يورو/جنيه', value: '52.10', change: '▼ 0.15%', chipStyle: chip(false) },
+        { label: 'ذهب عيار 21', value: '3,550', change: '▲ 0.8%', chipStyle: chip(true) },
+        { label: 'المؤشر الرئيسي', value: '28,450', change: '▼ 0.4%', chipStyle: chip(false) },
+        { label: 'القاهرة ☀', value: '34°', change: '', chipStyle: { display: 'none' } },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="opinion" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+    <main style="flex:2 1 480px;max-width:680px;min-width:0">
+      <div style="color:#6A727C;font-size:13px;margin-bottom:16px">
+        <a href="Home.dc.html" style="color:#6A727C;text-decoration:none" style-hover="color:#B01F2E">الرئيسية</a>
+        <span style="margin:0 6px">/</span>
+        <a href="Opinion.dc.html" style="color:#6A727C;text-decoration:none" style-hover="color:#B01F2E">بالعقل والمنطق</a>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:14px 16px;margin-bottom:20px">
+        <div style="width:64px;height:64px;border-radius:50%;border:2px solid #B01F2E;overflow:hidden;flex-shrink:0">
+          <image-slot id="articleopinion-avatar" shape="circle" placeholder="صورة"></image-slot>
+        </div>
+        <div>
+          <div style="font-weight:700;font-size:15px;color:#171A1F">د. سامية فاروق</div>
+          <div style="color:#6A727C;font-size:13px;margin-top:2px">كاتبة اقتصادية، الدفتر نيوز</div>
+        </div>
+      </div>
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.375rem, 1rem + 1.6vw, 1.75rem);line-height:1.5;color:#171A1F;margin:0 0 12px">الإصلاح الاقتصادي ليس رقماً في موازنة.. بل قرار مجتمع بأكمله</h1>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#6A727C;font-size:14px;padding-block:12px;border-block:1px solid #E2E5E9;margin-bottom:24px">
+        <span>25 يوليو 2026</span><span>•</span><span>◔ ٤ دقائق قراءة</span>
+      </div>
+
+      <sc-for list="{{ blocks }}" as="blk" hint-placeholder-count="5">
+        <sc-if value="{{ blk.isParagraph }}" hint-placeholder-val="{{ false }}">
+          <p style="{{ bodyTextStyle }}">{{ blk.text }}</p>
+        </sc-if>
+        <sc-if value="{{ blk.isQuote }}" hint-placeholder-val="{{ false }}">
+          <blockquote style="{{ quoteStyle }}">{{ blk.text }}</blockquote>
+        </sc-if>
+        <sc-if value="{{ blk.isHeading }}" hint-placeholder-val="{{ false }}">
+          <h2 style="{{ h2Style }}">{{ blk.text }}</h2>
+        </sc-if>
+      </sc-for>
+
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:28px 0 8px">
+        <sc-for list="{{ tags }}" as="tg" hint-placeholder-count="3">
+          <a href="{{ tg.href }}" style="background:#FBEEEF;color:#B01F2E;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;text-decoration:none" style-hover="background:#B01F2E;color:#FFFFFF">{{ tg.label }}</a>
+        </sc-for>
+      </div>
+    </main>
+    <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+      <dc-import name="MostReadList" lang="ar" hint-size="100%,360px"></dc-import>
+    </aside>
+  </div>
+
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const rawBlocks = [
+      { type: 'paragraph', text: 'حين نتحدث عن الإصلاح الاقتصادي، تتجه الأنظار عادة إلى الأرقام: سعر الصرف، عجز الموازنة، معدل التضخم. لكن الإصلاح الحقيقي أعمق من ذلك بكثير، إنه تغيير في سلوك مجتمع كامل تجاه الإنتاج والادخار والاستهلاك.' },
+      { type: 'heading', text: 'ما الذي تغيّر فعلاً؟' },
+      { type: 'paragraph', text: 'خلال السنوات الأخيرة، تحسّنت مؤشرات كثيرة على الورق، لكن الشارع لا يزال يشعر بثقل الأسعار. هذه الفجوة بين الرقم والشعور هي ما يجب أن ينتبه له صانع القرار قبل أي شيء آخر.' },
+      { type: 'quote', text: 'لا يمكن قياس نجاح الإصلاح بمؤشر بورصة، بل بقدرة أسرة على تعليم أبنائها دون قلق.' },
+      { type: 'paragraph', text: 'المطلوب اليوم ليس مزيداً من القرارات الصادمة، بل شبكة أمان اجتماعي تسير بالتوازي مع أي تعديل في الأسعار، بحيث لا يتحمل الأكثر فقراً كلفة الإصلاح وحده.' },
+    ];
+    const blocks = rawBlocks.map((b) => ({ ...b, isParagraph: b.type === 'paragraph', isHeading: b.type === 'heading', isQuote: b.type === 'quote' }));
+    return {
+      blocks, tags: ['اقتصاد', 'رأي', 'سياسات عامة'].map((t) => ({ label: t, href: 'Tag.dc.html?tag=' + encodeURIComponent(t) })),
+      bodyTextStyle: { color: '#171A1F', fontSize: 'clamp(1.125rem, 1rem + 0.3vw, 1.1875rem)', lineHeight: 1.95, margin: '0 0 20px' },
+      h2Style: { borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '14px', fontFamily: "'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif", fontWeight: 800, fontSize: '20px', color: '#171A1F', margin: '28px 0 14px' },
+      quoteStyle: { borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '20px', color: '#3C434C', fontSize: '20px', fontWeight: 600, lineHeight: 1.7, margin: '24px 0' },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

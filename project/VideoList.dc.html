@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="video" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+    <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:20px">
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);margin:0;color:#171A1F">لقطة وتعليق</h1>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+        <button onClick="{{ c.go }}" style="{{ c.style }}">{{ c.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:20px">
+      <sc-for list="{{ visibleVideos }}" as="v" hint-placeholder-count="8">
+        <dc-import name="ArticleCard" lang="ar" variant="standard" href="VideoPage.dc.html" title="{{ v.title }}" section="{{ v.section }}" time="{{ v.time }}" badge="{{ v.badge }}" image-id="{{ v.imageId }}" is-video="{{ v.isVideo }}" video-duration="{{ v.videoDuration }}" comments="{{ v.comments }}" hint-size="100%,260px"></dc-import>
+      </sc-for>
+    </div>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { filter: 'all' };
+  renderVals() {
+    const all = [
+      { section: 'مصر', title: 'لحظة إنقاذ طفل من الغرق على شاطئ الإسكندرية', time: 'منذ ساعة', videoDuration: '03:12', comments: 42, badge: 'none' },
+      { section: 'رياضة', title: 'تعليق الكابتن على أداء المنتخب في المباراة الأخيرة', time: 'منذ ساعتين', videoDuration: '05:44', comments: 118, badge: 'exclusive' },
+      { section: 'اقتصاد', title: 'جولة داخل أكبر مصنع سيارات كهربائية في مصر', time: 'منذ 3 ساعات', videoDuration: '07:20', comments: 27, badge: 'none' },
+      { section: 'اقتصاد', title: 'ردود الفعل الأولى بعد قرار البنك المركزي', time: 'أمس', videoDuration: '02:58', comments: 63, badge: 'none' },
+      { section: 'رياضة', title: 'ملخص مباراة الأهلي والترجي في افريقيا', time: 'أمس', videoDuration: '04:10', comments: 205, badge: 'none' },
+      { section: 'مصر', title: 'جولة ميدانية داخل محور الدلتا الجديد', time: 'منذ يومين', videoDuration: '06:02', comments: 51, badge: 'none' },
+      { section: 'مصر', title: 'ردود أفعال المواطنين على قرار دعم الصناعة', time: 'منذ يومين', videoDuration: '03:40', comments: 33, badge: 'none' },
+      { section: 'رياضة', title: 'تدريبات المنتخب استعداداً لتصفيات المونديال', time: 'منذ 3 أيام', videoDuration: '05:15', comments: 88, badge: 'none' },
+    ].map((v, i) => ({ ...v, href: 'VideoPage.dc.html', imageId: 'videolist-' + i, isVideo: true }));
+    const visibleVideos = this.state.filter === 'all' ? all : all.filter((v) => v.section === this.state.filter);
+    const base = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 18px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' };
+    const mk = (key, label) => ({ label, go: () => this.setState({ filter: key }), style: Object.assign({}, base, this.state.filter === key ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }) });
+    return { chips: [mk('all', 'الكل'), mk('مصر', 'مصر'), mk('رياضة', 'رياضة'), mk('اقتصاد', 'اقتصاد')], visibleVideos };
+  }
+}
+
+</script>
+</body>
+</html>

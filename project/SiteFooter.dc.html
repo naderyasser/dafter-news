@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"/>
+</helmet>
+<footer style="{{ rootStyle }}">
+  <div style="max-width:1200px;margin:0 auto;padding:48px 24px 24px;display:flex;flex-wrap:wrap;gap:40px">
+    <div style="flex:2 1 260px;min-width:220px">
+      <div style="{{ logoStyle }}">{{ logoText }}</div>
+      <p style="color:#9AA1AA;font-size:14px;line-height:1.7;max-width:320px;margin:16px 0 20px">{{ tagline }}</p>
+      <div style="display:flex;gap:10px">
+        <sc-for list="{{ socials }}" as="s" hint-placeholder-count="4">
+          <a href="#" style="width:34px;height:34px;border-radius:50%;border:1px solid #3C434C;color:#F5F6F7;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px;font-weight:700" style-hover="border-color:#B01F2E;color:#B01F2E">{{ s.label }}</a>
+        </sc-for>
+      </div>
+    </div>
+    <div style="flex:1 1 160px;min-width:160px">
+      <div style="{{ headingStyle }}">{{ t.sectionsHeading }}</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ sectionLinks }}" as="l" hint-placeholder-count="5">
+          <a href="{{ l.href }}" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">{{ l.label }}</a>
+        </sc-for>
+      </div>
+    </div>
+    <div style="flex:1 1 160px;min-width:160px">
+      <div style="{{ headingStyle }}">{{ t.companyHeading }}</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ companyLinks }}" as="l" hint-placeholder-count="4">
+          <a href="{{ l.href }}" style="color:#9AA1AA;text-decoration:none;font-size:14px" style-hover="color:#F5F6F7">{{ l.label }}</a>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="border-top:1px solid #3C434C">
+    <div style="max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span style="color:#6A727C;font-size:13px">{{ copyright }}</span>
+      <span style="color:#6A727C;font-size:13px">{{ tagline2 }}</span>
+    </div>
+  </div>
+</footer>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:260},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;ar&quot;,&quot;options&quot;:[&quot;ar&quot;,&quot;en&quot;],&quot;tsType&quot;:&quot;'ar'|'en'&quot;},&quot;homeHref&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Home.dc.html&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const lang = this.props.lang === 'en' ? 'en' : 'ar';
+    const isAr = lang === 'ar';
+    const fontBody = isAr ? "'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif" : "'Inter',system-ui,sans-serif";
+    const fontDisplay = isAr ? "'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif" : "'Inter',system-ui,sans-serif";
+    const homeHref = this.props.homeHref || (isAr ? 'Home.dc.html' : 'Home-EN.dc.html');
+    const sectionHref = (key) => isAr ? ('Section.dc.html?section=' + key) : '#';
+
+    const sectionLinks = isAr ? [
+      { label: 'مصر', href: sectionHref('egypt') }, { label: 'اقتصاد', href: sectionHref('economy') },
+      { label: 'رياضة', href: sectionHref('sports') }, { label: 'بالعقل والمنطق', href: 'Opinion.dc.html' }, { label: 'لقطة وتعليق', href: 'VideoList.dc.html' },
+    ] : [
+      { label: 'Egypt', href: '#' }, { label: 'Economy', href: '#' }, { label: 'Sports', href: '#' },
+      { label: 'Opinion', href: '#' }, { label: 'Watch', href: '#' },
+    ];
+    const companyLinks = isAr ? [
+      { label: 'من نحن', href: 'About.dc.html' }, { label: 'كتّابنا', href: 'Authors.dc.html' }, { label: 'الأكثر قراءة', href: 'MostReadPage.dc.html' }, { label: 'تسجيل الدخول', href: 'Login.dc.html' },
+    ] : [
+      { label: 'About', href: '#' }, { label: 'Contact', href: '#' }, { label: 'Privacy', href: '#' }, { label: 'Log in', href: '#' },
+    ];
+    const socials = [{ label: 'f' }, { label: 'X' }, { label: 'in' }, { label: '▶' }];
+
+    return {
+      rootStyle: { background: '#14171C', fontFamily: fontBody, paddingBottom: '52px' },
+      logoStyle: { display: 'inline-flex', alignItems: 'center', borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '12px', fontFamily: fontDisplay, fontWeight: 800, fontSize: '20px', color: '#F5F6F7' },
+      headingStyle: { borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '10px', fontFamily: fontDisplay, fontWeight: 700, fontSize: '15px', color: '#F5F6F7', marginBottom: '16px' },
+      logoText: isAr ? 'الدفتر نيوز' : 'Al Daftar News',
+      tagline: isAr ? 'سِجلّ اليوم.. خبراً خبراً' : "Today's record, story by story.",
+      tagline2: isAr ? 'الدفتر نيوز © جميع الحقوق محفوظة' : 'Al Daftar News — all rights reserved',
+      copyright: isAr ? '© 2026 aldaftarnews.com' : '© 2026 aldaftarnews.com',
+      t: { sectionsHeading: isAr ? 'الأقسام' : 'Sections', companyHeading: isAr ? 'الشركة' : 'Company' },
+      sectionLinks, companyLinks, socials,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="most-read" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1000px;margin:0 auto;padding:32px 24px">
+    <div style="{{ headingRowStyle }}">
+      <h1 style="{{ titleStyle }}">الأكثر قراءة</h1>
+      <div style="display:flex;gap:8px">
+        <sc-for list="{{ periods }}" as="p" hint-placeholder-count="3">
+          <button onClick="{{ p.go }}" style="{{ p.style }}">{{ p.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(380px, 1fr));gap:8px 32px">
+      <sc-for list="{{ items }}" as="it" hint-placeholder-count="10">
+        <a href="{{ it.href }}" style="{{ it.itemStyle }}">
+          <span style="font-size:30px;font-weight:800;color:#B01F2E;font-variant-numeric:tabular-nums;line-height:1;flex-shrink:0;min-width:34px">{{ it.rank }}</span>
+          <span style="display:flex;flex-direction:column;gap:4px">
+            <span style="color:#171A1F;font-size:15px;font-weight:600;line-height:1.5">{{ it.title }}</span>
+            <span style="color:#6A727C;font-size:12px">{{ it.section }}</span>
+          </span>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { period: 'day' };
+  renderVals() {
+    const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const toRank = (n) => String(n).split('').map((d) => eastern[+d]).join('');
+    const titles = [
+      ['الحكومة تعلن حزمة دعم جديدة للصناعات الصغيرة', 'مصر'], ['ارتفاع تاريخي لمؤشر البورصة المصرية في ختام التعاملات', 'اقتصاد'],
+      ['اتفاق ثنائي لتعزيز التبادل التجاري مع دول الخليج', 'مصر'], ['نجم المنتخب يوجه رسالة قبل نهائي البطولة', 'رياضة'],
+      ['خبراء: موجة الطقس الحالية تتراجع نهاية الأسبوع', 'مصر'], ['البنك المركزي يثبت أسعار الفائدة', 'اقتصاد'],
+      ['الأهلي يحسم صفقة نجم الوسط', 'رياضة'], ['افتتاح محطة تحلية مياه جديدة', 'مصر'],
+      ['ارتفاع أسعار الذهب عالمياً', 'اقتصاد'], ['الزمالك يتعاقد مع مدرب جديد', 'رياضة'],
+    ];
+    const order = this.state.period === 'day' ? titles : this.state.period === 'week' ? titles.slice().reverse() : [...titles.slice(5), ...titles.slice(0, 5)];
+    const items = order.map((t, i) => ({ title: t[0], section: t[1], href: 'Article.dc.html', rank: toRank(i + 1), itemStyle: { display: 'flex', gap: '14px', alignItems: 'flex-start', paddingBlock: '16px', textDecoration: 'none', borderBlockEnd: '1px solid #E2E5E9' } }));
+    const btnBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' };
+    const mk = (key, label) => ({ label, go: () => this.setState({ period: key }), style: Object.assign({}, btnBase, this.state.period === key ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }) });
+    return {
+      headingRowStyle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '16px', marginBottom: '24px', flexWrap: 'wrap' },
+      titleStyle: { fontFamily: "'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif", fontWeight: 800, fontSize: 'clamp(1.5rem, 1.2rem + 1.2vw, 2rem)', color: '#171A1F', margin: 0 },
+      periods: [mk('day', 'اليوم'), mk('week', 'الأسبوع'), mk('month', 'الشهر')],
+      items,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="ticker" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;max-width:760px">
+      <div>
+        <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / الإدارة</div>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">شريط الأسواق</h1>
+        </div>
+      </div>
+      <p style="color:#6A727C;font-size:13px;margin:0">التحكم في العناصر الظاهرة بالشريط اللاصق أسفل الموقع وترتيبها ومصدر تحديثها.</p>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="5">
+          <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #E2E5E9;min-height:44px">
+            <div style="display:flex;flex-direction:column;gap:2px;color:#9AA1AA;font-size:11px">
+              <span onClick="{{ it.up }}" style="cursor:pointer">▲</span><span onClick="{{ it.down }}" style="cursor:pointer">▼</span>
+            </div>
+            <span style="font-weight:700;font-size:13.5px;width:120px">{{ it.label }}</span>
+            <span style="color:#6A727C;font-size:12px;flex:1">المصدر: {{ it.source }}</span>
+            <span onClick="{{ it.toggle }}" style="{{ it.switchTrackStyle }}"><span style="{{ it.switchDotStyle }}"></span></span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13.5px;font-weight:600">تكرار التحديث</span>
+        <span style="color:#6A727C;font-size:13px;font-variant-numeric:tabular-nums">كل دقيقة واحدة — /api/ticker/</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    items: [
+      { id: 1, label: 'العملات', source: 'البنك المركزي المصري', active: true },
+      { id: 2, label: 'الذهب', source: 'جمعية الذهب المصرية', active: true },
+      { id: 3, label: 'المؤشر الرئيسي', source: 'البورصة المصرية', active: true },
+      { id: 4, label: 'الطقس', source: 'الأرصاد الجوية', active: true },
+      { id: 5, label: 'أسعار النفط', source: 'مصدر خارجي', active: false },
+    ],
+  };
+  move(id, dir) {
+    this.setState((s) => {
+      const arr = s.items.slice(); const i = arr.findIndex((x) => x.id === id); const j = i + dir;
+      if (j < 0 || j >= arr.length) return {};
+      [arr[i], arr[j]] = [arr[j], arr[i]]; return { items: arr };
+    });
+  }
+  renderVals() {
+    const items = this.state.items.map((it) => ({
+      ...it, up: () => this.move(it.id, -1), down: () => this.move(it.id, 1),
+      toggle: () => this.setState((s) => ({ items: s.items.map((x) => x.id === it.id ? { ...x, active: !x.active } : x) })),
+      switchTrackStyle: { width: '36px', height: '20px', borderRadius: '999px', background: it.active ? '#B01F2E' : '#C9CED4', position: 'relative', cursor: 'pointer', flexShrink: 0 },
+      switchDotStyle: { position: 'absolute', top: '2px', insetInlineStart: it.active ? '18px' : '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#FFFFFF', transition: '120ms ease' },
+    }));
+    return { items };
+  }
+}
+
+</script>
+</body>
+</html>

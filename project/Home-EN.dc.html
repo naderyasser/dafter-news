@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="ltr" lang="en" style="background:#F4F5F7;min-height:100vh;font-family:'Inter',system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="en" active="home" home-href="Home-EN.dc.html" alt-lang-href="Home.dc.html" hint-size="100%,160px"></dc-import>
+
+  <div style="max-width:1200px;margin:0 auto;padding:24px;display:flex;gap:20px;flex-wrap:wrap">
+    <div style="flex:2 1 480px;min-width:0">
+      <dc-import name="ArticleCard" lang="en" variant="hero" href="Article-EN.dc.html" title="{{ heroMain.title }}" section="{{ heroMain.section }}" time="{{ heroMain.time }}" badge="{{ heroMain.badge }}" image-id="home-en-hero-main" hint-size="100%,420px"></dc-import>
+    </div>
+    <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:0">
+      <sc-for list="{{ heroSide }}" as="h" hint-placeholder-count="3">
+        <div style="border-block-end:1px solid #E2E5E9;padding-block-end:14px;margin-block-end:14px">
+          <dc-import name="ArticleCard" lang="en" variant="compact" href="{{ h.href }}" title="{{ h.title }}" section="{{ h.section }}" time="{{ h.time }}" badge="{{ h.badge }}" image-id="{{ h.imageId }}" hint-size="100%,90px"></dc-import>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <dc-import name="SectionBlock" lang="en" title="Egypt" see-all-href="#" card-variant="standard" cards="{{ egyptCards }}" initial-count="4" hint-size="100%,420px"></dc-import>
+  <dc-import name="SectionBlock" lang="en" title="Economy" see-all-href="#" card-variant="standard" cards="{{ econCards }}" initial-count="4" hint-size="100%,420px"></dc-import>
+  <dc-import name="SectionBlock" lang="en" title="Watch" see-all-href="#" card-variant="standard" cards="{{ videoCards }}" initial-count="4" hint-size="100%,420px"></dc-import>
+  <dc-import name="SectionBlock" lang="en" title="Sports" see-all-href="#" card-variant="standard" cards="{{ sportsCards }}" initial-count="4" hint-size="100%,420px"></dc-import>
+
+  <dc-import name="OpinionCarousel" lang="en" hint-size="100%,340px"></dc-import>
+
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+    <div style="flex:2 1 480px;min-width:0">
+      <div style="{{ newsHeadingRowStyle }}">
+        <h2 style="{{ sectionHeadingStyle }}">Latest News</h2>
+        <div style="display:flex;gap:8px">
+          <button onClick="{{ showLatest }}" style="{{ tabLatestStyle }}">Latest</button>
+          <button onClick="{{ showPopular }}" style="{{ tabPopularStyle }}">Most Commented</button>
+        </div>
+      </div>
+      <div>
+        <sc-for list="{{ newsList }}" as="n" hint-placeholder-count="6">
+          <dc-import name="ArticleCard" lang="en" variant="text" href="{{ n.href }}" title="{{ n.title }}" time="{{ n.time }}" hint-size="100%,80px"></dc-import>
+        </sc-for>
+      </div>
+    </div>
+    <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:20px">
+      <dc-import name="MostReadList" lang="en" hint-size="100%,360px"></dc-import>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+        <div style="{{ tagsHeadingStyle }}">Trending Tags</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px">
+          <sc-for list="{{ tags }}" as="tg" hint-placeholder-count="5">
+            <a href="#" style="background:#FBEEEF;color:#B01F2E;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;text-decoration:none" style-hover="background:#B01F2E;color:#FFFFFF">{{ tg }}</a>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <dc-import name="SiteFooter" lang="en" home-href="Home-EN.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="en" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { newsTab: 'latest' };
+  renderVals() {
+    const heroMain = { title: "President Opens Second Phase of New Delta Corridor in $250M Push", section: 'Egypt', time: '30 min ago', badge: 'breaking' };
+    const heroSide = [
+      { title: 'Central Bank Holds Interest Rates Steady for Third Straight Meeting', section: 'Economy', time: '1h ago', badge: 'none', href: 'Article-EN.dc.html', imageId: 'home-en-side-1' },
+      { title: "Al Ahly Seals Deal for Midfield Star Hours Before Deadline", section: 'Sports', time: '2h ago', badge: 'exclusive', href: 'Article-EN.dc.html', imageId: 'home-en-side-2' },
+      { title: 'Cairo Temperatures Climb to 38°C Today', section: 'Egypt', time: '3h ago', badge: 'none', href: 'Article-EN.dc.html', imageId: 'home-en-side-3' },
+    ];
+    const mk = (title, section, time, badge, imageId, i) => ({ href: 'Article-EN.dc.html', title, section, time, badge: badge || 'none', imageId: imageId + '-' + i, isVideo: false, videoDuration: '', comments: 0 });
+    const egyptCards = [
+      mk('Cabinet approves new incentive package for small factories', 'Egypt', '1h ago', 'none', 'home-en-egypt', 1),
+      mk('First seawater desalination plant opens on North Coast', 'Egypt', '2h ago', 'exclusive', 'home-en-egypt', 2),
+      mk('Cairo governor reviews Ramses Square development works', 'Egypt', '3h ago', 'none', 'home-en-egypt', 3),
+      mk('Metro network expansion to include Helwan line', 'Egypt', '4h ago', 'none', 'home-en-egypt', 4),
+      mk('Health Ministry launches early detection initiative', 'Egypt', 'Yesterday', 'none', 'home-en-egypt', 5),
+      mk('Met office warns of strong winds on north coast tomorrow', 'Egypt', 'Yesterday', 'none', 'home-en-egypt', 6),
+    ];
+    const econCards = [
+      mk('Pound holds steady against dollar for third week', 'Economy', '1h ago', 'none', 'home-en-econ', 1),
+      mk('Egyptian exchange closes higher led by bank stocks', 'Economy', '2h ago', 'exclusive', 'home-en-econ', 2),
+      mk("IMF praises Egypt's economic reform program", 'Economy', '4h ago', 'none', 'home-en-econ', 3),
+      mk('Textile exports rise 18% in first half', 'Economy', 'Yesterday', 'none', 'home-en-econ', 4),
+    ];
+    const videoCards = [1, 2, 3, 4].map((i) => ({
+      href: 'Article-EN.dc.html', section: 'Watch', isVideo: true,
+      imageId: 'home-en-video-' + i, badge: i === 2 ? 'exclusive' : 'none',
+      title: ['Moment child rescued from drowning off Alexandria beach', "Coach reacts to national team's latest performance", "Inside Egypt's largest electric car plant", 'First reactions after central bank rate decision'][i - 1],
+      time: ['1h ago', '2h ago', '3h ago', 'Yesterday'][i - 1],
+      videoDuration: ['03:12', '05:44', '07:20', '02:58'][i - 1],
+      comments: [42, 118, 27, 63][i - 1],
+    }));
+    const sportsCards = [
+      mk('Al Ahly reach African Champions League final after crushing win', 'Sports', '2h ago', 'none', 'home-en-sports', 1),
+      mk('Zamalek sign new coach ahead of new season', 'Sports', '3h ago', 'none', 'home-en-sports', 2),
+      mk('National team prepare for decisive World Cup qualifier', 'Sports', '4h ago', 'exclusive', 'home-en-sports', 3),
+      mk('Egyptian football star wins continental player of the year', 'Sports', 'Yesterday', 'none', 'home-en-sports', 4),
+    ];
+    const newsLatest = [
+      { title: 'Higher education announces second-round admission dates', time: '20 min ago' },
+      { title: 'Gold prices rise globally amid escalating tensions', time: '40 min ago' },
+      { title: 'Cairo and Nairobi sign cooperation protocol', time: '1h ago' },
+      { title: 'Unified digital platform launched for property registry', time: '2h ago' },
+      { title: 'Port Said schools remain closed over severe weather', time: '3h ago' },
+      { title: 'Tomato and vegetable prices ease in local markets', time: '4h ago' },
+    ].map((n) => ({ ...n, href: 'Article-EN.dc.html' }));
+    const newsPopular = [
+      { title: "Inside the central bank's latest rate meeting", time: '124 comments' },
+      { title: 'Dust storms: causes and how to stay safe', time: '98 comments' },
+      { title: 'New decision on car import duties', time: '87 comments' },
+      { title: 'Exclusive interview with the national team director', time: '76 comments' },
+      { title: "File: the future of technical education in Egypt", time: '54 comments' },
+      { title: 'Government responds to fuel price hike rumors', time: '49 comments' },
+    ].map((n) => ({ ...n, href: 'Article-EN.dc.html' }));
+
+    const tabBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' };
+    return {
+      heroMain, heroSide, egyptCards, econCards, videoCards, sportsCards,
+      newsList: this.state.newsTab === 'latest' ? newsLatest : newsPopular,
+      tags: ['Economy', 'Football', 'Climate', 'Education', 'Gold'],
+      newsHeadingRowStyle: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '14px', marginBottom: '12px', flexWrap: 'wrap' },
+      sectionHeadingStyle: { fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 800, fontSize: 'clamp(1.1875rem, 1rem + 0.8vw, 1.375rem)', color: '#171A1F', margin: 0 },
+      tagsHeadingStyle: { borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '12px', fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 800, fontSize: '15px', color: '#171A1F' },
+      tabLatestStyle: Object.assign({}, tabBase, this.state.newsTab === 'latest' ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }),
+      tabPopularStyle: Object.assign({}, tabBase, this.state.newsTab === 'popular' ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }),
+      showLatest: () => this.setState({ newsTab: 'latest' }),
+      showPopular: () => this.setState({ newsTab: 'popular' }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

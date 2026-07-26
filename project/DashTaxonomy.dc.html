@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="taxonomy" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:24px">
+      <div>
+        <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / الإدارة</div>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">الأقسام والوسوم</h1>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-weight:700;font-size:15px">الأقسام</span>
+          <button style="background:#F4F5F7;border:1px solid #E2E5E9;border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:600;cursor:pointer">+ قسم جديد</button>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+          <sc-for list="{{ sections }}" as="s" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #E2E5E9;min-height:44px">
+              <div style="display:flex;flex-direction:column;gap:2px;color:#9AA1AA;font-size:11px">
+                <span onClick="{{ s.up }}" style="cursor:pointer">▲</span><span onClick="{{ s.down }}" style="cursor:pointer">▼</span>
+              </div>
+              <span style="font-weight:700;font-size:13.5px;flex:1">{{ s.name }}</span>
+              <span style="color:#6A727C;font-size:12px;font-variant-numeric:tabular-nums">{{ s.count }} مقال</span>
+              <span style="cursor:pointer;color:#6A727C">✎</span>
+              <span onClick="{{ s.remove }}" style="cursor:pointer;color:#C93030">🗑</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:12px">الوسوم</div>
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+            <sc-for list="{{ tags }}" as="t" hint-placeholder-count="8">
+              <span style="background:#FBEEEF;color:#B01F2E;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;display:flex;align-items:center;gap:6px">{{ t.label }}<span onClick="{{ t.remove }}" style="cursor:pointer">✕</span></span>
+            </sc-for>
+          </div>
+          <input type="text" value="{{ tagDraft }}" onChange="{{ onTagDraft }}" onKeyDown="{{ onTagKeyDown }}" placeholder="أضف وسماً جديداً واضغط Enter" style="max-width:320px;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:8px 12px;font-size:13px;outline:none" style-focus="border-color:#B01F2E"/>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    sections: [
+      { id: 1, name: 'مصر', count: 812 }, { id: 2, name: 'اقتصاد', count: 540 }, { id: 3, name: 'رياضة', count: 623 },
+      { id: 4, name: 'بالعقل والمنطق', count: 214 }, { id: 5, name: 'لقطة وتعليق', count: 168 },
+    ],
+    tags: ['البنية التحتية', 'الذهب', 'كرة القدم', 'المناخ', 'التعليم', 'الدلتا الجديدة', 'الطاقة', 'الانتخابات'],
+    tagDraft: '',
+  };
+  move(id, dir) {
+    this.setState((s) => {
+      const arr = s.sections.slice(); const i = arr.findIndex((x) => x.id === id); const j = i + dir;
+      if (j < 0 || j >= arr.length) return {};
+      [arr[i], arr[j]] = [arr[j], arr[i]]; return { sections: arr };
+    });
+  }
+  renderVals() {
+    const sections = this.state.sections.map((s) => ({
+      ...s, up: () => this.move(s.id, -1), down: () => this.move(s.id, 1),
+      remove: () => this.setState((st) => ({ sections: st.sections.filter((x) => x.id !== s.id) })),
+    }));
+    const tags = this.state.tags.map((t) => ({ label: t, remove: () => this.setState((s) => ({ tags: s.tags.filter((x) => x !== t) })) }));
+    return {
+      sections, tags, tagDraft: this.state.tagDraft, onTagDraft: (e) => this.setState({ tagDraft: e.target.value }),
+      onTagKeyDown: (e) => { if (e.key === 'Enter' && this.state.tagDraft.trim()) { e.preventDefault(); this.setState((s) => ({ tags: [...s.tags, s.tagDraft.trim()], tagDraft: '' })); } },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

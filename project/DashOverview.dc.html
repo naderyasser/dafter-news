@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="overview" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:24px">
+      <div>
+        <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم</div>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">نظرة عامة</h1>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:16px">
+        <dc-import name="StatCard" label="زيارات اليوم" value="48,204" change="▲ 4.2%" up="{{ true }}" hint-size="100%,100px"></dc-import>
+        <dc-import name="StatCard" label="مقالات منشورة" value="312" change="▲ 12" up="{{ true }}" hint-size="100%,100px"></dc-import>
+        <dc-import name="StatCard" label="تعليقات معلقة" value="27" change="▼ 5" up="{{ false }}" hint-size="100%,100px"></dc-import>
+        <dc-import name="StatCard" label="مشاهدات فيديو" value="9,842" change="▲ 8.1%" up="{{ true }}" hint-size="100%,100px"></dc-import>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+        <div style="font-weight:700;font-size:15px;margin-bottom:16px">الزيارات خلال آخر 7 أيام</div>
+        <div style="display:flex;align-items:flex-end;gap:16px;height:120px">
+          <sc-for list="{{ chart }}" as="d" hint-placeholder-count="7">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;flex:1">
+              <div style="{{ d.barStyle }}"></div>
+              <span style="color:#6A727C;font-size:12px">{{ d.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:start">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+          <div style="padding:16px 18px;font-weight:700;font-size:15px;border-bottom:1px solid #E2E5E9">أحدث المقالات</div>
+          <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;background:#F4F5F7">
+            <div style="{{ thStyle }}">العنوان</div><div style="{{ thStyle }}">القسم</div><div style="{{ thStyle }}">الحالة</div><div style="{{ thStyle }}">المشاهدات</div>
+          </div>
+          <sc-for list="{{ recentArticles }}" as="a" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;align-items:center;min-height:44px;border-top:1px solid #E2E5E9" style-hover="background:#F4F5F7">
+              <div style="{{ tdStyle }}">{{ a.title }}</div>
+              <div style="{{ tdStyleMuted }}">{{ a.section }}</div>
+              <div style="{{ tdStyle }}"><dc-import name="StatusBadge" status="{{ a.status }}" hint-size="80px,26px"></dc-import></div>
+              <div style="{{ tdStyleTnum }}">{{ a.views }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px 18px">
+          <div style="font-weight:700;font-size:15px;margin-bottom:14px">طابور المراجعة</div>
+          <div style="display:flex;flex-direction:column;gap:0">
+            <sc-for list="{{ reviewQueue }}" as="q" hint-placeholder-count="4">
+              <div style="padding-block:12px;border-bottom:1px solid #E2E5E9">
+                <div style="font-size:13.5px;font-weight:600;color:#171A1F;line-height:1.5">{{ q.title }}</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+                  <span style="color:#6A727C;font-size:12px">{{ q.author }}</span>
+                  <a href="DashArticleEditor.dc.html" style="color:#B01F2E;font-size:12px;font-weight:700;text-decoration:none">مراجعة</a>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const days = [
+      ['السبت', 42], ['الأحد', 58], ['الاثنين', 49], ['الثلاثاء', 66], ['الأربعاء', 71], ['الخميس', 60], ['الجمعة', 48],
+    ];
+    const max = Math.max(...days.map((d) => d[1]));
+    const chart = days.map(([label, v]) => ({ label, barStyle: { width: '100%', maxWidth: '36px', height: Math.round((v / max) * 100) + 'px', background: '#B01F2E', borderRadius: '4px 4px 0 0' } }));
+    const recentArticles = [
+      { title: 'الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد', section: 'مصر', status: 'published', views: '18,204' },
+      { title: 'البنك المركزي يثبّت أسعار الفائدة للاجتماع الثالث', section: 'اقتصاد', status: 'published', views: '9,410' },
+      { title: 'الأهلي يحسم صفقة نجم الوسط قبل إغلاق القيد', section: 'رياضة', status: 'scheduled', views: '—' },
+      { title: 'تحقيق خاص: كواليس اجتماع البنك المركزي', section: 'اقتصاد', status: 'review', views: '—' },
+      { title: 'افتتاح أول محطة لتحلية مياه البحر', section: 'مصر', status: 'draft', views: '—' },
+      { title: 'ملخص مباراة الأهلي والترجي في أفريقيا', section: 'رياضة', status: 'published', views: '31,822' },
+    ];
+    const reviewQueue = [
+      { title: 'تحقيق خاص: كواليس اجتماع البنك المركزي', author: 'د. سامية فاروق' },
+      { title: 'حوار: مستقبل التعليم الفني في مصر', author: 'منى الشربيني' },
+      { title: 'ملف: الذكاء الاصطناعي في غرف الأخبار', author: 'أحمد لبيب' },
+      { title: 'تقرير: مشروعات الطاقة الشمسية الجديدة', author: 'محمد العدوي' },
+    ];
+    const thStyle = { textAlign: 'start', padding: '10px 18px', fontSize: '12px', fontWeight: 700, color: '#6A727C' };
+    const tdStyle = { padding: '0 18px', fontSize: '13.5px', color: '#171A1F', fontWeight: 600 };
+    return {
+      chart, recentArticles, reviewQueue, thStyle,
+      tdStyle, tdStyleMuted: Object.assign({}, tdStyle, { color: '#6A727C', fontWeight: 400 }),
+      tdStyleTnum: Object.assign({}, tdStyle, { fontVariantNumeric: 'tabular-nums' }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

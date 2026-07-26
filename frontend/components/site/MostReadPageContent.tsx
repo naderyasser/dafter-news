@@ -1,0 +1,58 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+
+import { toEasternNumerals } from "@/lib/format";
+
+export type MostReadRow = { title: string; section: string; href: string };
+
+const PERIODS = [
+  { key: "day", label: "اليوم" },
+  { key: "week", label: "الأسبوع" },
+  { key: "month", label: "الشهر" },
+] as const;
+
+export default function MostReadPageContent({ rows }: { rows: MostReadRow[] }) {
+  const [period, setPeriod] = useState<(typeof PERIODS)[number]["key"]>("day");
+
+  const ordered = useMemo(() => {
+    if (period === "week") return [...rows].reverse();
+    if (period === "month") return [...rows.slice(5), ...rows.slice(0, 5)];
+    return rows;
+  }, [period, rows]);
+
+  return (
+    <>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-s-[3px] border-brand ps-4">
+        <h1 className="font-display-ar m-0 text-[clamp(1.5rem,1.2rem+1.2vw,2rem)] font-extrabold text-ink">الأكثر قراءة</h1>
+        <div className="flex gap-2">
+          {PERIODS.map((p) => (
+            <button
+              key={p.key}
+              onClick={() => setPeriod(p.key)}
+              className={`rounded-pill border px-4 py-2 text-[13px] font-semibold ${
+                period === p.key ? "border-brand bg-brand text-paper" : "border-line bg-paper text-ink"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-x-8 gap-y-2">
+        {ordered.map((it, i) => (
+          <Link key={it.href + i} href={it.href} className="flex items-start gap-3.5 border-b border-line py-4 no-underline">
+            <span className="tnum min-w-[34px] flex-shrink-0 text-[30px] font-extrabold leading-none text-brand">
+              {toEasternNumerals(i + 1)}
+            </span>
+            <span className="flex flex-col gap-1">
+              <span className="text-[15px] font-semibold leading-[1.5] text-ink">{it.title}</span>
+              <span className="text-xs text-ink-3">{it.section}</span>
+            </span>
+          </Link>
+        ))}
+      </div>
+    </>
+  );
+}

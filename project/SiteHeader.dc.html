@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap"/>
+<style>
+@keyframes daftar-pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.35); } }
+@keyframes daftar-marquee-ltr { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+@keyframes daftar-marquee-rtl { from { transform:translateX(0); } to { transform:translateX(50%); } }
+body { margin:0; }
+</style>
+</helmet>
+<div dir="{{ dirAttr }}" lang="{{ langAttr }}" style="{{ rootStyle }}">
+  <div style="background:#14171C;color:#9AA1AA;font-size:13px">
+    <div style="max-width:1200px;margin:0 auto;padding:6px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:16px">
+        <span style="color:#F5F6F7;white-space:nowrap">{{ today }}</span>
+        <span style="display:flex;align-items:center;gap:4px;white-space:nowrap">☀ <span style="font-variant-numeric:tabular-nums">34°</span></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:16px">
+        <a href="{{ loginHref }}" style="color:#9AA1AA;text-decoration:none;font-size:13px" style-hover="color:#F5F6F7">{{ loginLabel }}</a>
+        <span style="width:1px;height:12px;background:#3C434C"></span>
+        <a href="{{ altLangHref }}" style="color:#F5F6F7;text-decoration:none;font-weight:600;font-size:13px">{{ otherLangLabel }}</a>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#FFFFFF;border-bottom:1px solid #E2E5E9">
+    <div style="max-width:1200px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+      <a href="{{ homeHref }}" style="{{ logoStyle }}">{{ logoText }}</a>
+      <div style="flex:1 1 240px;max-width:460px;position:relative">
+        <a href="{{ searchHref }}" style="position:absolute;inset-inline-start:14px;top:50%;transform:translateY(-50%);color:#6A727C;font-size:13px;text-decoration:none">🔍</a>
+        <input type="text" placeholder="{{ searchPlaceholder }}" onKeyDown="{{ onSearchKeyDown }}" style="width:100%;box-sizing:border-box;padding-block:10px;padding-inline-end:16px;padding-inline-start:38px;border-radius:999px;border:1px solid #E2E5E9;background:#F4F5F7;font-size:14px;color:#171A1F;outline:none" style-focus="border-color:#B01F2E;background:#FFFFFF"/>
+      </div>
+      <a href="{{ liveHref }}" style="display:flex;align-items:center;gap:8px;background:#B01F2E;color:#FFFFFF;padding:10px 18px;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px;flex-shrink:0;white-space:nowrap" style-hover="background:#8E1624">
+        <span style="width:8px;height:8px;border-radius:50%;background:#FFFFFF;animation:daftar-pulse-dot 1.4s ease-in-out infinite;flex-shrink:0"></span>{{ liveLabel }}
+      </a>
+    </div>
+  </div>
+
+  <nav style="background:#FFFFFF;border-bottom:1px solid #E2E5E9;box-shadow:0 1px 2px rgba(23,26,31,.06)">
+    <div style="{{ navRowStyle }}">
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="8">
+        <a href="{{ item.href }}" style="{{ item.linkStyle }}">{{ item.label }}</a>
+      </sc-for>
+    </div>
+  </nav>
+
+  <div style="background:#D71F30;overflow:hidden;position:relative;height:36px;display:flex;align-items:stretch">
+    <span style="flex-shrink:0;background:#8E1624;color:#FFFFFF;font-weight:800;font-size:13px;padding-inline:14px;display:flex;align-items:center;position:relative;z-index:2">{{ breakingLabel }}</span>
+    <div style="flex:1;overflow:hidden;position:relative;display:flex;align-items:center;min-width:0">
+      <div style="{{ marqueeStyle }}" style-hover="animation-play-state:paused">
+        <span style="padding-inline-end:48px;white-space:nowrap">{{ breakingText }}</span>
+        <span style="padding-inline-end:48px;white-space:nowrap">{{ breakingText }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:160},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;ar&quot;,&quot;options&quot;:[&quot;ar&quot;,&quot;en&quot;],&quot;tsType&quot;:&quot;'ar'|'en'&quot;},&quot;active&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;homeHref&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Home.dc.html&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;altLangHref&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Home-EN.dc.html&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;liveHref&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;#&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const lang = this.props.lang === 'en' ? 'en' : 'ar';
+    const isAr = lang === 'ar';
+    const fontBody = isAr ? "'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif" : "'Inter',system-ui,sans-serif";
+    const fontDisplay = isAr ? "'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif" : "'Inter',system-ui,sans-serif";
+    const active = this.props.active === undefined || this.props.active === null ? 'home' : this.props.active;
+    const homeHref = this.props.homeHref || (isAr ? 'Home.dc.html' : 'Home-EN.dc.html');
+    const altLangHref = this.props.altLangHref || (isAr ? 'Home-EN.dc.html' : 'Home.dc.html');
+    const liveHref = this.props.liveHref || (isAr ? 'Live.dc.html' : '#');
+    const sectionHref = (key) => isAr ? ('Section.dc.html?section=' + key) : '#';
+
+    const rawItems = isAr ? [
+      ['home', 'الرئيسية', homeHref], ['egypt', 'مصر', sectionHref('egypt')],
+      ['economy', 'اقتصاد', sectionHref('economy')], ['sports', 'رياضة', sectionHref('sports')],
+      ['opinion', 'بالعقل والمنطق', 'Opinion.dc.html'], ['video', 'لقطة وتعليق', 'VideoList.dc.html'],
+      ['live', 'بث مباشر', liveHref], ['markets', 'الأسواق', 'Markets.dc.html'],
+    ] : [
+      ['home', 'Home', homeHref], ['egypt', 'Egypt', '#'],
+      ['economy', 'Economy', '#'], ['sports', 'Sports', '#'],
+      ['opinion', 'Opinion', '#'], ['video', 'Watch', '#'],
+      ['live', 'Live', liveHref], ['markets', 'Markets', '#'],
+    ];
+    const navItems = rawItems.map(([key, label, href]) => {
+      const isActive = key === active;
+      return { key, label, href, linkStyle: {
+        display: 'flex', alignItems: 'center', height: '100%', padding: '0 4px',
+        color: isActive ? '#B01F2E' : '#171A1F', fontWeight: isActive ? 700 : 600,
+        fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap',
+        borderBlockEnd: isActive ? '3px solid #B01F2E' : '3px solid transparent',
+        flexShrink: 0
+      }};
+    });
+
+    const today = new Intl.DateTimeFormat(isAr ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(new Date());
+    const breakingItems = isAr ? [
+      'الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد',
+      'البنك المركزي يثبّت أسعار الفائدة في اجتماعه الدوري',
+      'المنتخب يتأهل لنهائي البطولة الأفريقية بعد فوز مثير',
+      'ارتفاع طفيف في أسعار الذهب مع تراجع الدولار عالمياً',
+    ] : [
+      'President opens second phase of new Delta corridor',
+      'Central bank holds interest rates steady at policy meeting',
+      'National team reaches African championship final',
+      'Gold edges higher as dollar softens globally',
+    ];
+
+    return {
+      dirAttr: isAr ? 'rtl' : 'ltr', langAttr: lang,
+      rootStyle: { position: 'sticky', top: 0, zIndex: 50, fontFamily: fontBody },
+      logoStyle: { textDecoration: 'none', display: 'flex', alignItems: 'center', borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '12px', flexShrink: 0, fontFamily: fontDisplay, fontWeight: 800, fontSize: '22px', color: '#171A1F', letterSpacing: '-0.3px' },
+      logoText: isAr ? 'الدفتر نيوز' : 'Al Daftar News',
+      loginLabel: isAr ? 'تسجيل الدخول' : 'Log in',
+      loginHref: isAr ? 'Login.dc.html' : '#',
+      otherLangLabel: isAr ? 'English' : 'العربية',
+      liveLabel: isAr ? 'بث مباشر' : 'Live now',
+      liveHref,
+      searchPlaceholder: isAr ? 'ابحث في الدفتر نيوز...' : 'Search Al Daftar News...',
+      searchHref: 'Search.dc.html',
+      onSearchKeyDown: (e) => { if (e.key === 'Enter') { window.location.href = 'Search.dc.html'; } },
+      today, navItems,
+      navRowStyle: { maxWidth: '1200px', margin: '0 auto', paddingInline: '24px', height: '44px', display: 'flex', alignItems: 'stretch', gap: '28px', overflowX: 'auto' },
+      breakingLabel: isAr ? 'عاجل' : 'BREAKING',
+      breakingText: breakingItems.join('   •   '),
+      marqueeStyle: { whiteSpace: 'nowrap', display: 'inline-flex', animation: (isAr ? 'daftar-marquee-rtl' : 'daftar-marquee-ltr') + ' 32s linear infinite', color: '#FFFFFF', fontSize: '13px', fontWeight: 600, paddingInlineStart: '24px' },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

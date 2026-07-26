@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="ltr" lang="en" style="background:#F4F5F7;min-height:100vh;font-family:'Inter',system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="en" active="egypt" home-href="Home-EN.dc.html" alt-lang-href="Article.dc.html" hint-size="100%,160px"></dc-import>
+
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+    <main style="flex:2 1 480px;max-width:680px;min-width:0">
+      <div style="color:#6A727C;font-size:13px;margin-bottom:16px">
+        <a href="Home-EN.dc.html" style="color:#6A727C;text-decoration:none" style-hover="color:#B01F2E">Home</a>
+        <span style="margin:0 6px">/</span>
+        <a href="#" style="color:#6A727C;text-decoration:none" style-hover="color:#B01F2E">Egypt</a>
+      </div>
+      <span style="background:#D71F30;color:#FFFFFF;font-size:12px;font-weight:700;padding:4px 10px;border-radius:4px">Breaking</span>
+      <h1 style="font-family:'Inter',system-ui,sans-serif;font-weight:800;font-size:clamp(1.375rem, 1rem + 1.6vw, 1.75rem);line-height:1.3;color:#171A1F;margin:14px 0 12px">President Opens Second Phase of New Delta Corridor in $250M Push</h1>
+      <p style="color:#3C434C;font-size:clamp(1.0625rem, 1rem + 0.3vw, 1.1875rem);line-height:1.6;font-weight:500;margin:0 0 16px">The project aims to cut travel time between Cairo and the Delta in half, part of the state's plan to upgrade the national road and regional-corridor network.</p>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:#6A727C;font-size:14px;padding-block:12px;border-block:1px solid #E2E5E9;margin-bottom:8px">
+        <a href="#" style="color:#3C434C;font-weight:700;text-decoration:none">Mohamed El-Adawy</a>
+        <span>•</span><span>Jul 25, 2026</span><span>•</span><span>◔ 5 min read</span>
+        <span style="display:flex;align-items:center;gap:8px;margin-inline-start:auto">
+          <sc-for list="{{ shareIcons }}" as="sh" hint-placeholder-count="3">
+            <span style="width:28px;height:28px;border-radius:50%;border:1px solid #C9CED4;color:#6A727C;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0" style-hover="background:#B01F2E;border-color:#B01F2E;color:#FFFFFF" title="{{ sh.label }}">{{ sh.glyph }}</span>
+          </sc-for>
+        </span>
+      </div>
+
+      <figure style="margin:16px 0 4px">
+        <div style="border-radius:6px;overflow:hidden;aspect-ratio:16/9;background:#EBEDF0">
+          <image-slot id="article-en-cover" shape="rect" placeholder="Drop cover image"></image-slot>
+        </div>
+        <figcaption style="color:#6A727C;font-size:13px;margin-top:8px;padding-bottom:12px;border-bottom:1px solid #E2E5E9">Opening of the corridor's second phase — Al Daftar News</figcaption>
+      </figure>
+
+      <div style="{{ playerWrapStyle }}">
+        <button onClick="{{ togglePlay }}" style="{{ playBtnStyle }}">{{ playIcon }}</button>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+          <div onClick="{{ seek }}" style="position:relative;height:6px;background:#E2E5E9;border-radius:999px;cursor:pointer">
+            <div style="{{ barFillStyle }}"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;color:#6A727C;font-size:12px;font-variant-numeric:tabular-nums">
+            <span>{{ elapsedLabel }}</span><span>{{ totalLabel }}</span>
+          </div>
+        </div>
+        <button onClick="{{ cycleSpeed }}" style="{{ speedBtnStyle }}">x{{ speedLabel }}</button>
+      </div>
+
+      <sc-for list="{{ blocks }}" as="blk" hint-placeholder-count="6">
+        <sc-if value="{{ blk.isParagraph }}" hint-placeholder-val="{{ false }}">
+          <p style="{{ bodyTextStyle }}">{{ blk.text }}</p>
+        </sc-if>
+        <sc-if value="{{ blk.isHeading }}" hint-placeholder-val="{{ false }}">
+          <h2 style="{{ h2Style }}">{{ blk.text }}</h2>
+        </sc-if>
+        <sc-if value="{{ blk.isImage }}" hint-placeholder-val="{{ false }}">
+          <figure style="margin:24px 0">
+            <div style="border-radius:6px;overflow:hidden;aspect-ratio:16/9">
+              <image-slot id="{{ blk.imageId }}" shape="rect" placeholder="Drop image here"></image-slot>
+            </div>
+            <figcaption style="color:#6A727C;font-size:13px;margin-top:8px;padding-bottom:16px;border-bottom:1px solid #E2E5E9">{{ blk.caption }}</figcaption>
+          </figure>
+        </sc-if>
+        <sc-if value="{{ blk.isQuote }}" hint-placeholder-val="{{ false }}">
+          <blockquote style="{{ quoteStyle }}">{{ blk.text }}</blockquote>
+        </sc-if>
+        <sc-if value="{{ blk.isRelated }}" hint-placeholder-val="{{ false }}">
+          <a href="{{ blk.href }}" style="{{ relatedBlockStyle }}">
+            <span style="{{ relatedLabelStyle }}">Read also</span>
+            <span style="{{ relatedTitleStyle }}">{{ blk.title }}</span>
+          </a>
+        </sc-if>
+      </sc-for>
+
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin:28px 0 8px">
+        <sc-for list="{{ tags }}" as="tg" hint-placeholder-count="4">
+          <a href="#" style="background:#FBEEEF;color:#B01F2E;font-size:13px;font-weight:600;padding:6px 14px;border-radius:999px;text-decoration:none" style-hover="background:#B01F2E;color:#FFFFFF">{{ tg }}</a>
+        </sc-for>
+      </div>
+    </main>
+    <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+      <dc-import name="MostReadList" lang="en" hint-size="100%,360px"></dc-import>
+    </aside>
+  </div>
+
+  <dc-import name="SectionBlock" lang="en" title="Related News" see-all-href="#" card-variant="standard" cards="{{ relatedCards }}" initial-count="4" hint-size="100%,420px"></dc-import>
+
+  <dc-import name="SiteFooter" lang="en" home-href="Home-EN.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="en" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { playing: false, progress: 6, speed: 1 };
+  totalSeconds = 255;
+  componentWillUnmount() { clearInterval(this._t); }
+  togglePlay = () => {
+    if (this.state.playing) { clearInterval(this._t); this.setState({ playing: false }); return; }
+    this._t = setInterval(() => {
+      this.setState((s) => {
+        const next = Math.min(100, s.progress + (100 / this.totalSeconds) * 0.25 * s.speed);
+        if (next >= 100) clearInterval(this._t);
+        return { progress: next };
+      });
+    }, 250);
+    this.setState({ playing: true });
+  };
+  cycleSpeed = () => this.setState((s) => ({ speed: s.speed === 1 ? 1.25 : s.speed === 1.25 ? 1.5 : 1 }));
+  seek = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    this.setState({ progress: Math.max(0, Math.min(100, ratio * 100)) });
+  };
+  renderVals() {
+    const fmt = (secs) => { const m = Math.floor(secs / 60); const s = Math.floor(secs % 60); return m + ':' + String(s).padStart(2, '0'); };
+    const elapsed = (this.state.progress / 100) * this.totalSeconds;
+    const rawBlocks = [
+      { type: 'paragraph', text: "Transport ministry officials said the corridor's second phase spans 48 kilometers, including three overpasses and four service stations along the route." },
+      { type: 'image', imageId: 'article-en-body-1', caption: "The opening ceremony for the corridor's second phase yesterday" },
+      { type: 'paragraph', text: 'The ministry said work has begun on the project\'s third and final phase, due for completion in the first quarter of next year, completing the full link between Cairo and the Delta governorates.' },
+      { type: 'heading', text: 'Project details' },
+      { type: 'paragraph', text: 'The project is part of the state\'s plan to upgrade the national road network, with a total cost exceeding $250 million, jointly funded by the treasury and international lenders.' },
+      { type: 'quote', text: 'This corridor is not just a road — it redraws the map of trade movement between Cairo and the Delta for decades to come.' },
+      { type: 'paragraph', text: 'The new corridor is expected to cut travel time between Cairo and Mansoura from two and a half hours to about 70 minutes, according to a technical study by the roads and bridges authority.' },
+      { type: 'related', title: 'Cabinet approves new incentive package for small factories', href: 'Article-EN.dc.html' },
+      { type: 'paragraph', text: 'Observers say the project will ease pressure on the old agricultural road and help new industrial zones receive freight trucks faster and more safely.' },
+    ];
+    const blocks = rawBlocks.map((b) => ({ ...b, isParagraph: b.type === 'paragraph', isHeading: b.type === 'heading', isImage: b.type === 'image', isQuote: b.type === 'quote', isRelated: b.type === 'related' }));
+    const relatedCards = ['Cabinet approves new incentive package for small factories', 'Metro network expansion to include Helwan line', 'Pound holds steady against dollar for third week', 'Met office warns of strong winds on north coast tomorrow'].map((title, i) => ({ href: 'Article-EN.dc.html', title, section: 'Egypt', time: '1h ago', badge: 'none', imageId: 'article-en-related-' + i, isVideo: false, videoDuration: '', comments: 0 }));
+    return {
+      playing: this.state.playing,
+      playIcon: this.state.playing ? '❚❚' : '▶',
+      playerWrapStyle: { display: 'flex', alignItems: 'center', gap: '14px', background: '#F4F5F7', border: '1px solid #E2E5E9', borderRadius: '999px', padding: '10px 18px', margin: '20px 0' },
+      playBtnStyle: { width: '40px', height: '40px', borderRadius: '50%', background: '#B01F2E', color: '#fff', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', flexShrink: 0, cursor: 'pointer' },
+      speedBtnStyle: { border: '1px solid #C9CED4', background: '#FFFFFF', borderRadius: '999px', padding: '6px 12px', fontSize: '12px', fontWeight: 700, color: '#171A1F', flexShrink: 0, cursor: 'pointer', fontVariantNumeric: 'tabular-nums' },
+      speedLabel: this.state.speed,
+      barFillStyle: { position: 'absolute', insetInlineStart: 0, top: 0, bottom: 0, width: this.state.progress + '%', background: '#B01F2E', borderRadius: '999px' },
+      elapsedLabel: fmt(elapsed), totalLabel: fmt(this.totalSeconds),
+      bodyTextStyle: { color: '#171A1F', fontSize: 'clamp(1.125rem, 1rem + 0.3vw, 1.1875rem)', lineHeight: 1.8, margin: '0 0 20px' },
+      h2Style: { borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '14px', fontFamily: "'Inter',system-ui,sans-serif", fontWeight: 800, fontSize: '22px', color: '#171A1F', margin: '32px 0 16px' },
+      quoteStyle: { borderInlineStart: '3px solid #B01F2E', paddingInlineStart: '20px', color: '#3C434C', fontSize: '20px', fontWeight: 600, lineHeight: 1.6, margin: '28px 0', fontStyle: 'italic' },
+      relatedBlockStyle: { display: 'flex', flexDirection: 'column', gap: '6px', background: '#F4F5F7', borderRadius: '6px', padding: '16px 18px', margin: '24px 0', textDecoration: 'none' },
+      relatedLabelStyle: { color: '#B01F2E', fontSize: '13px', fontWeight: 800 },
+      relatedTitleStyle: { color: '#171A1F', fontSize: '16px', fontWeight: 700, lineHeight: 1.5 },
+      blocks, tags: ['Infrastructure', 'Egypt', 'Transport', 'New Delta'],
+      shareIcons: [{ label: 'Facebook', glyph: 'f' }, { label: 'X', glyph: 'X' }, { label: 'Copy link', glyph: '↗' }],
+      relatedCards,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

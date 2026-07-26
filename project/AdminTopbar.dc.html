@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+</helmet>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:20px;background:#FFFFFF;border-bottom:1px solid #E2E5E9;padding:14px 24px;flex-wrap:wrap;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif">
+  <div style="position:relative;flex:1;max-width:420px;min-width:180px">
+    <span style="position:absolute;inset-inline-start:14px;top:50%;transform:translateY(-50%);color:#9AA1AA;font-size:13px;pointer-events:none">🔍</span>
+    <input type="text" placeholder="بحث شامل في لوحة التحكم..." style="width:100%;box-sizing:border-box;padding-block:9px;padding-inline-end:14px;padding-inline-start:36px;border-radius:8px;border:1px solid #E2E5E9;background:#F4F5F7;font-size:13px;color:#171A1F;outline:none" style-focus="border-color:#B01F2E;background:#fff"/>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px">
+    <a href="DashArticleEditor.dc.html" style="background:#B01F2E;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:9px 16px;border-radius:8px;white-space:nowrap" style-hover="background:#8E1624">+ خبر جديد</a>
+    <span style="position:relative;font-size:16px;color:#3C434C;cursor:pointer">🔔<span style="position:absolute;top:-2px;inset-inline-end:-2px;width:8px;height:8px;border-radius:50%;background:#D71F30;border:2px solid #fff"></span></span>
+    <a href="Home.dc.html" style="color:#3C434C;text-decoration:none;font-size:13px;font-weight:600;display:flex;align-items:center;gap:5px;white-space:nowrap" style-hover="color:#B01F2E">👁 معاينة الموقع</a>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1000,&quot;height&quot;:64}}"></script>
+</body>
+</html>

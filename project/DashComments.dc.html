@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="comments" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div>
+        <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / التفاعل</div>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">التعليقات</h1>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+          <button onClick="{{ c.go }}" style="{{ c.style }}">{{ c.label }}</button>
+        </sc-for>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1fr 2.4fr 1.6fr 1fr 130px;background:#F4F5F7">
+          <div style="{{ thStyle }}">المستخدم</div><div style="{{ thStyle }}">التعليق</div><div style="{{ thStyle }}">على الخبر</div><div style="{{ thStyle }}">الحالة</div><div style="{{ thStyle }}">إجراءات</div>
+        </div>
+        <sc-for list="{{ rows }}" as="c" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:1fr 2.4fr 1.6fr 1fr 130px;align-items:center;min-height:52px;border-top:1px solid #E2E5E9">
+            <div style="{{ tdStyle }}">{{ c.user }}</div>
+            <div style="{{ tdStyleMuted }}">{{ c.text }}</div>
+            <div style="{{ tdStyleMuted }}">{{ c.article }}</div>
+            <div style="{{ tdStyle }}"><dc-import name="StatusBadge" status="{{ c.statusKey }}" hint-size="80px,26px"></dc-import></div>
+            <div style="display:flex;gap:10px;font-size:15px;padding-inline-end:14px">
+              <span onClick="{{ c.approve }}" style="cursor:pointer;color:#0E8A4C" title="قبول">✓</span>
+              <span onClick="{{ c.reject }}" style="cursor:pointer;color:#C93030" title="رفض">✕</span>
+              <span onClick="{{ c.ban }}" style="cursor:pointer;color:#6A727C" title="حظر">⊘</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    filter: 'pending',
+    comments: [
+      { id: 1, user: 'سارة أحمد', text: 'تقرير رائع، أول مرة أشوف تفاصيل بهذا الشكل.', article: 'جولة داخل مصنع سيارات كهربائية', status: 'pending' },
+      { id: 2, user: 'عمر خالد', text: 'هل فيه خطة لتصدير للسوق الأوروبي؟', article: 'جولة داخل مصنع سيارات كهربائية', status: 'pending' },
+      { id: 3, user: 'ندى محمود', text: 'تغطية ممتازة كالعادة', article: 'الرئيس يفتتح المرحلة الثانية', status: 'approved' },
+      { id: 4, user: 'زائر', text: 'محتوى غير لائق تم الإبلاغ عنه', article: 'الأهلي يحسم صفقة نجم الوسط', status: 'banned' },
+      { id: 5, user: 'محمود سيد', text: 'خبر مهم، شكراً على المتابعة اللحظية', article: 'تغطية لحظية: مؤتمر البنك المركزي', status: 'pending' },
+      { id: 6, user: 'إيمان علي', text: 'رأي غير موضوعي في نظري', article: 'الإصلاح الاقتصادي ليس رقماً', status: 'approved' },
+    ],
+  };
+  setStatus(id, status) { this.setState((s) => ({ comments: s.comments.map((c) => c.id === id ? { ...c, status } : c) })); }
+  renderVals() {
+    const statusKeyMap = { pending: 'review', approved: 'active', banned: 'rejected' };
+    const filtered = this.state.filter === 'all' ? this.state.comments : this.state.comments.filter((c) => c.status === this.state.filter);
+    const thStyle = { textAlign: 'start', padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#6A727C' };
+    const tdStyle = { padding: '0 14px', fontSize: '13.5px', color: '#171A1F', fontWeight: 600 };
+    const tdStyleMuted = Object.assign({}, tdStyle, { color: '#6A727C', fontWeight: 400, lineHeight: 1.5 });
+    const rows = filtered.map((c) => ({
+      ...c, tdStyle, tdStyleMuted, statusKey: statusKeyMap[c.status],
+      approve: () => this.setStatus(c.id, 'approved'), reject: () => this.setStatus(c.id, 'banned'), ban: () => this.setStatus(c.id, 'banned'),
+    }));
+    const base = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', background: '#FFFFFF', color: '#171A1F' };
+    const mk = (key, label) => ({ label, go: () => this.setState({ filter: key }), style: Object.assign({}, base, this.state.filter === key ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : {}) });
+    return { thStyle, rows, chips: [mk('pending', 'معلّق'), mk('approved', 'مقبول'), mk('banned', 'محظور'), mk('all', 'الكل')] };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>
+body { margin:0; }
+@keyframes daftar-pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.35); } }
+</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="live" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+    <main style="flex:2 1 560px;min-width:0">
+      <div style="position:relative;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#14171C">
+        <image-slot id="live-main" shape="rect" placeholder="أفلت صورة البث المباشر"></image-slot>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <span style="width:72px;height:72px;border-radius:50%;background:rgba(23,26,31,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;pointer-events:auto" style-hover="background:#B01F2E"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span>
+        </div>
+        <span style="position:absolute;inset-inline-start:12px;inset-block-start:12px;background:#D71F30;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:4px;display:flex;align-items:center;gap:5px">
+          <span style="width:6px;height:6px;border-radius:50%;background:#fff;animation:daftar-pulse-dot 1.4s ease-in-out infinite"></span>مباشر
+        </span>
+      </div>
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.375rem, 1rem + 1.4vw, 1.75rem);margin:18px 0 24px;color:#171A1F">تغطية لحظية: مؤتمر البنك المركزي حول أسعار الفائدة</h1>
+
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px;margin-bottom:20px">
+        <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:18px;margin:0;color:#171A1F">التغطية لحظة بلحظة</h2>
+      </div>
+      <div style="position:relative;padding-inline-start:24px">
+        <div style="position:absolute;inset-inline-start:7px;top:6px;bottom:6px;width:2px;background:#E2E5E9"></div>
+        <sc-for list="{{ updates }}" as="u" hint-placeholder-count="5">
+          <div style="position:relative;padding-bottom:28px">
+            <div style="position:absolute;inset-inline-start:-24px;top:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;border:3px solid #B01F2E"></div>
+            <div style="color:#B01F2E;font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;margin-bottom:4px">{{ u.time }}</div>
+            <div style="color:#171A1F;font-size:15px;line-height:1.7">{{ u.text }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </main>
+    <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+      <dc-import name="MostReadList" lang="ar" hint-size="100%,360px"></dc-import>
+    </aside>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      updates: [
+        { time: '12:41', text: 'محافظ البنك المركزي يبدأ كلمته بالإشارة إلى استقرار معدلات التضخم خلال الربع الأخير.' },
+        { time: '12:33', text: 'بدء المؤتمر الصحفي بحضور نواب المحافظ وممثلي البنوك الكبرى.' },
+        { time: '12:20', text: 'تجمع صحفي كبير أمام مقر البنك المركزي قبل بدء المؤتمر.' },
+        { time: '12:05', text: 'مصادر: القرار المرتقب لن يشمل تغييراً في سعر الإيداع الليلي.' },
+        { time: '11:50', text: 'انطلاق التغطية المباشرة لاجتماع لجنة السياسة النقدية.' },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import ArticleBlocks from "@/components/site/ArticleBlocks";
+import AudioPlayer from "@/components/site/AudioPlayer";
+import MostReadList from "@/components/site/MostReadList";
+import SectionBlock from "@/components/site/SectionBlock";
+import ShareRow from "@/components/site/ShareRow";
+import SiteShell from "@/components/site/SiteShell";
+import { getArticle, getArticles, mediaUrl } from "@/lib/api";
+import { formatDate, relativeTime } from "@/lib/format";
+
+export const revalidate = 30;
+
+export default async function ArticlePage({ params }: { params: { slug: string } }) {
+  const article = await getArticle(params.slug);
+  if (!article || article.kind !== "news") notFound();
+
+  const [related, mostRead] = await Promise.all([
+    getArticles(`?section__key=${article.section?.key ?? ""}&ordering=-published_at&page_size=5`),
+    getArticles("?ordering=-views&page_size=5"),
+  ]);
+  const relatedCards = related.results
+    .filter((a) => a.slug !== article.slug)
+    .slice(0, 4)
+    .map((a) => ({ href: `/article/${a.slug}`, title: a.title, section: a.section_name, time: relativeTime(a.published_at, "ar"), badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
+
+  const badgeLabel = { breaking: "عاجل", live: "مباشر", exclusive: "خاص", none: "" }[article.badge];
+
+  return (
+    <SiteShell lang="ar" active={article.section?.key}>
+      <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
+        <main className="min-w-0 max-w-reading flex-[2_1_480px]">
+          <div className="mb-4 text-[13px] text-ink-3">
+            <Link href="/" className="text-ink-3 no-underline hover:text-brand">
+              الرئيسية
+            </Link>
+            <span className="mx-1.5">/</span>
+            {article.section && (
+              <Link href={`/section/${article.section.key}`} className="text-ink-3 no-underline hover:text-brand">
+                {article.section.name_ar}
+              </Link>
+            )}
+          </div>
+
+          {badgeLabel && <span className="rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">{badgeLabel}</span>}
+
+          <h1 className="font-display-ar my-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.5] text-ink">
+            {article.title}
+          </h1>
+          {article.standfirst && (
+            <p className="mb-4 text-[clamp(1.0625rem,1rem+0.3vw,1.1875rem)] font-medium leading-[1.7] text-ink-2">{article.standfirst}</p>
+          )}
+
+          <div className="mb-2 flex flex-wrap items-center gap-2 border-y border-line py-3 text-[14px] text-ink-3">
+            {article.author && (
+              <Link href={`/authors/${article.author.username}`} className="font-bold text-ink-2 no-underline">
+                {article.author.name}
+              </Link>
+            )}
+            <span>•</span>
+            <span>{formatDate(article.published_at, "ar")}</span>
+            <span>•</span>
+            <span>◔ {article.read_minutes} دقائق قراءة</span>
+            <ShareRow lang="ar" title={article.title} />
+          </div>
+
+          {article.cover_image && (
+            <figure className="mb-1 mt-4">
+              <div className="aspect-video overflow-hidden rounded-card bg-surface-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={mediaUrl(article.cover_image)} alt={article.cover_caption || article.title} className="h-full w-full object-cover" />
+              </div>
+              {article.cover_caption && (
+                <figcaption className="mt-2 border-b border-line pb-3 text-caption text-ink-3">
+                  {article.cover_caption}
+                  {article.cover_credit ? ` — ${article.cover_credit}` : ""}
+                </figcaption>
+              )}
+            </figure>
+          )}
+
+          <AudioPlayer lang="ar" audioSrc={mediaUrl(article.tts_audio)} durationSeconds={article.tts_duration_seconds || 255} />
+
+          <ArticleBlocks lang="ar" blocks={article.blocks} />
+
+          {article.tags.length > 0 && (
+            <div className="mb-2 mt-7 flex flex-wrap gap-2">
+              {article.tags.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/tag/${t.slug}`}
+                  className="rounded-pill bg-brand-tint px-3.5 py-1.5 text-[13px] font-semibold text-brand no-underline hover:bg-brand hover:text-paper"
+                >
+                  {t.name}
+                </Link>
+              ))}
+            </div>
+          )}
+        </main>
+        <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
+          <MostReadList lang="ar" items={mostRead.results.map((a) => ({ title: a.title, href: `/article/${a.slug}`, section: a.section_name }))} />
+        </aside>
+      </div>
+
+      {relatedCards.length > 0 && (
+        <SectionBlock lang="ar" title="أخبار ذات صلة" seeAllHref={article.section ? `/section/${article.section.key}` : "/"} cards={relatedCards} />
+      )}
+    </SiteShell>
+  );
+}

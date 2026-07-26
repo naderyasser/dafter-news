@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="breaking" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;max-width:820px">
+      <div>
+        <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / المحتوى</div>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">الأخبار العاجلة</h1>
+        </div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px;display:flex;gap:10px">
+        <input type="text" value="{{ draft }}" onChange="{{ onDraftChange }}" placeholder="نص الخبر العاجل الجديد..." style="flex:1;box-sizing:border-box;padding:10px 14px;border-radius:6px;border:1px solid #E2E5E9;background:#F4F5F7;font-size:13.5px;outline:none" style-focus="border-color:#B01F2E;background:#fff"/>
+        <button onClick="{{ addItem }}" style="background:#B01F2E;color:#fff;border:none;border-radius:6px;padding:0 20px;font-size:13.5px;font-weight:700;cursor:pointer" style-hover="background:#8E1624">إضافة</button>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+        <sc-for list="{{ items }}" as="it" hint-placeholder-count="4">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-top:1px solid #E2E5E9;min-height:44px">
+            <div style="display:flex;flex-direction:column;gap:2px;color:#9AA1AA;font-size:11px">
+              <span onClick="{{ it.up }}" style="cursor:pointer">▲</span><span onClick="{{ it.down }}" style="cursor:pointer">▼</span>
+            </div>
+            <span style="flex:1;font-size:13.5px;color:#171A1F">{{ it.text }}</span>
+            <span style="color:#6A727C;font-size:12px;white-space:nowrap">ينتهي بعد {{ it.expires }}</span>
+            <span onClick="{{ it.toggle }}" style="{{ it.switchTrackStyle }}"><span style="{{ it.switchDotStyle }}"></span></span>
+            <span onClick="{{ it.remove }}" style="cursor:pointer;color:#C93030;font-size:14px">🗑</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    draft: '',
+    items: [
+      { id: 1, text: 'الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد', expires: '4 ساعات', active: true },
+      { id: 2, text: 'البنك المركزي يثبّت أسعار الفائدة في اجتماعه الدوري', expires: '6 ساعات', active: true },
+      { id: 3, text: 'المنتخب يتأهل لنهائي البطولة الأفريقية بعد فوز مثير', expires: '12 ساعة', active: false },
+      { id: 4, text: 'ارتفاع طفيف في أسعار الذهب مع تراجع الدولار عالمياً', expires: 'يوم واحد', active: true },
+    ],
+  };
+  move(id, dir) {
+    this.setState((s) => {
+      const arr = s.items.slice();
+      const i = arr.findIndex((x) => x.id === id);
+      const j = i + dir;
+      if (j < 0 || j >= arr.length) return {};
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+      return { items: arr };
+    });
+  }
+  renderVals() {
+    const items = this.state.items.map((it) => ({
+      ...it,
+      up: () => this.move(it.id, -1), down: () => this.move(it.id, 1),
+      remove: () => this.setState((s) => ({ items: s.items.filter((x) => x.id !== it.id) })),
+      toggle: () => this.setState((s) => ({ items: s.items.map((x) => x.id === it.id ? { ...x, active: !x.active } : x) })),
+      switchTrackStyle: { width: '36px', height: '20px', borderRadius: '999px', background: it.active ? '#B01F2E' : '#C9CED4', position: 'relative', cursor: 'pointer', flexShrink: 0, transition: '120ms ease' },
+      switchDotStyle: { position: 'absolute', top: '2px', insetInlineStart: it.active ? '18px' : '2px', width: '16px', height: '16px', borderRadius: '50%', background: '#FFFFFF', transition: '120ms ease' },
+    }));
+    return {
+      draft: this.state.draft, onDraftChange: (e) => this.setState({ draft: e.target.value }),
+      addItem: () => { const t = this.state.draft.trim(); if (!t) return; this.setState((s) => ({ items: [{ id: Date.now(), text: t, expires: '24 ساعة', active: true }, ...s.items], draft: '' })); },
+      items,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

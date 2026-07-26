@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="opinion" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:24px">
+      <div>
+        <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / الوسائط والبث</div>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">بالعقل والمنطق</h1>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-weight:700;font-size:15px">الكتّاب</span>
+          <button style="background:#F4F5F7;border:1px solid #E2E5E9;border-radius:999px;padding:7px 16px;font-size:12.5px;font-weight:600;cursor:pointer">+ كاتب جديد</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:14px">
+          <sc-for list="{{ authors }}" as="a" hint-placeholder-count="5">
+            <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px">
+              <div style="width:56px;height:56px;border-radius:50%;overflow:hidden">
+                <image-slot id="{{ a.imageId }}" shape="circle" placeholder="صورة"></image-slot>
+              </div>
+              <span style="font-weight:700;font-size:13.5px">{{ a.name }}</span>
+              <span style="color:#6A727C;font-size:11.5px">{{ a.count }} مقال رأي</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:12px">مقالات الرأي</div>
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+          <div style="display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;background:#F4F5F7">
+            <div style="{{ thStyle }}">العنوان</div><div style="{{ thStyle }}">الكاتب</div><div style="{{ thStyle }}">الحالة</div><div style="{{ thStyle }}">التاريخ</div>
+          </div>
+          <sc-for list="{{ opinionArticles }}" as="o" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;align-items:center;min-height:48px;border-top:1px solid #E2E5E9">
+              <div style="{{ tdStyle }}">{{ o.title }}</div>
+              <div style="{{ tdStyleMuted }}">{{ o.author }}</div>
+              <div style="{{ tdStyle }}"><dc-import name="StatusBadge" status="{{ o.status }}" hint-size="90px,26px"></dc-import></div>
+              <div style="{{ tdStyleMuted }}">{{ o.date }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const authors = [
+      { name: 'د. سامية فاروق', count: 42 }, { name: 'كريم عبد الوهاب', count: 31 },
+      { name: 'منى الشربيني', count: 18 }, { name: 'أحمد لبيب', count: 12 }, { name: 'ياسمين توفيق', count: 9 },
+    ].map((a, i) => ({ ...a, imageId: 'dashopinion-' + i }));
+    const opinionArticles = [
+      { title: 'الإصلاح الاقتصادي ليس رقماً في موازنة', author: 'د. سامية فاروق', status: 'published', date: '25 يوليو' },
+      { title: 'لماذا يفوز المنتخب في الملعب الخطأ كل مرة؟', author: 'كريم عبد الوهاب', status: 'review', date: '24 يوليو' },
+      { title: 'جيل جديد من القراء.. وصحافة لم تتغيّر بعد', author: 'منى الشربيني', status: 'published', date: '23 يوليو' },
+      { title: 'الذكاء الاصطناعي في غرفة الأخبار', author: 'أحمد لبيب', status: 'draft', date: '22 يوليو' },
+      { title: 'الصعيد ليس هامشاً.. هو متن الحكاية المصرية', author: 'ياسمين توفيق', status: 'scheduled', date: '27 يوليو' },
+    ];
+    const thStyle = { textAlign: 'start', padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#6A727C' };
+    const tdStyle = { padding: '0 14px', fontSize: '13.5px', color: '#171A1F', fontWeight: 600 };
+    return { authors, opinionArticles, thStyle, tdStyle, tdStyleMuted: Object.assign({}, tdStyle, { color: '#6A727C', fontWeight: 400 }) };
+  }
+}
+
+</script>
+</body>
+</html>

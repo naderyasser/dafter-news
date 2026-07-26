@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+</helmet>
+<div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:18px 20px;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif">
+  <div style="color:#6A727C;font-size:13px;font-weight:600;margin-bottom:10px">{{ label }}</div>
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:8px">
+    <span style="font-size:28px;font-weight:800;color:#171A1F;font-variant-numeric:tabular-nums;line-height:1">{{ value }}</span>
+    <span style="{{ chipStyle }}">{{ change }}</span>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:100},&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;زيارات اليوم&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;value&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;48,204&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;change&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;▲ 4.2%&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;up&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const up = !!this.props.up;
+    return {
+      label: this.props.label || '', value: this.props.value || '0',
+      change: this.props.change || '',
+      chipStyle: { display: 'inline-flex', alignItems: 'center', fontSize: '12px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', fontVariantNumeric: 'tabular-nums', background: up ? '#E7F4ED' : '#FBEDED', color: up ? '#0E8A4C' : '#C93030' },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

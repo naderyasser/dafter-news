@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"/>
+</helmet>
+<a href="Markets.dc.html" style="{{ rootStyle }}">
+  <div style="max-width:1200px;width:100%;margin:0 auto;padding-inline:24px;height:100%;display:flex;align-items:center;gap:28px;overflow-x:auto">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="5">
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="color:#6A727C;font-size:13px;white-space:nowrap">{{ it.label }}</span>
+        <span style="color:#171A1F;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap">{{ it.value }}</span>
+        <span style="{{ it.chipStyle }}">{{ it.change }}</span>
+      </div>
+    </sc-for>
+  </div>
+</a>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:52},&quot;lang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;ar&quot;,&quot;options&quot;:[&quot;ar&quot;,&quot;en&quot;],&quot;tsType&quot;:&quot;'ar'|'en'&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const lang = this.props.lang === 'en' ? 'en' : 'ar';
+    const isAr = lang === 'ar';
+    const chip = (up) => ({
+      display: 'flex', alignItems: 'center', gap: '2px', fontSize: '12px', fontWeight: 700,
+      padding: '2px 6px', borderRadius: '999px', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
+      background: up ? '#E7F4ED' : '#FBEDED', color: up ? '#0E8A4C' : '#C93030',
+    });
+    const raw = isAr ? [
+      { label: 'دولار/جنيه', value: '48.85', up: true, pct: '▲ 0.3%' },
+      { label: 'يورو/جنيه', value: '52.10', up: false, pct: '▼ 0.15%' },
+      { label: 'ذهب عيار 21', value: '3,550', up: true, pct: '▲ 0.8%' },
+      { label: 'المؤشر الرئيسي', value: '28,450', up: false, pct: '▼ 0.4%' },
+      { label: 'القاهرة ☀', value: '34°', up: true, pct: '' },
+    ] : [
+      { label: 'USD/EGP', value: '48.85', up: true, pct: '▲ 0.3%' },
+      { label: 'EUR/EGP', value: '52.10', up: false, pct: '▼ 0.15%' },
+      { label: 'Gold 21k', value: '3,550', up: true, pct: '▲ 0.8%' },
+      { label: 'Main index', value: '28,450', up: false, pct: '▼ 0.4%' },
+      { label: 'Cairo ☀', value: '34°', up: true, pct: '' },
+    ];
+    const items = raw.map(r => ({ label: r.label, value: r.value, change: r.pct, chipStyle: r.pct ? chip(r.up) : { display: 'none' } }));
+    return {
+      rootStyle: { position: 'fixed', insetInlineStart: 0, insetInlineEnd: 0, bottom: 0, height: '52px', background: '#FFFFFF', borderTop: '1px solid #E2E5E9', boxShadow: '0 -2px 12px rgba(23,26,31,.12)', zIndex: 40, textDecoration: 'none', display: 'block', fontFamily: "'Inter',system-ui,sans-serif" },
+      items,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

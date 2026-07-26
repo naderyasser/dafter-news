@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F;position:relative">
+  <dc-import name="AdminSidebar" active="users" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / النظام</div>
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+            <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">المستخدمون والأدوار</h1>
+          </div>
+        </div>
+        <button onClick="{{ openDrawer }}" style="background:#B01F2E;color:#fff;border:none;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;cursor:pointer" style-hover="background:#8E1624">+ مستخدم جديد</button>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:1.6fr 1.8fr 1fr 1fr 80px;background:#F4F5F7">
+          <div style="{{ thStyle }}">الاسم</div><div style="{{ thStyle }}">البريد الإلكتروني</div><div style="{{ thStyle }}">الدور</div><div style="{{ thStyle }}">آخر دخول</div><div></div>
+        </div>
+        <sc-for list="{{ users }}" as="u" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:1.6fr 1.8fr 1fr 1fr 80px;align-items:center;min-height:48px;border-top:1px solid #E2E5E9">
+            <div style="{{ tdStyle }}">{{ u.name }}</div>
+            <div style="{{ tdStyleMuted }}">{{ u.email }}</div>
+            <div style="{{ tdStyle }}"><dc-import name="StatusBadge" status="{{ u.role }}" hint-size="90px,26px"></dc-import></div>
+            <div style="{{ tdStyleMuted }}">{{ u.lastLogin }}</div>
+            <div style="padding-inline-end:14px"><span onClick="{{ openDrawer }}" style="cursor:pointer;color:#6A727C">✎</span></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <sc-if value="{{ drawerOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeDrawer }}" style="position:fixed;inset:0;background:rgba(23,26,31,.4);z-index:60"></div>
+    <div style="position:fixed;top:0;bottom:0;inset-inline-end:0;width:360px;max-width:92vw;background:#FFFFFF;z-index:61;box-shadow:-8px 0 24px rgba(23,26,31,.2);padding:24px;display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:800;font-size:17px">مستخدم جديد</span>
+        <span onClick="{{ closeDrawer }}" style="cursor:pointer;color:#6A727C;font-size:18px">✕</span>
+      </div>
+      <label style="font-size:13px;font-weight:600;color:#3C434C">الاسم الكامل</label>
+      <input type="text" style="box-sizing:border-box;padding:9px 12px;border-radius:6px;border:1px solid #E2E5E9;font-size:13.5px;outline:none" style-focus="border-color:#B01F2E"/>
+      <label style="font-size:13px;font-weight:600;color:#3C434C">البريد الإلكتروني</label>
+      <input type="email" style="box-sizing:border-box;padding:9px 12px;border-radius:6px;border:1px solid #E2E5E9;font-size:13.5px;outline:none" style-focus="border-color:#B01F2E"/>
+      <label style="font-size:13px;font-weight:600;color:#3C434C">الدور</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <sc-for list="{{ roleOptions }}" as="r" hint-placeholder-count="4">
+          <button onClick="{{ r.go }}" style="{{ r.style }}">{{ r.label }}</button>
+        </sc-for>
+      </div>
+      <button onClick="{{ save }}" style="margin-top:auto;background:#B01F2E;color:#fff;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;cursor:pointer" style-hover="background:#8E1624">حفظ المستخدم</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;top:20px;inset-inline-end:24px;background:#171A1F;color:#fff;padding:12px 20px;border-radius:8px;font-size:13.5px;font-weight:600;z-index:70;box-shadow:0 4px 14px rgba(0,0,0,.2)">✓ تم حفظ المستخدم بنجاح</div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { drawerOpen: false, toastVisible: false, newRole: 'author' };
+  componentWillUnmount() { clearTimeout(this._t); }
+  renderVals() {
+    const thStyle = { textAlign: 'start', padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#6A727C' };
+    const tdStyle = { padding: '0 14px', fontSize: '13.5px', color: '#171A1F', fontWeight: 600 };
+    const tdStyleMuted = Object.assign({}, tdStyle, { color: '#6A727C', fontWeight: 400 });
+    const users = [
+      { name: 'محمد العدوي', email: 'm.eladawy@aldaftarnews.com', role: 'editor', lastLogin: 'منذ ساعة' },
+      { name: 'د. سامية فاروق', email: 's.farouk@aldaftarnews.com', role: 'author', lastLogin: 'منذ 3 ساعات' },
+      { name: 'ياسمين توفيق', email: 'y.tawfik@aldaftarnews.com', role: 'moderator', lastLogin: 'أمس' },
+      { name: 'أدمن النظام', email: 'admin@aldaftarnews.com', role: 'admin', lastLogin: 'الآن' },
+      { name: 'كريم عبد الوهاب', email: 'k.abdelwahab@aldaftarnews.com', role: 'author', lastLogin: 'منذ يومين' },
+    ];
+    const roleBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '7px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', background: '#FFFFFF', color: '#171A1F' };
+    const roleOptions = ['admin', 'editor', 'author', 'moderator'].map((r) => ({
+      label: { admin: 'مدير', editor: 'محرر', author: 'كاتب', moderator: 'مشرف تعليقات' }[r],
+      go: () => this.setState({ newRole: r }),
+      style: Object.assign({}, roleBase, this.state.newRole === r ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : {}),
+    }));
+    return {
+      thStyle, users, roleOptions, drawerOpen: this.state.drawerOpen, toastVisible: this.state.toastVisible,
+      openDrawer: () => this.setState({ drawerOpen: true }), closeDrawer: () => this.setState({ drawerOpen: false }),
+      save: () => { this.setState({ drawerOpen: false, toastVisible: true }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toastVisible: false }), 2500); },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

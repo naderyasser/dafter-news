@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:800px;margin:0 auto;padding:40px 24px 8px">
+    <div style="position:relative;margin-bottom:20px">
+      <span style="position:absolute;inset-inline-start:18px;top:50%;transform:translateY(-50%);color:#6A727C;font-size:18px">🔍</span>
+      <input type="text" value="{{ query }}" onChange="{{ onQueryChange }}" placeholder="ابحث عن خبر، كاتب، أو موضوع..." style="width:100%;box-sizing:border-box;padding:16px 20px 16px 48px;padding-inline-start:48px;border-radius:999px;border:1px solid #E2E5E9;background:#FFFFFF;font-size:16px;color:#171A1F;outline:none" style-focus="border-color:#B01F2E"/>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+      <sc-for list="{{ chips }}" as="c" hint-placeholder-count="4">
+        <button onClick="{{ c.go }}" style="{{ c.style }}">{{ c.label }}</button>
+      </sc-for>
+    </div>
+  </div>
+  <div style="max-width:800px;margin:0 auto;padding:0 24px 48px">
+    <div style="color:#6A727C;font-size:14px;margin-bottom:16px">{{ resultCountLabel }}</div>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <sc-for list="{{ results }}" as="r" hint-placeholder-count="6">
+        <div style="border-block-end:1px solid #E2E5E9;padding-block:12px">
+          <dc-import name="ArticleCard" lang="ar" variant="compact" href="{{ r.href }}" title="{{ r.title }}" section="{{ r.section }}" time="{{ r.time }}" badge="{{ r.badge }}" image-id="{{ r.imageId }}" hint-size="100%,90px"></dc-import>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { query: '', section: 'all' };
+  renderVals() {
+    const all = [
+      { title: 'الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد', section: 'مصر', time: 'منذ 30 دقيقة', badge: 'breaking' },
+      { title: 'البنك المركزي يثبّت أسعار الفائدة للاجتماع الثالث', section: 'اقتصاد', time: 'منذ ساعة', badge: 'none' },
+      { title: 'الأهلي يحسم صفقة نجم الوسط قبل ساعات من إغلاق القيد', section: 'رياضة', time: 'منذ ساعتين', badge: 'exclusive' },
+      { title: 'مجلس الوزراء يوافق على حزمة حوافز جديدة للمصانع الصغيرة', section: 'مصر', time: 'منذ ساعة', badge: 'none' },
+      { title: 'بورصة مصر تغلق على ارتفاع بقيادة أسهم البنوك', section: 'اقتصاد', time: 'منذ ساعتين', badge: 'none' },
+      { title: 'الزمالك يتعاقد مع مدرب جديد قبل بداية الموسم', section: 'رياضة', time: 'منذ 3 ساعات', badge: 'none' },
+      { title: 'افتتاح أول محطة لتحلية مياه البحر على الساحل الشمالي', section: 'مصر', time: 'منذ ساعتين', badge: 'none' },
+      { title: 'ارتفاع أسعار الذهب عالمياً مع تصاعد التوترات', section: 'اقتصاد', time: 'منذ 4 ساعات', badge: 'none' },
+      { title: 'المنتخب الوطني يستعد لمواجهة حاسمة في تصفيات المونديال', section: 'رياضة', time: 'منذ 4 ساعات', badge: 'none' },
+    ].map((r, i) => ({ ...r, href: 'Article.dc.html', imageId: 'search-' + i }));
+    const q = this.state.query.trim();
+    const filtered = all.filter((r) => (this.state.section === 'all' || r.section === this.state.section) && (!q || r.title.includes(q)));
+    const base = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 16px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' };
+    const mk = (key, label) => ({ label, go: () => this.setState({ section: key }), style: Object.assign({}, base, this.state.section === key ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }) });
+    return {
+      query: this.state.query, onQueryChange: (e) => this.setState({ query: e.target.value }),
+      chips: [mk('all', 'الكل'), mk('مصر', 'مصر'), mk('اقتصاد', 'اقتصاد'), mk('رياضة', 'رياضة')],
+      resultCountLabel: filtered.length + ' نتيجة' + (q ? (' عن "' + q + '"') : ''),
+      results: filtered,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
