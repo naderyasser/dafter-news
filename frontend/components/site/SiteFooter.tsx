@@ -87,6 +87,16 @@ export default function SiteFooter({ lang }: { lang: "ar" | "en" }) {
       <div className="border-t border-ink-2">
         <div className="mx-auto flex max-w-container flex-wrap justify-between gap-2 px-6 py-4">
           <span className="text-[13px] text-ink-3">© 2026 aldaftarnews.com</span>
+          {/* Required by the keyless ExchangeRate-API Open Access tier that the
+              currency ticker runs on. It sits in the footer because the ticker
+              is site-wide; their terms allow the link to be discreet. */}
+          <a
+            href="https://www.exchangerate-api.com"
+            rel="noopener"
+            className="text-[13px] text-ink-3 no-underline hover:text-header-ink"
+          >
+            {isAr ? "أسعار الصرف من Exchange Rate API" : "Rates By Exchange Rate API"}
+          </a>
           <span className="text-[13px] text-ink-3">
             {isAr ? "الدفتر نيوز © جميع الحقوق محفوظة" : "Al Daftar News — all rights reserved"}
           </span>

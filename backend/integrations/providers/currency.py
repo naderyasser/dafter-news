@@ -1,7 +1,19 @@
 """
 Foreign-exchange rates against the Egyptian pound.
 
-Source is exchangerate.host, which is keyless and permits commercial use.
+Source is ExchangeRate-API's Open Access endpoint, which is keyless and
+whose terms explicitly permit commercial use. (It replaced exchangerate.host
+in 2026-07: that host now demands an `access_key` and answers HTTP 200 with
+`{"success": false, "error": {"code": 101}}` for keyless callers, which read
+as a malformed payload rather than an auth failure.)
+
+Two obligations come with the open endpoint, both deliberate choices here:
+  * Attribution is required wherever the rates are shown — the markets page
+    and the ticker carry a "Rates By Exchange Rate API" link.
+  * It republishes once per day and rate-limits abusers with HTTP 429, so
+    this source is NOT on the one-minute cron; it has its own six-hourly
+    entry via `sync_feeds --only currency`.
+
 It publishes a single mid-market rate; Egyptian banks quote a buy and a sell
 around it, which is what the design shows. We derive the pair by applying a
 spread rather than inventing two independent numbers, so buy < sell always
@@ -17,8 +29,10 @@ from integrations.client import ProviderError, fetch_json, pct_change, push_seri
 from market.models import Currency
 
 SOURCE = "currency"
-LABEL = "العملات — exchangerate.host"
-ENDPOINT = "https://api.exchangerate.host/latest"
+LABEL = "العملات — ExchangeRate-API"
+# Base currency goes in the path, not a query string; the response carries
+# every symbol, so there is nothing to request per-currency.
+ENDPOINT = "https://open.er-api.com/v6/latest"
 
 # Half-spread applied either side of the mid rate. 0.35% sits in the range
 # Egyptian banks actually quote on majors; it is a presentation detail, not
@@ -44,11 +58,14 @@ def _derive_spread(mid):
 def sync():
     """Refresh tracked pairs against EGP. Returns rows updated."""
     base = os.environ.get("FX_BASE", "EGP")
-    symbols = ",".join(code for code, _, _ in TRACKED)
-    data = fetch_json(ENDPOINT, params={"base": base, "symbols": symbols})
+    data = fetch_json(f"{ENDPOINT}/{base}")
 
     if not data or not isinstance(data.get("rates"), dict):
         raise ProviderError("استجابة غير صالحة من مصدر العملات")
+    # The open endpoint answers 200 even when it refuses, so read its own
+    # verdict rather than trusting the status code.
+    if data.get("result") not in (None, "success"):
+        raise ProviderError(f"مصدر العملات رفض الطلب: {data.get('error-type') or data.get('result')}")
 
     rates = data["rates"]
     updated = 0
