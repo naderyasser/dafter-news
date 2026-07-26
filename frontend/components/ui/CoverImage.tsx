@@ -25,8 +25,18 @@ export default function CoverImage({
       </div>
     );
   }
+  // `fill` needs a positioned ancestor, so this wrapper supplies `relative` —
+  // but every caller passes `absolute inset-0`, and Tailwind emits `.relative`
+  // *after* `.absolute`, so the hardcoded class won the cascade. The wrapper
+  // then laid out as a relative box whose only child is out of flow: zero
+  // height, image painted into nothing. (The placeholder branch above sets no
+  // position, which is why empty slots always rendered and only real covers
+  // went blank.) Skip `relative` when the caller already positions us — an
+  // absolute box is itself a containing block, so `fill` still resolves.
+  const positioned = /(?:^|\s)(?:absolute|fixed|sticky|relative)(?:\s|$)/.test(className);
+
   return (
-    <div className={`relative overflow-hidden bg-surface-2 ${className}`}>
+    <div className={`${positioned ? "" : "relative"} overflow-hidden bg-surface-2 ${className}`}>
       <Image src={src} alt={alt} fill sizes={sizes} className="object-cover" />
     </div>
   );
