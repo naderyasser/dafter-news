@@ -644,3 +644,68 @@ class IntegrationsAPITests(APITestCase):
         self.assertEqual(row["source"], "currency")
         self.assertFalse(row["is_stale"])
         self.assertEqual(row["records"], 6)
+
+
+OPEN_METEO_OK = {
+    "current": {"temperature_2m": 34.4, "relative_humidity_2m": 32, "weather_code": 0, "is_day": 1},
+    "daily": {"temperature_2m_max": [36.2], "temperature_2m_min": [24.1]},
+}
+
+
+class WeatherBackendSelectionTests(TestCase):
+    """The keyless backend exists so a fresh clone shows real weather, but it
+    is licensed non-commercially — so it must never be selected implicitly."""
+
+    def test_open_meteo_backend_needs_no_key(self):
+        with patch.dict("os.environ", {"WEATHER_PROVIDER": "open-meteo"}, clear=True):
+            with patch("integrations.providers.weather.fetch_json", return_value=OPEN_METEO_OK):
+                updated = weather.sync()
+
+        self.assertEqual(updated, 4)
+        cairo = WeatherCity.objects.get(key="cairo")
+        self.assertEqual(cairo.temp, 34)
+        self.assertEqual(cairo.hi, 36)
+        self.assertEqual(cairo.lo, 24)
+        self.assertEqual(cairo.humidity, 32)
+
+    def test_missing_key_does_not_silently_fall_back_to_open_meteo(self):
+        """Falling back on its own would quietly put a commercial site on a
+        non-commercial licence."""
+        with patch.dict("os.environ", {}, clear=True):
+            with override_settings(OPENWEATHER_API_KEY=""):
+                with patch("integrations.providers.weather.fetch_json", return_value=OPEN_METEO_OK):
+                    with self.assertRaises(ProviderError):
+                        weather.sync()
+
+        self.assertFalse(WeatherCity.objects.exists())
+
+    def test_the_error_names_the_keyless_alternative(self):
+        with patch.dict("os.environ", {}, clear=True):
+            with override_settings(OPENWEATHER_API_KEY=""):
+                with self.assertRaises(ProviderError) as ctx:
+                    weather.sync()
+
+        self.assertIn("open-meteo", str(ctx.exception))
+
+    def test_both_backends_produce_the_same_icon_for_clear_sky(self):
+        self.assertEqual(weather._icon_for(800, "01d"), weather._icon_for_wmo(0, 1))
+        self.assertEqual(weather._icon_for(800, "01n"), weather._icon_for_wmo(0, 0))
+
+    def test_wmo_codes_map_across_the_documented_groups(self):
+        self.assertEqual(weather._icon_for_wmo(2), "⛅")
+        self.assertEqual(weather._icon_for_wmo(3), "☁️")
+        self.assertEqual(weather._icon_for_wmo(48), "🌫️")
+        self.assertEqual(weather._icon_for_wmo(61), "🌧️")
+        self.assertEqual(weather._icon_for_wmo(73), "❄️")
+        self.assertEqual(weather._icon_for_wmo(95), "⛈️")
+
+    def test_open_meteo_survives_a_missing_daily_block(self):
+        """Without the daily forecast, hi/lo fall back to the current temp
+        rather than writing zeros into the ticker."""
+        with patch.dict("os.environ", {"WEATHER_PROVIDER": "open-meteo"}, clear=True):
+            with patch("integrations.providers.weather.fetch_json", return_value={"current": OPEN_METEO_OK["current"]}):
+                weather.sync()
+
+        cairo = WeatherCity.objects.get(key="cairo")
+        self.assertEqual(cairo.hi, 34)
+        self.assertEqual(cairo.lo, 34)
