@@ -4,7 +4,7 @@ import NavDrawer from "@/components/site/NavDrawer";
 import PrayerStrip from "@/components/site/PrayerStrip";
 import BreakingAlertsToggle from "@/components/site/BreakingAlertsToggle";
 import SearchBox from "@/components/site/SearchBox";
-import { getBreakingNews, getPrayerTimes, getSections } from "@/lib/api";
+import { getBreakingNews, getPrayerTimes, getSections, getSiteSettings, mediaUrl } from "@/lib/api";
 
 type NavItem = { key: string; label: string; href: string };
 
@@ -26,7 +26,13 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
   const homeHref = isAr ? "/" : "/en";
   const altLangHref = isAr ? "/en" : "/";
 
-  const [breakingRes, sectionsRes, prayer] = await Promise.all([getBreakingNews(), getSections(), getPrayerTimes()]);
+  const [breakingRes, sectionsRes, prayer, settings] = await Promise.all([
+    getBreakingNews(),
+    getSections(),
+    getPrayerTimes(),
+    getSiteSettings(),
+  ]);
+  const logoSrc = mediaUrl(settings?.logo);
   const breaking = breakingRes;
   const sections = sectionsRes.results;
 
@@ -97,16 +103,31 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
         <div className="mx-auto flex max-w-container items-center gap-4 px-6 py-4">
           <NavDrawer lang={lang} sections={sections} extraLinks={drawerExtras} />
 
-          <Link
-            href={homeHref}
-            className={`${fontDisplay} flex flex-shrink-0 flex-col border-s-[3px] border-brand ps-3 no-underline`}
-          >
-            <span className="text-[22px] font-extrabold leading-tight tracking-[-0.3px] text-ink">
-              {isAr ? "الدفتر نيوز" : "Al Daftar News"}
-            </span>
-            <span className="text-[11px] font-semibold text-ink-3">
-              {isAr ? "سِجلّ اليوم.. خبراً خبراً" : "Today's record, story by story"}
-            </span>
+          {/* The masthead shows the uploaded brand mark when Settings has one,
+              and falls back to the typographic wordmark the design shipped
+              with. Upload it at /dashboard/settings — no code change needed to
+              swap it later. */}
+          <Link href={homeHref} className="flex flex-shrink-0 items-center no-underline">
+            {logoSrc ? (
+              // Sized by height so any future mark keeps its own proportions;
+              // the supplied file is trimmed to the ink, so this is all logo
+              // rather than the white field the original JPEG carried.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoSrc}
+                alt={isAr ? "الدفتر مصر" : "Al Daftar Masr"}
+                className="h-[52px] w-auto object-contain sm:h-[64px] lg:h-[72px]"
+              />
+            ) : (
+              <span className={`${fontDisplay} flex flex-col border-s-[3px] border-brand ps-3`}>
+                <span className="text-[22px] font-extrabold leading-tight tracking-[-0.3px] text-ink">
+                  {isAr ? "الدفتر نيوز" : "Al Daftar News"}
+                </span>
+                <span className="text-[11px] font-semibold text-ink-3">
+                  {isAr ? "سِجلّ اليوم.. خبراً خبراً" : "Today's record, story by story"}
+                </span>
+              </span>
+            )}
           </Link>
 
           {/* The «بث مباشر» pill that used to sit here was removed on request;

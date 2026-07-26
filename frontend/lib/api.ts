@@ -137,7 +137,9 @@ export const getTicker = () =>
     { revalidate: 60 },
   );
 
-export const getSiteSettings = (opts: FetchOptions = { revalidate: 300 }) =>
+// 60s, not 300: the masthead reads the logo from here, and an editor who
+// uploads one should not wait five minutes to see it on the site.
+export const getSiteSettings = (opts: FetchOptions = { revalidate: 60 }) =>
   safeGet<SiteSettings | null>(`/settings/`, null, opts);
 
 // --------------------------------------------------------------- dashboard
@@ -197,6 +199,25 @@ async function ensureCsrf(): Promise<string> {
     /* offline — the mutation below will surface the failure */
   }
   return csrfFromCookie();
+}
+
+/**
+ * Multipart variant of apiMutate for file fields (the Settings logo).
+ * Content-Type is deliberately unset so the browser writes the multipart
+ * boundary itself; forcing application/json here silently breaks the upload.
+ */
+export async function apiUpload<T>(path: string, method: "POST" | "PATCH" | "PUT", form: FormData): Promise<T> {
+  const token = await ensureCsrf();
+  const res = await fetch(`${API_URL}${path}`, {
+    method,
+    body: form,
+    credentials: "include",
+    headers: token ? { "X-CSRFToken": token } : {},
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);
+  if (res.status === 204) return undefined as T;
+  return res.json();
 }
 
 export async function apiMutate<T>(path: string, method: "POST" | "PATCH" | "PUT" | "DELETE", body?: unknown): Promise<T> {
