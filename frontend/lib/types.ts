@@ -252,3 +252,54 @@ export type WelcomeAlert = {
   cta_href: string;
   image: string | null;
 };
+
+export type PrayerTimes = {
+  id: number;
+  city_key: string;
+  date: string;
+  hijri_date: string;
+  fajr: string;
+  dhuhr: string;
+  asr: string;
+  maghrib: string;
+  isha: string;
+};
+
+export type Match = {
+  id: number;
+  league: string;
+  home_team: string;
+  away_team: string;
+  home_score: number | null;
+  away_score: number | null;
+  score_label: string;
+  status: "scheduled" | "live" | "finished";
+  kickoff_at: string | null;
+  round_label: string;
+  venue: string;
+};
+
+export type WireArticle = {
+  id: number;
+  title: string;
+  summary: string;
+  url: string;
+  image_url: string;
+  source_name: string;
+  provider: string;
+  language: string;
+  published_at: string | null;
+};
+
+export type SyncLog = {
+  id: number;
+  source: string;
+  label: string;
+  status: "ok" | "failed" | "skipped";
+  message: string;
+  records: number;
+  last_attempt_at: string | null;
+  last_success_at: string | null;
+  consecutive_failures: number;
+  is_stale: boolean;
+};
