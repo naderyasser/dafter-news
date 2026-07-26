@@ -5,7 +5,7 @@ import SiteShell from "@/components/site/SiteShell";
 import { getArticles } from "@/lib/api";
 
 export default async function NotFound() {
-  const mostRead = await getArticles("?ordering=-views&page_size=5");
+  const mostRead = await getArticles("?language=ar&ordering=-views&page_size=5");
 
   return (
     <SiteShell lang="ar">

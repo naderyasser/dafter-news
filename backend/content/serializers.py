@@ -25,10 +25,27 @@ class ArticleBlockSerializer(serializers.ModelSerializer):
         fields = ["id", "order", "type", "text", "image", "caption", "credit", "related_article", "related_article_slug"]
 
 
+def section_name_for(article):
+    """
+    Section label in the article's own language.
+
+    Keyed off `article.language` rather than a request parameter so a card is
+    labelled correctly wherever it appears — an English article surfaced in a
+    mixed list still reads "Egypt", not "شؤون مصر". Falls back to the Arabic
+    name because name_en is blank=True and Arabic is the site default.
+    """
+    section = article.section
+    if section is None:
+        return None
+    if article.language == "en" and section.name_en:
+        return section.name_en
+    return section.name_ar
+
+
 class ArticleCardSerializer(serializers.ModelSerializer):
     """Slim shape for grids/lists — mirrors ArticleCard.dc.html props."""
 
-    section_name = serializers.CharField(source="section.name_ar", read_only=True)
+    section_name = serializers.SerializerMethodField()
     href_slug = serializers.CharField(source="slug", read_only=True)
     comment_count = serializers.IntegerField(read_only=True, default=0)
     author_name = serializers.CharField(source="author.display_name", read_only=True, default=None)
@@ -41,6 +58,9 @@ class ArticleCardSerializer(serializers.ModelSerializer):
             "id", "title", "slug", "href_slug", "section_name", "badge", "status", "cover_image",
             "published_at", "views", "kind", "comment_count", "author_name", "author_username", "author_initial",
         ]
+
+    def get_section_name(self, obj):
+        return section_name_for(obj)
 
 
 class ArticleDetailSerializer(serializers.ModelSerializer):

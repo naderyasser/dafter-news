@@ -7,6 +7,28 @@ const AR_LABELS: Record<string, string> = {
   EUR: "يورو/جنيه",
   GBP: "إسترليني/جنيه",
   SAR: "ريال سعودي/جنيه",
+  // AED and KWD are in the provider's TRACKED list but were missing here, so
+  // the Arabic bar fell through to the bare ISO code for both.
+  AED: "درهم إماراتي/جنيه",
+  KWD: "دينار كويتي/جنيه",
+};
+
+// GoldKarat.label and WeatherCity.label are single-language columns holding
+// Arabic, so the English bar rendered "عيار 21" verbatim. Map at the view
+// layer — same approach AR_LABELS already takes for currency codes — rather
+// than adding a second column to a table the dashboard edits by hand.
+const EN_GOLD: Record<string, string> = {
+  "عيار 24": "Gold 24K",
+  "عيار 21": "Gold 21K",
+  "عيار 18": "Gold 18K",
+  "جنيه ذهب": "Gold pound",
+};
+
+const EN_CITY: Record<string, string> = {
+  cairo: "Cairo",
+  alex: "Alexandria",
+  luxor: "Luxor",
+  aswan: "Aswan",
 };
 
 function Chip({ up, children }: { up: boolean; children: React.ReactNode }) {
@@ -49,7 +71,7 @@ export default function MarketsTicker({ lang, data }: { lang: "ar" | "en"; data:
     )),
     ...data.gold.map((g) => (
       <div key={`g-${g.label}`} className="flex flex-shrink-0 items-center gap-2">
-        <span className="whitespace-nowrap text-[13px] text-ink-3">{isAr ? `ذهب ${g.label}` : g.label}</span>
+        <span className="whitespace-nowrap text-[13px] text-ink-3">{isAr ? `ذهب ${g.label}` : EN_GOLD[g.label] ?? g.label}</span>
         <span className="tnum whitespace-nowrap text-[14px] font-bold text-ink">{g.price}</span>
         <Chip up={g.is_up}>
           {g.is_up ? "▲" : "▼"} {g.change_pct}%
@@ -59,7 +81,7 @@ export default function MarketsTicker({ lang, data }: { lang: "ar" | "en"; data:
     weather ? (
       <div key="w" className="flex flex-shrink-0 items-center gap-2">
         <span className="whitespace-nowrap text-[13px] text-ink-3">
-          {isAr ? weather.label : weather.key} {weather.icon}
+          {isAr ? weather.label : EN_CITY[weather.key] ?? weather.key} {weather.icon}
         </span>
         <span className="tnum whitespace-nowrap text-[14px] font-bold text-ink">{weather.temp}°</span>
       </div>

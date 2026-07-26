@@ -10,7 +10,7 @@ import Link from "next/link";
 export const revalidate = 30;
 
 export default async function ArticleOpinionPage({ params }: { params: { slug: string } }) {
-  const [article, mostRead] = await Promise.all([getArticle(params.slug), getArticles("?ordering=-views&page_size=5")]);
+  const [article, mostRead] = await Promise.all([getArticle(params.slug), getArticles("?language=ar&ordering=-views&page_size=5")]);
   if (!article || article.kind !== "opinion") notFound();
 
   return (

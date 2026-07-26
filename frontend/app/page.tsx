@@ -31,17 +31,17 @@ function toSectionCard(a: ArticleCardType) {
 
 export default async function HomePage() {
   const [recent, egypt, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches] = await Promise.all([
-    getArticles("?ordering=-published_at&page_size=12"),
-    getArticles("?section__key=egypt&ordering=-published_at&page_size=6"),
-    getArticles("?section__key=economy&ordering=-published_at&page_size=6"),
-    getArticles("?section__key=sports&ordering=-published_at&page_size=6"),
-    getArticles("?section__key=art&ordering=-published_at&page_size=6"),
-    getArticles("?section__key=tech&ordering=-published_at&page_size=6"),
+    getArticles("?language=ar&ordering=-published_at&page_size=12"),
+    getArticles("?language=ar&section__key=egypt&ordering=-published_at&page_size=6"),
+    getArticles("?language=ar&section__key=economy&ordering=-published_at&page_size=6"),
+    getArticles("?language=ar&section__key=sports&ordering=-published_at&page_size=6"),
+    getArticles("?language=ar&section__key=art&ordering=-published_at&page_size=6"),
+    getArticles("?language=ar&section__key=tech&ordering=-published_at&page_size=6"),
     getVideos("?page_size=4"),
-    getArticles("?kind=opinion&page_size=6"),
-    getArticles("?ordering=-views&page_size=5"),
+    getArticles("?language=ar&kind=opinion&page_size=6"),
+    getArticles("?language=ar&ordering=-views&page_size=5"),
     getTags(),
-    getArticles("?ordering=-comment_count&page_size=6"),
+    getArticles("?language=ar&ordering=-comment_count&page_size=6"),
     getStories(),
     getMatches(),
   ]);
