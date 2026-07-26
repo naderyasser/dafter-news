@@ -1,6 +1,6 @@
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 
+from aldaftar.permissions import ReadOnlyOrStaff
 from .models import MediaAsset
 from .serializers import MediaAssetSerializer
 
@@ -8,5 +8,5 @@ from .serializers import MediaAssetSerializer
 class MediaAssetViewSet(viewsets.ModelViewSet):
     queryset = MediaAsset.objects.all()
     serializer_class = MediaAssetSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     search_fields = ["alt", "credit"]

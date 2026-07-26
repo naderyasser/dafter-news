@@ -1,10 +1,10 @@
 from django.db.models import Count, Sum
 from django.utils import timezone
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from aldaftar.permissions import PublicSubmission, ReadOnlyOrStaff, StaffOnly
 from aldaftar.mixins import SlugOrPkLookupMixin
 
 from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
@@ -25,7 +25,7 @@ class StoryViewSet(viewsets.ModelViewSet):
 
     queryset = Story.objects.select_related("section")
     serializer_class = StorySerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     filterset_fields = ["active", "section__key"]
     ordering_fields = ["order"]
 
@@ -33,7 +33,7 @@ class StoryViewSet(viewsets.ModelViewSet):
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     lookup_field = "key"
     ordering_fields = ["order"]
 
@@ -41,7 +41,7 @@ class SectionViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     lookup_field = "slug"
 
 
@@ -61,7 +61,7 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
         .annotate(comment_count=Count("comments", distinct=True))
         .order_by("-published_at", "-created_at", "-pk")
     )
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug"]
     search_fields = ["title", "standfirst"]
     ordering_fields = ["published_at", "views", "created_at", "comment_count"]
@@ -86,8 +86,24 @@ class CommentViewSet(viewsets.ModelViewSet):
 
     queryset = Comment.objects.select_related("article")
     serializer_class = CommentSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PublicSubmission]
     filterset_fields = ["status", "article"]
+
+    def perform_create(self, serializer):
+        """
+        A reader may submit, never publish.
+
+        `status` is a writable field on the serializer because moderators set
+        it from the queue — but it arrives from the public form too, and a
+        POST carrying status="approved" went straight to the site without ever
+        being seen. Anything from a non-staff caller is pinned to pending.
+        """
+        user = self.request.user
+        is_staff = user.is_authenticated and (user.is_staff or user.is_superuser)
+        if is_staff:
+            serializer.save()
+        else:
+            serializer.save(status=Comment.Status.PENDING)
 
 
 class BreakingNewsItemViewSet(viewsets.ModelViewSet):
@@ -95,7 +111,7 @@ class BreakingNewsItemViewSet(viewsets.ModelViewSet):
 
     queryset = BreakingNewsItem.objects.all()
     serializer_class = BreakingNewsItemSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     filterset_fields = ["active"]
     ordering_fields = ["order", "created_at"]
 
@@ -107,7 +123,7 @@ class DashboardOverviewView(APIView):
     and the review queue.
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [StaffOnly]
 
     def get(self, request):
         from siteconfig.models import DailyVisit

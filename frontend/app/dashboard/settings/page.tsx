@@ -1,11 +1,11 @@
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import SettingsManager from "@/components/dashboard/SettingsManager";
-import { getSiteSettings } from "@/lib/api";
+import { getSiteSettings, FRESH } from "@/lib/api";
 
 export const revalidate = 0;
 
 export default async function DashSettingsPage() {
-  const settings = await getSiteSettings();
+  const settings = await getSiteSettings(FRESH);
   return (
     <DashboardShell active="settings" breadcrumb="لوحة التحكم / النظام" title="الإعدادات">
       <SettingsManager initial={settings} />

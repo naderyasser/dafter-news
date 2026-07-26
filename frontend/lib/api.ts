@@ -38,11 +38,43 @@ export function mediaUrl(path?: string | null): string | undefined {
 
 type FetchOptions = RequestInit & { revalidate?: number };
 
+/**
+ * Dashboard reads must never come from cache: an editor who saves a change
+ * and reloads has to see it. Public pages keep their own TTLs.
+ */
+export const FRESH: FetchOptions = { revalidate: 0 };
+
+/**
+ * Forward the caller's session cookie on server-rendered requests.
+ *
+ * Dashboard pages are Server Components: their fetches leave the Next process,
+ * not the browser, so they carry no cookie of their own. Now that the API is
+ * staff-gated they would all come back 403 and the screens would render empty.
+ * `next/headers` is server-only, so it is imported lazily — reaching for it in
+ * a client component would break the bundle.
+ */
+async function serverCookieHeader(): Promise<Record<string, string>> {
+  if (typeof window !== "undefined") return {};
+  try {
+    const { headers } = await import("next/headers");
+    const cookie = headers().get("cookie");
+    return cookie ? { cookie } : {};
+  } catch {
+    // Outside a request scope (build-time prerender) there is no caller to
+    // impersonate; the request goes out anonymous, which is correct.
+    return {};
+  }
+}
+
 async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { revalidate, ...init } = options;
+  const forwarded = await serverCookieHeader();
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...(init.headers || {}) },
+    // Same-origin behind nginx, so the browser attaches the session cookie by
+    // default; this makes it explicit and survives a split-origin deployment.
+    credentials: "include",
+    headers: { "Content-Type": "application/json", ...forwarded, ...(init.headers || {}) },
     // Public pages read fresh-ish data; dashboard mutations opt out via revalidate:0/no-store.
     next: revalidate !== undefined ? { revalidate } : { revalidate: 60 },
     cache: revalidate === 0 ? "no-store" : undefined,
@@ -65,8 +97,8 @@ async function safeGet<T>(path: string, fallback: T, options?: FetchOptions): Pr
 }
 
 // ------------------------------------------------------------ public reads
-export const getArticles = (query = "") =>
-  safeGet<Paginated<ArticleCard>>(`/articles/${query}`, { count: 0, next: null, previous: null, results: [] });
+export const getArticles = (query = "", opts?: FetchOptions) =>
+  safeGet<Paginated<ArticleCard>>(`/articles/${query}`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 /** Slugs may be Arabic (see Article.save()). Route params arrive
  * percent-encoded — and re-encoded again by middleware — so decode fully
@@ -77,26 +109,26 @@ const encodeSlug = (slug: string) => encodeURIComponent(decodeParam(slug));
 export const getArticle = (slug: string) =>
   safeGet<ArticleDetail | null>(`/articles/${encodeSlug(slug)}/`, null, { revalidate: 30 });
 
-export const getSections = () => safeGet<Paginated<Section>>(`/sections/`, { count: 0, next: null, previous: null, results: [] });
+export const getSections = (opts?: FetchOptions) => safeGet<Paginated<Section>>(`/sections/`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 export const getSection = (key: string) => safeGet<Section | null>(`/sections/${encodeSlug(key)}/`, null);
 
-export const getTags = () => safeGet<Paginated<Tag>>(`/tags/`, { count: 0, next: null, previous: null, results: [] });
+export const getTags = (opts?: FetchOptions) => safeGet<Paginated<Tag>>(`/tags/`, { count: 0, next: null, previous: null, results: [] }, opts);
 
-export const getAuthors = () => safeGet<Paginated<Author>>(`/authors/`, { count: 0, next: null, previous: null, results: [] });
+export const getAuthors = (opts?: FetchOptions) => safeGet<Paginated<Author>>(`/authors/`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 export const getAuthor = (username: string) => safeGet<Author | null>(`/authors/${encodeSlug(username)}/`, null);
 
-export const getBreakingNews = (query = "?active=true") =>
-  safeGet<Paginated<BreakingNewsItem>>(`/breaking/${query}`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 30 });
+export const getBreakingNews = (query = "?active=true", opts: FetchOptions = { revalidate: 30 }) =>
+  safeGet<Paginated<BreakingNewsItem>>(`/breaking/${query}`, { count: 0, next: null, previous: null, results: [] }, opts);
 
-export const getVideos = (query = "") => safeGet<Paginated<Video>>(`/videos/${query}`, { count: 0, next: null, previous: null, results: [] });
+export const getVideos = (query = "", opts?: FetchOptions) => safeGet<Paginated<Video>>(`/videos/${query}`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 export const getVideo = (slug: string) =>
   safeGet<VideoDetail | null>(`/videos/${encodeSlug(slug)}/`, null, { revalidate: 30 });
 
-export const getLiveStreams = () =>
-  safeGet<Paginated<LiveStream>>(`/live-streams/`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 15 });
+export const getLiveStreams = (opts: FetchOptions = { revalidate: 15 }) =>
+  safeGet<Paginated<LiveStream>>(`/live-streams/`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 export const getTicker = () =>
   safeGet<TickerPayload>(
@@ -105,8 +137,8 @@ export const getTicker = () =>
     { revalidate: 60 },
   );
 
-export const getSiteSettings = () =>
-  safeGet<SiteSettings | null>(`/settings/`, null, { revalidate: 300 });
+export const getSiteSettings = (opts: FetchOptions = { revalidate: 300 }) =>
+  safeGet<SiteSettings | null>(`/settings/`, null, opts);
 
 // --------------------------------------------------------------- dashboard
 export const getDashboardOverview = () =>
@@ -140,17 +172,64 @@ export const getPrayerTimes = (city = "cairo") =>
 export const getMatches = (query = "?ordering=-kickoff_at&page_size=6") =>
   safeGet<Paginated<Match>>(`/matches/${query}`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 120 });
 
-export const getWireArticles = (query = "?page_size=6") =>
-  safeGet<Paginated<WireArticle>>(`/wire/${query}`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 300 });
+export const getWireArticles = (query = "?page_size=6", opts: FetchOptions = { revalidate: 300 }) =>
+  safeGet<Paginated<WireArticle>>(`/wire/${query}`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 export const getSyncLogs = () =>
   safeGet<Paginated<SyncLog>>(`/sync-logs/`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 0 });
 
 // -------------------------------------------------------------- mutations
+
+/** Read the CSRF cookie Django set. Not HttpOnly precisely so we can echo it. */
+function csrfFromCookie(): string {
+  if (typeof document === "undefined") return "";
+  const hit = document.cookie.split("; ").find((c) => c.startsWith("csrftoken="));
+  return hit ? decodeURIComponent(hit.slice("csrftoken=".length)) : "";
+}
+
+/** Ask the API to issue one if this browser has never had it. */
+async function ensureCsrf(): Promise<string> {
+  const existing = csrfFromCookie();
+  if (existing) return existing;
+  try {
+    await fetch(`${API_URL}/auth/csrf/`, { credentials: "include" });
+  } catch {
+    /* offline — the mutation below will surface the failure */
+  }
+  return csrfFromCookie();
+}
+
 export async function apiMutate<T>(path: string, method: "POST" | "PATCH" | "PUT" | "DELETE", body?: unknown): Promise<T> {
+  // Django rejects unsafe methods under SessionAuthentication without this
+  // header. Every dashboard write went through here, so it is fetched once
+  // per browser and reused from the cookie afterwards.
+  const token = await ensureCsrf();
   return apiFetch<T>(path, {
     method,
     body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers: token ? { "X-CSRFToken": token } : {},
     revalidate: 0,
   });
 }
+
+// ------------------------------------------------------------------- auth
+export type Account = {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar: string | null;
+  is_staff_member: boolean;
+};
+
+export const getMe = () =>
+  safeGet<{ authenticated: boolean } & Partial<Account>>(`/auth/me/`, { authenticated: false }, { revalidate: 0 });
+
+export const login = (username: string, password: string) =>
+  apiMutate<Account>("/auth/login/", "POST", { username, password });
+
+export const logout = () => apiMutate<void>("/auth/logout/", "POST");
+
+export const register = (email: string, password: string, name: string) =>
+  apiMutate<Account>("/auth/register/", "POST", { email, password, name });
