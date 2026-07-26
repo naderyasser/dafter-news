@@ -1,7 +1,8 @@
 import MarketsTicker from "@/components/site/MarketsTicker";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
-import { getTicker } from "@/lib/api";
+import WelcomeModal from "@/components/site/WelcomeModal";
+import { getTicker, getWelcomeAlert } from "@/lib/api";
 
 /**
  * Shared public-site frame: header (3 layers + breaking marquee) → page
@@ -18,7 +19,7 @@ export default async function SiteShell({
   children: React.ReactNode;
 }) {
   const isAr = lang === "ar";
-  const ticker = await getTicker();
+  const [ticker, welcome] = await Promise.all([getTicker(), getWelcomeAlert()]);
   return (
     <div
       dir={isAr ? "rtl" : "ltr"}
@@ -29,6 +30,7 @@ export default async function SiteShell({
       {children}
       <SiteFooter lang={lang} />
       <MarketsTicker lang={lang} data={ticker} />
+      <WelcomeModal alert={welcome} />
     </div>
   );
 }
