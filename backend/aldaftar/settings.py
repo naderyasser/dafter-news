@@ -112,7 +112,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    # Client-controlled page size: the frontend asks for exactly what each
+    # grid renders (?page_size=4 for a section block, 50 for a dashboard
+    # table). Without page_size_query_param DRF silently ignores those and
+    # serves 20 rows everywhere. Capped so a caller can't request the world.
+    "DEFAULT_PAGINATION_CLASS": "aldaftar.pagination.ConfigurablePageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
