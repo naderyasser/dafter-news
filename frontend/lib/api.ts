@@ -1,3 +1,4 @@
+import { decodeParam } from "./format";
 import type {
   AdPlacement,
   ArticleCard,
@@ -61,24 +62,32 @@ async function safeGet<T>(path: string, fallback: T, options?: FetchOptions): Pr
 export const getArticles = (query = "") =>
   safeGet<Paginated<ArticleCard>>(`/articles/${query}`, { count: 0, next: null, previous: null, results: [] });
 
-export const getArticle = (slug: string) => safeGet<ArticleDetail | null>(`/articles/${slug}/`, null, { revalidate: 30 });
+/** Slugs may be Arabic (see Article.save()). Route params arrive
+ * percent-encoded — and re-encoded again by middleware — so decode fully
+ * before re-encoding once, instead of forwarding a double-encoded slug
+ * the API would never match. */
+const encodeSlug = (slug: string) => encodeURIComponent(decodeParam(slug));
+
+export const getArticle = (slug: string) =>
+  safeGet<ArticleDetail | null>(`/articles/${encodeSlug(slug)}/`, null, { revalidate: 30 });
 
 export const getSections = () => safeGet<Paginated<Section>>(`/sections/`, { count: 0, next: null, previous: null, results: [] });
 
-export const getSection = (key: string) => safeGet<Section | null>(`/sections/${key}/`, null);
+export const getSection = (key: string) => safeGet<Section | null>(`/sections/${encodeSlug(key)}/`, null);
 
 export const getTags = () => safeGet<Paginated<Tag>>(`/tags/`, { count: 0, next: null, previous: null, results: [] });
 
 export const getAuthors = () => safeGet<Paginated<Author>>(`/authors/`, { count: 0, next: null, previous: null, results: [] });
 
-export const getAuthor = (username: string) => safeGet<Author | null>(`/authors/${username}/`, null);
+export const getAuthor = (username: string) => safeGet<Author | null>(`/authors/${encodeSlug(username)}/`, null);
 
 export const getBreakingNews = (query = "?active=true") =>
   safeGet<Paginated<BreakingNewsItem>>(`/breaking/${query}`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 30 });
 
 export const getVideos = (query = "") => safeGet<Paginated<Video>>(`/videos/${query}`, { count: 0, next: null, previous: null, results: [] });
 
-export const getVideo = (slug: string) => safeGet<VideoDetail | null>(`/videos/${slug}/`, null, { revalidate: 30 });
+export const getVideo = (slug: string) =>
+  safeGet<VideoDetail | null>(`/videos/${encodeSlug(slug)}/`, null, { revalidate: 30 });
 
 export const getLiveStreams = () =>
   safeGet<Paginated<LiveStream>>(`/live-streams/`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 15 });

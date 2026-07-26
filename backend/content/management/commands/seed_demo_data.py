@@ -26,10 +26,13 @@ User = get_user_model()
 
 
 def ar_slugify(value, fallback):
-    """Arabic titles slugify to an empty string under Django's default
-    slugify (it strips non-ASCII); fall back to a stable transliteration id
-    instead of hash-only garbage."""
-    s = slugify(value, allow_unicode=False)
+    """Arabic strings slugify to an EMPTY string under Django's default
+    slugify (it strips every non-ASCII char), which would make every tag
+    URL a meaningless `tag-0`, `tag-1`, ... — and silently return zero
+    articles on /tag/<slug>. allow_unicode=True keeps the Arabic, so the
+    tag URL reads /tag/الذهب (percent-encoded on the wire) and actually
+    resolves. The fallback only fires for input with no word chars at all."""
+    s = slugify(value, allow_unicode=True)
     return s or fallback
 
 

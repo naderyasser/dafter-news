@@ -88,7 +88,9 @@ export default function ArticleEditorForm({
       if (articleId) {
         await apiMutate(`/articles/${articleId}/`, "PATCH", payload);
       } else {
-        await apiMutate("/articles/", "POST", { ...payload, slug: title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 60) || `article-${Date.now()}` });
+        // No slug sent on purpose: the browser can't slugify an Arabic
+        // headline (it strips to empty), so Article.save() derives it.
+        await apiMutate("/articles/", "POST", payload);
       }
       router.push("/dashboard/articles");
       router.refresh();

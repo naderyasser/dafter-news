@@ -3,6 +3,7 @@ import math
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 
 class Section(models.Model):
@@ -26,7 +27,9 @@ class Section(models.Model):
 
 class Tag(models.Model):
     name = models.CharField(max_length=60, unique=True)
-    slug = models.SlugField(max_length=70, unique=True)
+    # allow_unicode so Arabic tag names keep a readable, resolvable slug
+    # (/tag/الذهب) instead of being stripped to an empty string.
+    slug = models.SlugField(max_length=70, unique=True, allow_unicode=True)
 
     class Meta:
         ordering = ["name"]
@@ -67,7 +70,9 @@ class Article(models.Model):
         EN = "en", "English"
 
     title = models.CharField(max_length=280)
-    slug = models.SlugField(max_length=300, unique=True)
+    # allow_unicode so an Arabic headline yields a readable slug rather than
+    # being stripped to nothing; auto-derived from title in save() when blank.
+    slug = models.SlugField(max_length=300, unique=True, allow_unicode=True, blank=True)
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.NEWS)
     section = models.ForeignKey(Section, on_delete=models.PROTECT, related_name="articles", null=True, blank=True)
     author = models.ForeignKey(
@@ -105,6 +110,20 @@ class Article(models.Model):
 
     class Meta:
         ordering = ["-published_at", "-created_at"]
+
+    def save(self, *args, **kwargs):
+        """Derive a unique slug from the title when the caller didn't supply
+        one (the dashboard editor doesn't — it can't slugify Arabic in the
+        browser without stripping it to nothing)."""
+        if not self.slug:
+            base = slugify(self.title, allow_unicode=True) or "article"
+            slug = base[:290]
+            n = 2
+            while Article.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base[:285]}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

@@ -38,6 +38,14 @@ class UserCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         password = validated_data.pop("password", None)
         user = User(**validated_data)
-        user.set_password(password or User.objects.make_random_password())
+        if password:
+            user.set_password(password)
+        else:
+            # No password supplied (the dashboard's "+ مستخدم جديد" drawer
+            # doesn't collect one): leave the account without a usable
+            # password so it can only be activated via a set/reset flow.
+            # NB: UserManager.make_random_password() was removed in Django
+            # 5.1, so don't reach for it here.
+            user.set_unusable_password()
         user.save()
         return user
