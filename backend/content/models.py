@@ -25,6 +25,30 @@ class Section(models.Model):
         return self.articles.filter(status="published").count()
 
 
+class Story(models.Model):
+    """
+    A card in the homepage stories rail — the social-style horizontal strip
+    of tall cards. Kept separate from Article because a story is a curated
+    promo slot: an editor picks the image and the destination, which may be
+    an article, a section, or an external page.
+    """
+
+    title = models.CharField(max_length=120)
+    image = models.ImageField(upload_to="stories/", blank=True, null=True)
+    href = models.CharField(max_length=300, blank=True)
+    section = models.ForeignKey("Section", null=True, blank=True, on_delete=models.SET_NULL, related_name="stories")
+    active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order", "-created_at"]
+        verbose_name_plural = "stories"
+
+    def __str__(self):
+        return self.title
+
+
 class Tag(models.Model):
     name = models.CharField(max_length=60, unique=True)
     # allow_unicode so Arabic tag names keep a readable, resolvable slug

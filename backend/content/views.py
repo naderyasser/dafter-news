@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from aldaftar.mixins import SlugOrPkLookupMixin
 
-from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Tag
+from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 from .serializers import (
     ArticleCardSerializer,
     ArticleDetailSerializer,
@@ -15,8 +15,19 @@ from .serializers import (
     BreakingNewsItemSerializer,
     CommentSerializer,
     SectionSerializer,
+    StorySerializer,
     TagSerializer,
 )
+
+
+class StoryViewSet(viewsets.ModelViewSet):
+    """The homepage stories rail — curated promo cards, editor-ordered."""
+
+    queryset = Story.objects.select_related("section")
+    serializer_class = StorySerializer
+    permission_classes = [AllowAny]
+    filterset_fields = ["active", "section__key"]
+    ordering_fields = ["order"]
 
 
 class SectionViewSet(viewsets.ModelViewSet):

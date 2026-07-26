@@ -53,6 +53,42 @@ class SocialLink(models.Model):
         return f"{self.get_platform_display()}: {self.url}"
 
 
+class WelcomeAlert(models.Model):
+    """
+    Singleton — the modal shown on first load, styled like a «يحدث الآن»
+    banner. Editorial controls the copy and destination, so it can be
+    repointed at whatever is breaking without a deploy; `active` switches it
+    off entirely rather than requiring the copy to be blanked.
+    """
+
+    active = models.BooleanField(default=False)
+    kicker = models.CharField(max_length=40, default="يحدث الآن")
+    title = models.CharField(max_length=160, blank=True)
+    text = models.CharField(max_length=400, blank=True)
+    cta_label = models.CharField(max_length=60, blank=True)
+    cta_href = models.CharField(max_length=300, blank=True)
+    image = models.ImageField(upload_to="alerts/", blank=True, null=True)
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        kwargs.pop("force_insert", None)
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return self.title or "welcome alert"
+
+    class Meta:
+        verbose_name_plural = "welcome alert"
+
+
 class DailyVisit(models.Model):
     """Backs the DashOverview.dc.html 7-day chart and «زيارات اليوم» stat."""
 

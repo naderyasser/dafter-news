@@ -6,7 +6,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from siteconfig.models import DailyVisit, SiteSettings, SocialLink
+from siteconfig.models import DailyVisit, SiteSettings, SocialLink, WelcomeAlert
 
 
 class SiteSettingsSingletonTests(TestCase):
@@ -99,3 +99,63 @@ class SiteSettingsAPITests(APITestCase):
         self.client.put("/api/settings/", {"site_name": "اسم"}, format="json")
 
         self.assertEqual(SiteSettings.load().tagline, "شعار محفوظ")
+
+
+class WelcomeAlertTests(TestCase):
+    def test_load_is_a_singleton(self):
+        first = WelcomeAlert.load()
+        second = WelcomeAlert.load()
+
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(WelcomeAlert.objects.count(), 1)
+
+    def test_second_create_overwrites_rather_than_erroring(self):
+        WelcomeAlert.objects.create(title="أول")
+        WelcomeAlert.objects.create(title="ثان")
+
+        self.assertEqual(WelcomeAlert.objects.count(), 1)
+        self.assertEqual(WelcomeAlert.load().title, "ثان")
+
+    def test_defaults_to_inactive(self):
+        """A blank install must not pop an empty modal at every visitor."""
+        self.assertFalse(WelcomeAlert.load().active)
+
+
+class WelcomeAlertAPITests(APITestCase):
+    def test_get_creates_the_row_on_first_call(self):
+        WelcomeAlert.objects.all().delete()
+
+        res = self.client.get("/api/welcome-alert/")
+
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.json()["active"])
+
+    def test_put_updates_copy_and_cta(self):
+        res = self.client.put(
+            "/api/welcome-alert/",
+            {
+                "active": True,
+                "kicker": "يحدث الآن",
+                "title": "تغطية لحظية",
+                "text": "تفاصيل",
+                "cta_label": "تابع",
+                "cta_href": "/live",
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 200)
+        alert = WelcomeAlert.load()
+        self.assertTrue(alert.active)
+        self.assertEqual(alert.cta_href, "/live")
+        self.assertEqual(WelcomeAlert.objects.count(), 1)
+
+    def test_switching_off_keeps_the_copy(self):
+        """Editors switch the alert off between stories — the text should
+        still be there when they turn it back on."""
+        self.client.put("/api/welcome-alert/", {"active": True, "title": "خبر"}, format="json")
+        self.client.put("/api/welcome-alert/", {"active": False}, format="json")
+
+        alert = WelcomeAlert.load()
+        self.assertFalse(alert.active)
+        self.assertEqual(alert.title, "خبر")

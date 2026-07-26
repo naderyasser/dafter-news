@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import DailyVisit, SiteSettings, SocialLink
+from .models import DailyVisit, SiteSettings, SocialLink, WelcomeAlert
 
 
 class SocialLinkSerializer(serializers.ModelSerializer):
@@ -27,3 +27,9 @@ class DailyVisitSerializer(serializers.ModelSerializer):
     class Meta:
         model = DailyVisit
         fields = ["id", "date", "visits", "change_pct"]
+
+
+class WelcomeAlertSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WelcomeAlert
+        fields = ["id", "active", "kicker", "title", "text", "cta_label", "cta_href", "image"]

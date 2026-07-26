@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from accounts.serializers import AuthorSerializer
 
-from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Tag
+from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 
 
 class SectionSerializer(serializers.ModelSerializer):
@@ -128,3 +128,11 @@ class BreakingNewsItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = BreakingNewsItem
         fields = ["id", "text", "order", "active", "expires_at", "created_at"]
+
+
+class StorySerializer(serializers.ModelSerializer):
+    section_name = serializers.CharField(source="section.name_ar", read_only=True)
+
+    class Meta:
+        model = Story
+        fields = ["id", "title", "image", "href", "section", "section_name", "active", "order"]
