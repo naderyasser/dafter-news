@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Tag
+from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 
 User = get_user_model()
 
@@ -483,3 +483,60 @@ class SectionTagAPITests(APITestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()["name"], "الذهب")
+
+
+class StoryTests(TestCase):
+    def test_stories_order_by_order_then_recency(self):
+        s3 = Story.objects.create(title="ثالث", order=3)
+        s1 = Story.objects.create(title="أول", order=1)
+        s2 = Story.objects.create(title="ثان", order=2)
+
+        self.assertEqual([s.title for s in Story.objects.all()], ["أول", "ثان", "ثالث"])
+        self.assertEqual({s1.order, s2.order, s3.order}, {1, 2, 3})
+
+    def test_story_survives_its_section_being_deleted(self):
+        """A story is a curated promo slot; losing its section must not take
+        the card down with it."""
+        section = Section.objects.create(key="art", name_ar="ثقافة وفن")
+        story = Story.objects.create(title="قصة", section=section)
+
+        section.delete()
+        story.refresh_from_db()
+
+        self.assertIsNone(story.section)
+        self.assertTrue(Story.objects.filter(pk=story.pk).exists())
+
+
+class StoryAPITests(APITestCase):
+    def setUp(self):
+        self.section = Section.objects.create(key="art", name_ar="ثقافة وفن")
+        Story.objects.create(title="قصة مفعّلة", section=self.section, href="/section/art", order=1, active=True)
+        Story.objects.create(title="قصة متوقفة", order=2, active=False)
+
+    def test_active_filter_hides_disabled_stories(self):
+        res = self.client.get("/api/stories/?active=true")
+
+        titles = [s["title"] for s in res.json()["results"]]
+        self.assertEqual(titles, ["قصة مفعّلة"])
+
+    def test_list_exposes_section_name_for_the_card_label(self):
+        res = self.client.get("/api/stories/?active=true")
+
+        self.assertEqual(res.json()["results"][0]["section_name"], "ثقافة وفن")
+
+    def test_create_and_reorder(self):
+        res = self.client.post("/api/stories/", {"title": "قصة جديدة", "order": 9, "active": True}, format="json")
+        self.assertEqual(res.status_code, 201)
+
+        patch = self.client.patch(f"/api/stories/{res.json()['id']}/", {"order": 0}, format="json")
+
+        self.assertEqual(patch.status_code, 200)
+        self.assertEqual(Story.objects.get(pk=res.json()["id"]).order, 0)
+
+    def test_empty_rail_returns_an_empty_page(self):
+        Story.objects.all().delete()
+
+        res = self.client.get("/api/stories/?active=true")
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["count"], 0)

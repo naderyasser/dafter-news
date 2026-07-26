@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from ads.models import AdPlacement
-from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Tag
+from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 from live.models import LiveStream, LiveUpdate
 from market.models import Currency, GoldKarat, TickerModule, WeatherCity
 from siteconfig.models import DailyVisit, SiteSettings, SocialLink
@@ -54,6 +54,8 @@ class Command(BaseCommand):
         self.seed_market()
         self.seed_site_settings()
         self.seed_daily_visits()
+        self.seed_stories(sections)
+        self.seed_welcome_alert()
         self.stdout.write(self.style.SUCCESS("Done."))
 
     # ------------------------------------------------------------------ users
@@ -85,10 +87,24 @@ class Command(BaseCommand):
 
     # --------------------------------------------------------------- sections
     def seed_sections(self):
+        # The client's requested site map. `egypt`/`economy`/`sports` keep
+        # their original keys so existing article links and seeded slugs stay
+        # valid; the label is what changed (مصر → شؤون مصر, اقتصاد → حركة
+        # السوق, رياضة → جوّه الجون).
         rows = [
-            ("egypt", "مصر", "Egypt", 1), ("economy", "اقتصاد", "Economy", 2),
-            ("sports", "رياضة", "Sports", 3), ("opinion", "بالعقل والمنطق", "Opinion", 4),
-            ("video", "لقطة وتعليق", "Watch", 5),
+            ("egypt", "شؤون مصر", "Egypt", 1),
+            ("gulf", "الخليج العربي", "Gulf", 2),
+            ("world", "عرب وعالم", "Arab & World", 3),
+            ("economy", "حركة السوق", "Markets", 4),
+            ("sports", "جوّه الجون", "Sports", 5),
+            ("style", "ستايل ونجوم", "Style & Stars", 6),
+            ("security", "أمن ومحاكم", "Security & Courts", 7),
+            ("tech", "علوم وتكنولوجيا", "Science & Tech", 8),
+            ("art", "ثقافة وفن", "Culture & Art", 9),
+            ("special", "ملف خاص", "Special Report", 10),
+            ("guide", "دليلك الأول", "Your Guide", 11),
+            ("video", "لقطة وتعليق", "Watch", 12),
+            ("opinion", "بالعقل والمنطق", "Opinion", 13),
         ]
         sections = {}
         for key, name_ar, name_en, order in rows:
@@ -437,3 +453,33 @@ class Command(BaseCommand):
             change = round(((visits - prev) / prev) * 100, 2) if prev else 4.2
             DailyVisit.objects.update_or_create(date=date, defaults=dict(visits=visits * 1000 + random.randint(0, 999), change_pct=change))
             prev = visits
+
+    # ------------------------------------------------------------- stories
+    def seed_stories(self, sections):
+        rows = [
+            ("محور الدلتا.. الصورة الكاملة", "egypt", "/section/egypt", 1),
+            ("قرار الفائدة في دقيقة", "economy", "/section/economy", 2),
+            ("جوّه الجون: ملخص الجولة", "sports", "/section/sports", 3),
+            ("ستايل ونجوم هذا الأسبوع", "style", "/section/style", 4),
+            ("علوم وتكنولوجيا: أهم ما فاتك", "tech", "/section/tech", 5),
+            ("ملف خاص: الطاقة الشمسية", "special", "/section/special", 6),
+            ("دليلك الأول للمدارس", "guide", "/section/guide", 7),
+        ]
+        for title, key, href, order in rows:
+            Story.objects.update_or_create(
+                title=title,
+                defaults=dict(section=sections.get(key), href=href, order=order, active=True),
+            )
+
+    # ------------------------------------------------------- welcome alert
+    def seed_welcome_alert(self):
+        from siteconfig.models import WelcomeAlert
+
+        alert = WelcomeAlert.load()
+        alert.active = True
+        alert.kicker = "يحدث الآن"
+        alert.title = "تغطية لحظية: مؤتمر البنك المركزي"
+        alert.text = "محافظ البنك المركزي يعلن قرار الفائدة خلال دقائق — تابع التغطية لحظة بلحظة."
+        alert.cta_label = "تابع البث المباشر"
+        alert.cta_href = "/live"
+        alert.save()
