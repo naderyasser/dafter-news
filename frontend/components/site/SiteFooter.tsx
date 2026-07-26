@@ -26,13 +26,11 @@ export default function SiteFooter({ lang }: { lang: "ar" | "en" }) {
         { label: "من نحن", href: "/about" },
         { label: "كتّابنا", href: "/authors" },
         { label: "الأكثر قراءة", href: "/most-read" },
-        { label: "تسجيل الدخول", href: "/login" },
       ]
     : [
         { label: "About", href: "#" },
         { label: "Contact", href: "#" },
         { label: "Privacy", href: "#" },
-        { label: "Log in", href: "#" },
       ];
 
   const socials = ["f", "X", "in", "▶"];

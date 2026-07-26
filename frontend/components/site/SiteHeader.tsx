@@ -86,11 +86,14 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
             {isAr ? <PrayerStrip times={prayer} /> : null}
           </div>
           <div className="flex items-center gap-4">
+            {/* The sign-in link was removed from the public chrome on request.
+                /login still resolves directly, and /dashboard redirects there,
+                so the newsroom route is unchanged — it just isn't advertised
+                to readers any more. */}
+            {/* No divider here: the alerts toggle decides on the client whether
+                it can render at all, so a server-rendered separator would be
+                left dangling in front of the language link. gap-4 carries it. */}
             {isAr ? <BreakingAlertsToggle /> : null}
-            <Link href="/login" className="text-[13px] text-header-muted no-underline hover:text-header-ink">
-              {isAr ? "تسجيل الدخول" : "Log in"}
-            </Link>
-            <span className="h-3 w-px bg-ink-2" />
             <Link href={altLangHref} className="text-[13px] font-semibold text-header-ink no-underline">
               {isAr ? "English" : "العربية"}
             </Link>
