@@ -10,6 +10,8 @@ import type {
   DashUser,
   LiveStream,
   MediaAsset,
+  Story,
+  WelcomeAlert,
   Paginated,
   Section,
   SiteSettings,
@@ -120,6 +122,12 @@ export const getMediaAssets = () =>
 
 export const getUsers = () =>
   safeGet<Paginated<DashUser>>(`/users/`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 0 });
+
+export const getStories = () =>
+  safeGet<Paginated<Story>>(`/stories/?active=true&ordering=order`, { count: 0, next: null, previous: null, results: [] });
+
+export const getWelcomeAlert = () =>
+  safeGet<WelcomeAlert | null>(`/welcome-alert/`, null);
 
 // -------------------------------------------------------------- mutations
 export async function apiMutate<T>(path: string, method: "POST" | "PATCH" | "PUT" | "DELETE", body?: unknown): Promise<T> {

@@ -14,6 +14,10 @@ const config: Config = {
     extend: {
       colors: {
         brand: { DEFAULT: "#B01F2E", strong: "#8E1624", tint: "#FBEEEF" },
+        // Navy carries the dark surfaces (header, hero, footer, dark section
+        // bands) while the brand red stays the accent — the client asked for
+        // navy "كخلفية أو عنصر بارز" while preserving the visual identity.
+        navy: { DEFAULT: "#101B33", strong: "#0A1224", 2: "#1B2A47", tint: "#E8ECF4" },
         ink: { DEFAULT: "#171A1F", 2: "#3C434C", 3: "#6A727C" },
         paper: "#FFFFFF",
         surface: { DEFAULT: "#F4F5F7", 2: "#EBEDF0" },
@@ -76,12 +80,34 @@ const config: Config = {
           "0%, 100%": { opacity: ".6" },
           "50%": { opacity: "1" },
         },
+        // Slower, continuous travel for the markets tape — it runs all the
+        // time, so it reads as ambient rather than as an alert like «عاجل».
+        "ticker-rtl": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(50%)" },
+        },
+        "ticker-ltr": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "modal-in": {
+          from: { opacity: "0", transform: "translateY(12px) scale(.98)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
       },
       animation: {
         "pulse-dot": "pulse-dot 1.4s ease-in-out infinite",
         "marquee-rtl": "marquee-rtl 32s linear infinite",
         "marquee-ltr": "marquee-ltr 32s linear infinite",
+        "ticker-rtl": "ticker-rtl 48s linear infinite",
+        "ticker-ltr": "ticker-ltr 48s linear infinite",
         skeleton: "skeleton 1.4s ease-in-out infinite",
+        "fade-in": "fade-in 220ms ease both",
+        "modal-in": "modal-in 220ms ease both",
       },
     },
   },
