@@ -3,7 +3,7 @@ import Link from "next/link";
 const EASTERN = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
 const toRank = (n: number, isAr: boolean) => (isAr ? String(n).split("").map((d) => EASTERN[+d]).join("") : String(n));
 
-export type MostReadItem = { title: string; href: string; section?: string };
+export type MostReadItem = { title: string; href: string; section?: string; imageSrc?: string };
 
 export default function MostReadList({
   lang,
@@ -31,10 +31,22 @@ export default function MostReadList({
             <span className="tnum min-w-[28px] flex-shrink-0 text-[26px] font-extrabold leading-none text-brand">
               {toRank(i + 1, isAr)}
             </span>
-            <span className="flex flex-col gap-1">
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="text-[14px] font-semibold leading-[1.5] text-ink">{it.title}</span>
               {it.section && <span className="text-caption text-ink-3">{it.section}</span>}
             </span>
+            {/* Thumbnail sits at the inline end so the rank column stays the
+                reading anchor and the numbers line up down the list. */}
+            {it.imageSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={it.imageSrc}
+                alt=""
+                className="h-[52px] w-[68px] flex-shrink-0 rounded object-cover"
+              />
+            ) : (
+              <span className="h-[52px] w-[68px] flex-shrink-0 rounded bg-surface-2" />
+            )}
           </Link>
         ))}
       </div>

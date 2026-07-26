@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import MarketsTicker from "./MarketsTicker";
@@ -23,13 +23,24 @@ const payload: TickerPayload = {
   modules: [],
 };
 
+const empty: TickerPayload = { currencies: [], gold: [], weather: null, cities: [], modules: [] };
+
+/**
+ * The tape renders the row twice so the 50% translate loops seamlessly; the
+ * duplicate is aria-hidden. Scope assertions to the visible copy so a count
+ * doesn't silently double.
+ */
+const visibleStrip = (container: HTMLElement) =>
+  within(container.querySelector('[aria-hidden="false"]') as HTMLElement);
+
 describe("MarketsTicker", () => {
   it("renders currency, gold and weather values", () => {
-    render(<MarketsTicker lang="ar" data={payload} />);
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+    const strip = visibleStrip(container);
 
-    expect(screen.getByText("48.85")).toBeInTheDocument();
-    expect(screen.getByText("3,550")).toBeInTheDocument();
-    expect(screen.getByText("34°")).toBeInTheDocument();
+    expect(strip.getByText("48.85")).toBeInTheDocument();
+    expect(strip.getByText("3,550")).toBeInTheDocument();
+    expect(strip.getByText("34°")).toBeInTheDocument();
   });
 
   it("is a single link to the markets page", () => {
@@ -41,12 +52,55 @@ describe("MarketsTicker", () => {
     expect(links[0]).toHaveAttribute("href", "/markets");
   });
 
+  it("duplicates the row so the loop has no visible seam", () => {
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+
+    expect(container.querySelector('[aria-hidden="false"]')).not.toBeNull();
+    expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull();
+  });
+
+  it("hides the duplicate copy from assistive tech", () => {
+    // Otherwise every rate would be announced twice.
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+
+    const dupe = container.querySelector('[aria-hidden="true"]') as HTMLElement;
+    expect(within(dupe).getByText("48.85")).toBeInTheDocument();
+  });
+
+  it("scrolls continuously rather than sitting still", () => {
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+
+    const track = container.querySelector(".animate-ticker-rtl");
+    expect(track).not.toBeNull();
+  });
+
+  it("travels the other way in LTR", () => {
+    const { container } = render(<MarketsTicker lang="en" data={payload} />);
+
+    expect(container.querySelector(".animate-ticker-ltr")).not.toBeNull();
+    expect(container.querySelector(".animate-ticker-rtl")).toBeNull();
+  });
+
+  it("pauses on hover so a number can actually be read", () => {
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+
+    const track = container.querySelector(".animate-ticker-rtl");
+    expect(track?.className).toContain("hover:[animation-play-state:paused]");
+  });
+
+  it("stops moving under prefers-reduced-motion", () => {
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+
+    expect(container.querySelector(".animate-ticker-rtl")?.className).toContain("motion-reduce:animate-none");
+  });
+
   it("colours a rise with the up token and a fall with the down token", () => {
     // §10.3: never the brand red for a price move, never the down red for brand.
-    render(<MarketsTicker lang="ar" data={payload} />);
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+    const strip = visibleStrip(container);
 
-    const rises = screen.getAllByText(/▲/);
-    const falls = screen.getAllByText(/▼/);
+    const rises = strip.getAllByText(/▲/);
+    const falls = strip.getAllByText(/▼/);
 
     expect(rises).toHaveLength(2); // USD and gold both rose
     expect(falls).toHaveLength(1); // EUR fell
@@ -58,22 +112,32 @@ describe("MarketsTicker", () => {
   });
 
   it("gives every figure tabular numerals", () => {
-    render(<MarketsTicker lang="ar" data={payload} />);
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+    const strip = visibleStrip(container);
 
-    expect(screen.getByText("48.85").className).toContain("tnum");
-    expect(screen.getByText("34°").className).toContain("tnum");
+    expect(strip.getByText("48.85").className).toContain("tnum");
+    expect(strip.getByText("34°").className).toContain("tnum");
+  });
+
+  it("shows every currency, not just the first two", () => {
+    // The tape scrolls, so there's no reason to truncate the list any more.
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
+    const strip = visibleStrip(container);
+
+    expect(strip.getByText("48.85")).toBeInTheDocument();
+    expect(strip.getByText("52.10")).toBeInTheDocument();
   });
 
   it("uses Arabic currency labels in Arabic", () => {
-    render(<MarketsTicker lang="ar" data={payload} />);
+    const { container } = render(<MarketsTicker lang="ar" data={payload} />);
 
-    expect(screen.getByText("دولار/جنيه")).toBeInTheDocument();
+    expect(visibleStrip(container).getByText("دولار/جنيه")).toBeInTheDocument();
   });
 
   it("uses code-based labels in English", () => {
-    render(<MarketsTicker lang="en" data={payload} />);
+    const { container } = render(<MarketsTicker lang="en" data={payload} />);
 
-    expect(screen.getByText("USD/EGP")).toBeInTheDocument();
+    expect(visibleStrip(container).getByText("USD/EGP")).toBeInTheDocument();
   });
 
   it("reserves the sticky 52px strip at the bottom", () => {
@@ -86,16 +150,18 @@ describe("MarketsTicker", () => {
     expect(bar.className).toContain("h-[52px]");
   });
 
-  it("renders without crashing when the payload is empty", () => {
-    render(<MarketsTicker lang="ar" data={{ currencies: [], gold: [], weather: null, cities: [], modules: [] }} />);
+  it("renders the bar without crashing when the payload is empty", () => {
+    const { container } = render(<MarketsTicker lang="ar" data={empty} />);
 
     expect(screen.getByRole("link")).toBeInTheDocument();
+    expect(container.querySelector(".animate-ticker-rtl")).toBeNull();
   });
 
   it("omits the weather block when weather is unavailable", () => {
-    render(<MarketsTicker lang="ar" data={{ ...payload, weather: null }} />);
+    const { container } = render(<MarketsTicker lang="ar" data={{ ...payload, weather: null }} />);
+    const strip = visibleStrip(container);
 
-    expect(screen.queryByText("34°")).not.toBeInTheDocument();
-    expect(screen.getByText("48.85")).toBeInTheDocument();
+    expect(strip.queryByText("34°")).not.toBeInTheDocument();
+    expect(strip.getByText("48.85")).toBeInTheDocument();
   });
 });
