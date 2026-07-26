@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="articles" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / المحتوى / المقالات</div>
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+            <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">محرر المقال</h1>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button style="background:#FFFFFF;border:1px solid #C9CED4;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;color:#171A1F">معاينة</button>
+          <button style="background:#B01F2E;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#8E1624">حفظ ونشر</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2.2fr 320px;gap:20px;align-items:start">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:24px;display:flex;flex-direction:column;gap:16px">
+          <input type="text" value="{{ title }}" onChange="{{ onTitle }}" placeholder="عنوان الخبر" style="width:100%;box-sizing:border-box;border:none;outline:none;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:24px;color:#171A1F"/>
+          <textarea value="{{ standfirst }}" onChange="{{ onStandfirst }}" placeholder="مقدمة الخبر (standfirst)" style="width:100%;box-sizing:border-box;border:none;outline:none;border-top:1px solid #E2E5E9;padding-top:14px;font-size:16px;color:#3C434C;min-height:50px;resize:vertical;font-family:inherit"></textarea>
+
+          <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="4">
+            <div style="border:1px solid #E2E5E9;border-radius:6px;padding:14px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                <span style="color:#B01F2E;font-size:11px;font-weight:800">{{ b.typeLabel }}</span>
+                <div style="display:flex;gap:10px;color:#9AA1AA;font-size:12px">
+                  <span onClick="{{ b.up }}" style="cursor:pointer">▲</span><span onClick="{{ b.down }}" style="cursor:pointer">▼</span><span onClick="{{ b.remove }}" style="cursor:pointer;color:#C93030">🗑</span>
+                </div>
+              </div>
+              <sc-if value="{{ b.isParagraph }}" hint-placeholder-val="{{ false }}">
+                <textarea value="{{ b.text }}" onChange="{{ b.onText }}" placeholder="نص الفقرة" style="width:100%;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:10px;font-size:14px;min-height:70px;resize:vertical;font-family:inherit;outline:none" style-focus="border-color:#B01F2E"></textarea>
+              </sc-if>
+              <sc-if value="{{ b.isHeading }}" hint-placeholder-val="{{ false }}">
+                <input type="text" value="{{ b.text }}" onChange="{{ b.onText }}" placeholder="نص العنوان الفرعي" style="width:100%;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:10px;font-size:15px;font-weight:700;outline:none" style-focus="border-color:#B01F2E"/>
+              </sc-if>
+              <sc-if value="{{ b.isImage }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:12px;flex-wrap:wrap">
+                  <div style="width:140px;height:100px;flex-shrink:0;border-radius:6px;overflow:hidden;background:#F4F5F7">
+                    <image-slot id="{{ b.imageId }}" shape="rect" placeholder="صورة"></image-slot>
+                  </div>
+                  <div style="flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px">
+                    <input type="text" value="{{ b.caption }}" onChange="{{ b.onCaption }}" placeholder="التعليق على الصورة" style="box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:8px 10px;font-size:13px;outline:none" style-focus="border-color:#B01F2E"/>
+                    <input type="text" value="{{ b.credit }}" onChange="{{ b.onCredit }}" placeholder="المصدر / الحقوق" style="box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:8px 10px;font-size:13px;outline:none" style-focus="border-color:#B01F2E"/>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ b.isQuote }}" hint-placeholder-val="{{ false }}">
+                <textarea value="{{ b.text }}" onChange="{{ b.onText }}" placeholder="نص الاقتباس" style="width:100%;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:10px;font-size:14px;min-height:60px;resize:vertical;font-family:inherit;outline:none" style-focus="border-color:#B01F2E"></textarea>
+              </sc-if>
+              <sc-if value="{{ b.isRelated }}" hint-placeholder-val="{{ false }}">
+                <input type="text" value="{{ b.text }}" onChange="{{ b.onText }}" placeholder="عنوان المقال المرتبط (اقرأ أيضاً)" style="width:100%;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:10px;font-size:14px;outline:none" style-focus="border-color:#B01F2E"/>
+              </sc-if>
+            </div>
+          </sc-for>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:6px">
+            <sc-for list="{{ addButtons }}" as="ab" hint-placeholder-count="5">
+              <button onClick="{{ ab.go }}" style="background:#F4F5F7;border:1px solid #E2E5E9;border-radius:999px;padding:8px 16px;font-size:12.5px;font-weight:600;cursor:pointer;color:#171A1F" style-hover="background:#EBEDF0">+ {{ ab.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px">القسم</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ sectionOptions }}" as="s" hint-placeholder-count="4">
+                <button onClick="{{ s.go }}" style="{{ s.style }}">{{ s.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px">الوسوم</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+              <sc-for list="{{ tagChips }}" as="t" hint-placeholder-count="3">
+                <span style="background:#FBEEEF;color:#B01F2E;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;display:flex;align-items:center;gap:6px">{{ t.label }}<span onClick="{{ t.remove }}" style="cursor:pointer">✕</span></span>
+              </sc-for>
+            </div>
+            <input type="text" value="{{ tagDraft }}" onChange="{{ onTagDraft }}" onKeyDown="{{ onTagKeyDown }}" placeholder="أضف وسماً واضغط Enter" style="width:100%;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:8px 10px;font-size:12.5px;outline:none" style-focus="border-color:#B01F2E"/>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px">الشارة</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ badgeOptions }}" as="bd" hint-placeholder-count="4">
+                <button onClick="{{ bd.go }}" style="{{ bd.style }}">{{ bd.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px">صورة الغلاف</div>
+            <div style="aspect-ratio:16/9;border-radius:6px;overflow:hidden">
+              <image-slot id="editor-cover" shape="rect" placeholder="صورة الغلاف"></image-slot>
+            </div>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px">اللغة والمقال المقابل</div>
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+              <sc-for list="{{ langOptions }}" as="l" hint-placeholder-count="2">
+                <button onClick="{{ l.go }}" style="{{ l.style }}">{{ l.label }}</button>
+              </sc-for>
+            </div>
+            <input type="text" placeholder="ربط بمقال باللغة الأخرى (اختياري)" style="width:100%;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:8px 10px;font-size:12.5px;outline:none" style-focus="border-color:#B01F2E"/>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px">جدولة النشر</div>
+            <input type="datetime-local" style="width:100%;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:8px 10px;font-size:12.5px;outline:none;font-family:inherit" style-focus="border-color:#B01F2E"/>
+          </div>
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px">
+            <div style="font-weight:700;font-size:13px;margin-bottom:10px">النسخة الصوتية (TTS)</div>
+            <button onClick="{{ generateTts }}" style="{{ ttsButtonStyle }}">{{ ttsLabel }}</button>
+          </div>
+          <div style="background:#FBEEEF;border:1px solid #F3D3D7;border-radius:6px;padding:16px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:20px">◔</span>
+            <div>
+              <div style="font-weight:800;font-size:15px;color:#8E1624">{{ readMinutes }} دقائق قراءة</div>
+              <div style="font-size:11px;color:#8E1624">يُحسب تلقائياً (كلمات ÷ 200)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    title: 'الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد بتكلفة 12 مليار جنيه',
+    standfirst: 'المشروع يهدف إلى تقليص زمن الرحلة بين القاهرة والدلتا إلى النصف.',
+    blocks: [
+      { id: 1, type: 'paragraph', text: 'قال مسؤولون في وزارة النقل إن المرحلة الثانية من المحور الجديد تمتد لمسافة 48 كيلومتراً.' },
+      { id: 2, type: 'image', caption: '', credit: '' },
+      { id: 3, type: 'paragraph', text: 'وأوضحت الوزارة أن العمل بدأ في المرحلة الثالثة والأخيرة من المشروع.' },
+    ],
+    nextId: 4, section: 'مصر', tags: ['البنية التحتية', 'مصر'], tagDraft: '', badge: 'breaking', lang: 'ar', ttsStatus: 'idle',
+  };
+  updateBlock(id, patch) { this.setState((s) => ({ blocks: s.blocks.map((b) => b.id === id ? { ...b, ...patch } : b) })); }
+  moveBlock(id, dir) {
+    this.setState((s) => {
+      const arr = s.blocks.slice(); const i = arr.findIndex((b) => b.id === id); const j = i + dir;
+      if (j < 0 || j >= arr.length) return {};
+      [arr[i], arr[j]] = [arr[j], arr[i]]; return { blocks: arr };
+    });
+  }
+  addBlock(type) {
+    this.setState((s) => ({ blocks: [...s.blocks, { id: s.nextId, type, text: '', caption: '', credit: '' }], nextId: s.nextId + 1 }));
+  }
+  renderVals() {
+    const typeLabels = { paragraph: 'فقرة', heading: 'عنوان فرعي', image: 'صورة', quote: 'اقتباس', related: 'اقرأ أيضاً' };
+    const blocks = this.state.blocks.map((b) => ({
+      ...b, typeLabel: typeLabels[b.type],
+      isParagraph: b.type === 'paragraph', isHeading: b.type === 'heading', isImage: b.type === 'image', isQuote: b.type === 'quote', isRelated: b.type === 'related',
+      imageId: 'editor-block-' + b.id,
+      onText: (e) => this.updateBlock(b.id, { text: e.target.value }),
+      onCaption: (e) => this.updateBlock(b.id, { caption: e.target.value }),
+      onCredit: (e) => this.updateBlock(b.id, { credit: e.target.value }),
+      up: () => this.moveBlock(b.id, -1), down: () => this.moveBlock(b.id, 1),
+      remove: () => this.setState((s) => ({ blocks: s.blocks.filter((x) => x.id !== b.id) })),
+    }));
+    const addButtons = [['paragraph', 'فقرة'], ['heading', 'عنوان فرعي'], ['image', 'صورة'], ['quote', 'اقتباس'], ['related', 'اقرأ أيضاً']].map(([type, label]) => ({ label, go: () => this.addBlock(type) }));
+    const chipBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', background: '#FFFFFF', color: '#171A1F' };
+    const mkChip = (value, label, key, selected) => ({ label, go: () => this.setState({ [key]: value }), style: Object.assign({}, chipBase, selected === value ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : {}) });
+    const sectionOptions = ['مصر', 'اقتصاد', 'رياضة', 'رأي'].map((s) => mkChip(s, s, 'section', this.state.section));
+    const badgeOptions = [['none', 'بدون'], ['breaking', 'عاجل'], ['exclusive', 'خاص'], ['live', 'مباشر']].map(([v, l]) => mkChip(v, l, 'badge', this.state.badge));
+    const langOptions = [['ar', 'عربي'], ['en', 'English']].map(([v, l]) => mkChip(v, l, 'lang', this.state.lang));
+    const tagChips = this.state.tags.map((t) => ({ label: t, remove: () => this.setState((s) => ({ tags: s.tags.filter((x) => x !== t) })) }));
+    const words = this.state.blocks.filter((b) => b.type === 'paragraph').reduce((sum, b) => sum + (b.text || '').trim().split(/\s+/).filter(Boolean).length, 0) + this.state.standfirst.trim().split(/\s+/).filter(Boolean).length;
+    const readMinutes = Math.max(1, Math.ceil(words / 200));
+    const ttsMap = { idle: { label: '🎙 توليد النسخة الصوتية', bg: '#B01F2E', color: '#fff' }, generating: { label: 'جارِ التوليد...', bg: '#EBEDF0', color: '#6A727C' }, done: { label: '✓ تم التوليد — 4:15', bg: '#E7F4ED', color: '#0E8A4C' } };
+    const ttsInfo = ttsMap[this.state.ttsStatus];
+    return {
+      title: this.state.title, onTitle: (e) => this.setState({ title: e.target.value }),
+      standfirst: this.state.standfirst, onStandfirst: (e) => this.setState({ standfirst: e.target.value }),
+      blocks, addButtons, sectionOptions, badgeOptions, langOptions, tagChips,
+      tagDraft: this.state.tagDraft, onTagDraft: (e) => this.setState({ tagDraft: e.target.value }),
+      onTagKeyDown: (e) => { if (e.key === 'Enter' && this.state.tagDraft.trim()) { e.preventDefault(); this.setState((s) => ({ tags: [...s.tags, s.tagDraft.trim()], tagDraft: '' })); } },
+      readMinutes,
+      ttsLabel: ttsInfo.label, ttsButtonStyle: { width: '100%', border: 'none', borderRadius: '8px', padding: '11px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', background: ttsInfo.bg, color: ttsInfo.color },
+      generateTts: () => { this.setState({ ttsStatus: 'generating' }); setTimeout(() => this.setState({ ttsStatus: 'done' }), 1400); },
+    };
+  }
+}
+
+</script>
+</body>
+</html>

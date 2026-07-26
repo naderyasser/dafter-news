@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>
+body { margin:0; }
+@keyframes daftar-pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.35); } }
+</style>
+</helmet>
+<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%">
+
+  <section data-label="الغلاف" data-screen-label="01" data-speaker-notes="مقدمة: الدفتر نيوز موقع إخباري ثنائي اللغة. هذا العرض يغطي الهوية ونظام التصميم والشاشات الرئيسية ولوحة التحكم." dir="rtl" lang="ar" style="width:100%;height:100%;background:#14171C;display:flex;flex-direction:column;justify-content:center;padding:0 140px;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#F5F6F7">
+    <div style="border-inline-start:8px solid #B01F2E;padding-inline-start:44px">
+      <div style="color:#B01F2E;font-size:30px;font-weight:800;letter-spacing:1px;margin-bottom:28px">aldaftarnews.com</div>
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:128px;margin:0;line-height:1.1;color:#FFFFFF">الدفتر نيوز</h1>
+      <div style="font-size:44px;color:#9AA1AA;margin-top:24px;font-weight:500">سِجلّ اليوم.. خبراً خبراً</div>
+    </div>
+    <div style="display:flex;gap:56px;margin-top:96px;padding-inline-start:52px;color:#6A727C;font-size:26px;font-weight:600">
+      <span>نظام تصميم كامل</span><span style="color:#3C434C">/</span>
+      <span>19 صفحة عامة</span><span style="color:#3C434C">/</span>
+      <span>14 صفحة لوحة تحكم</span><span style="color:#3C434C">/</span>
+      <span>عربي RTL + إنجليزي LTR</span>
+    </div>
+  </section>
+
+  <section data-label="المحتويات" data-screen-label="02" data-speaker-notes="خريطة العرض: الهوية، التوكنز، الشاشات العامة، ثم لوحة التحكم." dir="rtl" lang="ar" style="width:100%;height:100%;background:#FFFFFF;display:flex;flex-direction:column;justify-content:center;padding:0 140px;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="border-inline-start:6px solid #B01F2E;padding-inline-start:32px;margin-bottom:72px">
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:76px;margin:0">محتويات العرض</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:36px 80px">
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠١</span><span style="font-size:38px;font-weight:600">الهوية والعنصر المميز</span></div>
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠٢</span><span style="font-size:38px;font-weight:600">الألوان والخطوط</span></div>
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠٣</span><span style="font-size:38px;font-weight:600">الصفحة الرئيسية</span></div>
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠٤</span><span style="font-size:38px;font-weight:600">صفحة المقال</span></div>
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠٥</span><span style="font-size:38px;font-weight:600">بالعقل والمنطق والفيديو</span></div>
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠٦</span><span style="font-size:38px;font-weight:600">البث المباشر والأسواق</span></div>
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠٧</span><span style="font-size:38px;font-weight:600">لوحة التحكم</span></div>
+      <div style="display:flex;align-items:baseline;gap:28px;border-block-end:1px solid #E2E5E9;padding-block-end:24px"><span style="color:#B01F2E;font-size:34px;font-weight:800;font-variant-numeric:tabular-nums">٠٨</span><span style="font-size:38px;font-weight:600">النطاق والخطوة التالية</span></div>
+    </div>
+  </section>
+
+  <section data-label="الهوية" data-screen-label="03" data-speaker-notes="خط هامش الدفتر هو العنصر المميز: خط أحمر 3px على بداية السطر، مستوحى من هامش الكراسة. يظهر حصراً في اللوجو وعناوين الأقسام والاقتباسات." dir="rtl" lang="ar" style="width:100%;height:100%;background:#F4F5F7;display:flex;padding:0;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="flex:1;padding:120px 100px 120px 140px;display:flex;flex-direction:column;justify-content:center">
+      <div style="color:#B01F2E;font-size:26px;font-weight:800;margin-bottom:20px">العنصر المميز</div>
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:72px;margin:0 0 36px;line-height:1.25">خط هامش الدفتر</h2>
+      <p style="font-size:32px;line-height:1.75;color:#3C434C;margin:0 0 44px;max-width:620px">خط رأسي أحمر بسُمك 3px على بداية السطر، مستوحى من هامش الكراسة. يمنح الموقع بصمة بصرية واحدة تتكرر بانضباط.</p>
+      <div style="display:flex;flex-direction:column;gap:20px;font-size:28px;color:#3C434C">
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">اللوجو وعناوين الأقسام</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">عناوين H2 داخل المقال</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">الاقتباسات وصناديق السايدبار</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">عناوين الفوتر ولوحة التحكم</span>
+      </div>
+    </div>
+    <div style="flex:0 0 760px;background:#FFFFFF;display:flex;flex-direction:column;justify-content:center;gap:48px;padding:0 90px;border-inline-start:1px solid #E2E5E9">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:20px">
+        <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:52px">الدفتر نيوز</div>
+        <div style="color:#6A727C;font-size:22px;margin-top:8px">سِجلّ اليوم.. خبراً خبراً</div>
+      </div>
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:20px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:40px">أخبار مصر</div>
+      <blockquote style="border-inline-start:3px solid #B01F2E;padding-inline-start:20px;margin:0;font-size:34px;font-weight:600;color:#3C434C;line-height:1.6">هذا المحور ليس مجرد طريق.. إنه إعادة رسم لخريطة الحركة التجارية</blockquote>
+      <div style="background:#F4F5F7;border-radius:6px;padding:32px;border-inline-start:3px solid #B01F2E">
+        <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:32px;margin-bottom:12px">الأكثر قراءة</div>
+        <div style="color:#6A727C;font-size:24px">صندوق السايدبار</div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="الألوان والخطوط" data-screen-label="04" data-speaker-notes="أحمر الدفتر للتمييز فقط. الأخضر والأحمر الثاني للأسواق حصراً — ممنوع خلط أحمر البراند بمؤشر الهبوط." dir="rtl" lang="ar" style="width:100%;height:100%;background:#FFFFFF;display:flex;flex-direction:column;padding:100px 140px;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="border-inline-start:6px solid #B01F2E;padding-inline-start:32px;margin-bottom:64px">
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:70px;margin:0">نظام الألوان والخطوط</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(6, 1fr);gap:28px;margin-bottom:64px">
+      <div><div style="height:150px;border-radius:6px;background:#B01F2E"></div><div style="font-weight:700;font-size:24px;margin-top:14px">أحمر الدفتر</div><div dir="ltr" style="color:#6A727C;font-size:20px;font-variant-numeric:tabular-nums;text-align:end">#B01F2E</div></div>
+      <div><div style="height:150px;border-radius:6px;background:#14171C"></div><div style="font-weight:700;font-size:24px;margin-top:14px">هيدر داكن</div><div dir="ltr" style="color:#6A727C;font-size:20px;font-variant-numeric:tabular-nums;text-align:end">#14171C</div></div>
+      <div><div style="height:150px;border-radius:6px;background:#171A1F"></div><div style="font-weight:700;font-size:24px;margin-top:14px">الحبر</div><div dir="ltr" style="color:#6A727C;font-size:20px;font-variant-numeric:tabular-nums;text-align:end">#171A1F</div></div>
+      <div><div style="height:150px;border-radius:6px;background:#F4F5F7;border:1px solid #E2E5E9;box-sizing:border-box"></div><div style="font-weight:700;font-size:24px;margin-top:14px">خلفية</div><div dir="ltr" style="color:#6A727C;font-size:20px;font-variant-numeric:tabular-nums;text-align:end">#F4F5F7</div></div>
+      <div><div style="height:150px;border-radius:6px;background:#0E8A4C"></div><div style="font-weight:700;font-size:24px;margin-top:14px">صعود</div><div dir="ltr" style="color:#6A727C;font-size:20px;font-variant-numeric:tabular-nums;text-align:end">#0E8A4C</div></div>
+      <div><div style="height:150px;border-radius:6px;background:#A97E14"></div><div style="font-weight:700;font-size:24px;margin-top:14px">خاص</div><div dir="ltr" style="color:#6A727C;font-size:20px;font-variant-numeric:tabular-nums;text-align:end">#A97E14</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:80px;border-block-start:1px solid #E2E5E9;padding-block-start:56px">
+      <div>
+        <div style="color:#B01F2E;font-size:24px;font-weight:800;margin-bottom:18px">العناوين — Noto Kufi Arabic</div>
+        <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:52px;line-height:1.4">الرئيس يفتتح المرحلة الثانية من المحور</div>
+      </div>
+      <div>
+        <div style="color:#B01F2E;font-size:24px;font-weight:800;margin-bottom:18px">المتن — IBM Plex Sans Arabic · 19px / 1.95</div>
+        <div style="font-size:30px;line-height:1.85;color:#3C434C">قال مسؤولون في وزارة النقل إن المرحلة الثانية من المحور الجديد تمتد لمسافة 48 كيلومتراً وتشمل ثلاث كباري علوية.</div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="الرئيسية" data-screen-label="05" data-speaker-notes="الرئيسية: هيدر ثلاث طبقات + شريط عاجل، هيرو مع عمود جانبي، بلوكات أقسام، شريط الرأي الداكن، ثم أحدث الأخبار مع الأكثر قراءة." dir="rtl" lang="ar" style="width:100%;height:100%;background:#F4F5F7;display:flex;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="flex:0 0 620px;padding:110px 80px;display:flex;flex-direction:column;justify-content:center;background:#FFFFFF;border-inline-end:1px solid #E2E5E9">
+      <div style="color:#B01F2E;font-size:26px;font-weight:800;margin-bottom:18px">الشاشة ٠١</div>
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:66px;margin:0 0 36px">الصفحة الرئيسية</h2>
+      <div style="display:flex;flex-direction:column;gap:26px;font-size:27px;color:#3C434C;line-height:1.6">
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">هيدر 3 طبقات + شريط «عاجل» متحرك</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">هيرو 2fr + عمود أخبار جانبي 1fr</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">بلوكات أقسام: مصر · اقتصاد · رياضة</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">شريط «بالعقل والمنطق» الداكن</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">شريط أسواق لاصق أسفل كل صفحة</span>
+      </div>
+    </div>
+    <div style="flex:1;padding:70px 70px 0;display:flex;flex-direction:column;min-width:0">
+      <div style="background:#FFFFFF;border-radius:8px 8px 0 0;box-shadow:0 4px 14px rgba(23,26,31,.10);overflow:hidden;flex:1;display:flex;flex-direction:column">
+        <div style="background:#14171C;color:#9AA1AA;font-size:15px;padding:9px 24px;display:flex;justify-content:space-between"><span style="color:#F5F6F7">الأحد ٢٦ يوليو ٢٠٢٦ · ☀ 34°</span><span>الأسواق · من نحن</span></div>
+        <div style="background:#FFFFFF;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;border-block-end:1px solid #E2E5E9">
+          <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:30px">الدفتر نيوز</span>
+          <span style="background:#B01F2E;color:#fff;font-size:16px;font-weight:700;padding:9px 18px;border-radius:999px;display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:50%;background:#fff;animation:daftar-pulse-dot 1.4s ease-in-out infinite"></span>بث مباشر</span>
+        </div>
+        <div style="background:#FFFFFF;padding:0 24px;height:44px;display:flex;align-items:center;gap:26px;font-size:17px;font-weight:600;border-block-end:1px solid #E2E5E9">
+          <span style="color:#B01F2E;font-weight:700;border-block-end:3px solid #B01F2E;height:100%;display:flex;align-items:center">الرئيسية</span><span>مصر</span><span>اقتصاد</span><span>رياضة</span><span>بالعقل والمنطق</span><span>لقطة وتعليق</span><span>الأسواق</span>
+        </div>
+        <div style="background:#D71F30;height:34px;display:flex;align-items:stretch">
+          <span style="background:#8E1624;color:#fff;font-weight:800;font-size:15px;padding-inline:14px;display:flex;align-items:center">عاجل</span>
+          <span style="color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;padding-inline-start:20px;white-space:nowrap;overflow:hidden">الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد • البنك المركزي يثبّت أسعار الفائدة</span>
+        </div>
+        <div style="padding:22px;display:flex;gap:18px;flex:1;min-height:0">
+          <div style="flex:2;background:#EBEDF0;border-radius:6px;position:relative;overflow:hidden;display:flex;align-items:flex-end">
+            <div style="position:absolute;inset:0;background:linear-gradient(to top, rgba(10,11,13,.9), rgba(10,11,13,.1) 60%)"></div>
+            <span style="position:absolute;inset-inline-start:14px;inset-block-start:14px;background:#D71F30;color:#fff;font-size:14px;font-weight:700;padding:4px 11px;border-radius:4px">عاجل</span>
+            <div style="position:relative;padding:24px">
+              <div style="color:#FBEEEF;font-size:15px;font-weight:800">مصر</div>
+              <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:30px;color:#fff;line-height:1.45;margin-top:8px">الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد</div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;gap:12px;border-block-end:1px solid #E2E5E9;padding-block-end:14px"><div style="width:96px;height:72px;background:#EBEDF0;border-radius:6px;flex-shrink:0"></div><div><div style="color:#B01F2E;font-size:13px;font-weight:800">اقتصاد</div><div style="font-weight:700;font-size:17px;line-height:1.5;margin-top:5px">البنك المركزي يثبّت أسعار الفائدة</div></div></div>
+            <div style="display:flex;gap:12px;border-block-end:1px solid #E2E5E9;padding-block-end:14px"><div style="width:96px;height:72px;background:#EBEDF0;border-radius:6px;flex-shrink:0"></div><div><div style="color:#B01F2E;font-size:13px;font-weight:800">رياضة</div><div style="font-weight:700;font-size:17px;line-height:1.5;margin-top:5px">الأهلي يحسم صفقة نجم الوسط</div></div></div>
+            <div style="display:flex;gap:12px"><div style="width:96px;height:72px;background:#EBEDF0;border-radius:6px;flex-shrink:0"></div><div><div style="color:#B01F2E;font-size:13px;font-weight:800">مصر</div><div style="font-weight:700;font-size:17px;line-height:1.5;margin-top:5px">ارتفاع الحرارة إلى 38 درجة اليوم</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="المقال" data-screen-label="06" data-speaker-notes="المقال: عمود قراءة 680px، مشغل استمع للمقال، متن 19px بارتفاع سطر 1.95، بلوك اقرأ أيضاً داخل المتن، وسوم وأخبار ذات صلة." dir="rtl" lang="ar" style="width:100%;height:100%;background:#FFFFFF;display:flex;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="flex:1;padding:80px 60px 80px 0;display:flex;align-items:center;justify-content:center;background:#F4F5F7">
+      <div style="width:780px;background:#FFFFFF;border-radius:8px;box-shadow:0 4px 14px rgba(23,26,31,.10);padding:44px 48px;box-sizing:border-box">
+        <div style="color:#6A727C;font-size:17px;margin-bottom:16px">الرئيسية / مصر</div>
+        <span style="background:#D71F30;color:#fff;font-size:15px;font-weight:700;padding:5px 12px;border-radius:4px">عاجل</span>
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:40px;line-height:1.45;margin:18px 0 14px">الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد بتكلفة 12 مليار جنيه</h1>
+        <p style="color:#3C434C;font-size:23px;line-height:1.7;font-weight:500;margin:0 0 18px">المشروع يهدف إلى تقليص زمن الرحلة بين القاهرة والدلتا إلى النصف.</p>
+        <div style="display:flex;align-items:center;gap:12px;color:#6A727C;font-size:18px;padding-block:14px;border-block:1px solid #E2E5E9">
+          <span style="color:#3C434C;font-weight:700">محمد العدوي</span><span>•</span><span>25 يوليو 2026</span><span>•</span><span>◔ ٥ دقائق قراءة</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;background:#F4F5F7;border:1px solid #E2E5E9;border-radius:999px;padding:12px 20px;margin:22px 0">
+          <span style="width:44px;height:44px;border-radius:50%;background:#B01F2E;color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px">▶</span>
+          <div style="flex:1"><div style="height:6px;background:#E2E5E9;border-radius:999px;position:relative"><div style="position:absolute;inset-inline-start:0;top:0;bottom:0;width:32%;background:#B01F2E;border-radius:999px"></div></div></div>
+          <span style="color:#6A727C;font-size:17px;font-variant-numeric:tabular-nums">1:22 / 4:15</span>
+          <span style="border:1px solid #C9CED4;border-radius:999px;padding:6px 14px;font-size:16px;font-weight:700">x1</span>
+        </div>
+        <p style="font-size:22px;line-height:1.95;margin:0 0 20px">قال مسؤولون في وزارة النقل إن المرحلة الثانية من المحور الجديد تمتد لمسافة 48 كيلومتراً، وتشمل ثلاث كباري علوية وأربع محطات خدمة رئيسية.</p>
+        <div style="background:#F4F5F7;border-radius:6px;padding:20px 22px;margin-bottom:20px">
+          <div style="color:#B01F2E;font-size:16px;font-weight:800">اقرأ أيضاً</div>
+          <div style="font-size:20px;font-weight:700;line-height:1.5;margin-top:6px">مجلس الوزراء يوافق على حزمة حوافز جديدة للمصانع الصغيرة</div>
+        </div>
+        <blockquote style="border-inline-start:3px solid #B01F2E;padding-inline-start:22px;margin:0;color:#3C434C;font-size:25px;font-weight:600;line-height:1.65">هذا المحور ليس مجرد طريق.. إنه إعادة رسم لخريطة الحركة التجارية.</blockquote>
+      </div>
+    </div>
+    <div style="flex:0 0 620px;padding:110px 80px;display:flex;flex-direction:column;justify-content:center">
+      <div style="color:#B01F2E;font-size:26px;font-weight:800;margin-bottom:18px">الشاشة ٠٢</div>
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:66px;margin:0 0 36px">صفحة المقال</h2>
+      <div style="display:flex;flex-direction:column;gap:26px;font-size:27px;color:#3C434C;line-height:1.6">
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">عمود قراءة 680px · متن 19px / 1.95</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">مشغل «استمع للمقال» بسرعات x1–x1.5</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">وقت القراءة محسوب آلياً</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">بلوك «اقرأ أيضاً» داخل المتن</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:18px">المتن بلوكات JSON لا HTML خام</span>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="الرأي والفيديو" data-screen-label="07" data-speaker-notes="بالعقل والمنطق: شريط داكن كامل العرض بكروت اقتباس. لقطة وتعليق: شبكة كروت فيديو مع مدة وتفاعلات." dir="rtl" lang="ar" style="width:100%;height:100%;background:#FFFFFF;display:flex;flex-direction:column;padding:90px 140px;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="border-inline-start:6px solid #B01F2E;padding-inline-start:32px;margin-bottom:56px">
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:70px;margin:0">بالعقل والمنطق · لقطة وتعليق</h2>
+    </div>
+    <div style="background:#14171C;border-radius:8px;padding:44px;margin-bottom:44px">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:34px;color:#fff;margin-bottom:28px">بالعقل والمنطق</div>
+      <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:24px">
+        <div style="background:#1B1F26;border:1px solid #2A2F37;border-radius:6px;padding:28px;display:flex;flex-direction:column;gap:16px">
+          <span style="color:#B01F2E;font-size:44px;font-weight:800;line-height:.6;font-family:Georgia,serif">"</span>
+          <div style="color:#fff;font-size:23px;font-weight:600;line-height:1.6">الإصلاح الاقتصادي ليس رقماً في موازنة.. بل قرار مجتمع بأكمله</div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:50%;border:2px solid #B01F2E;background:#2A2F37;color:#F5F6F7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">س</span><span style="color:#9AA1AA;font-size:19px">د. سامية فاروق</span></div>
+        </div>
+        <div style="background:#1B1F26;border:1px solid #2A2F37;border-radius:6px;padding:28px;display:flex;flex-direction:column;gap:16px">
+          <span style="color:#B01F2E;font-size:44px;font-weight:800;line-height:.6;font-family:Georgia,serif">"</span>
+          <div style="color:#fff;font-size:23px;font-weight:600;line-height:1.6">لماذا يفوز المنتخب في الملعب الخطأ كل مرة؟</div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:50%;border:2px solid #B01F2E;background:#2A2F37;color:#F5F6F7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">ك</span><span style="color:#9AA1AA;font-size:19px">كريم عبد الوهاب</span></div>
+        </div>
+        <div style="background:#1B1F26;border:1px solid #2A2F37;border-radius:6px;padding:28px;display:flex;flex-direction:column;gap:16px">
+          <span style="color:#B01F2E;font-size:44px;font-weight:800;line-height:.6;font-family:Georgia,serif">"</span>
+          <div style="color:#fff;font-size:23px;font-weight:600;line-height:1.6">جيل جديد من القراء.. وصحافة لم تتغيّر بعد</div>
+          <div style="display:flex;align-items:center;gap:12px"><span style="width:44px;height:44px;border-radius:50%;border:2px solid #B01F2E;background:#2A2F37;color:#F5F6F7;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px">م</span><span style="color:#9AA1AA;font-size:19px">منى الشربيني</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:24px;flex:1">
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="flex:1;background:#EBEDF0;position:relative;display:flex;align-items:center;justify-content:center;min-height:130px"><span style="width:54px;height:54px;border-radius:50%;background:rgba(23,26,31,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span><span style="position:absolute;inset-inline-start:10px;inset-block-end:10px;background:rgba(23,26,31,.75);color:#fff;font-size:14px;padding:3px 8px;border-radius:4px;font-variant-numeric:tabular-nums">03:12</span></div>
+        <div style="padding:18px"><div style="color:#B01F2E;font-size:14px;font-weight:800">مصر</div><div style="font-weight:700;font-size:20px;line-height:1.5;margin-top:8px">لحظة إنقاذ طفل من الغرق بالإسكندرية</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="flex:1;background:#EBEDF0;position:relative;display:flex;align-items:center;justify-content:center;min-height:130px"><span style="width:54px;height:54px;border-radius:50%;background:rgba(23,26,31,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span><span style="position:absolute;inset-inline-start:10px;inset-block-end:10px;background:rgba(23,26,31,.75);color:#fff;font-size:14px;padding:3px 8px;border-radius:4px;font-variant-numeric:tabular-nums">05:44</span></div>
+        <div style="padding:18px"><div style="color:#B01F2E;font-size:14px;font-weight:800">رياضة</div><div style="font-weight:700;font-size:20px;line-height:1.5;margin-top:8px">تعليق الكابتن على أداء المنتخب</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="flex:1;background:#EBEDF0;position:relative;display:flex;align-items:center;justify-content:center;min-height:130px"><span style="width:54px;height:54px;border-radius:50%;background:rgba(23,26,31,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span><span style="position:absolute;inset-inline-start:10px;inset-block-end:10px;background:rgba(23,26,31,.75);color:#fff;font-size:14px;padding:3px 8px;border-radius:4px;font-variant-numeric:tabular-nums">07:20</span></div>
+        <div style="padding:18px"><div style="color:#B01F2E;font-size:14px;font-weight:800">اقتصاد</div><div style="font-weight:700;font-size:20px;line-height:1.5;margin-top:8px">جولة داخل مصنع سيارات كهربائية</div></div>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden;display:flex;flex-direction:column">
+        <div style="flex:1;background:#EBEDF0;position:relative;display:flex;align-items:center;justify-content:center;min-height:130px"><span style="width:54px;height:54px;border-radius:50%;background:rgba(23,26,31,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:19px"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span><span style="position:absolute;inset-inline-start:10px;inset-block-start:10px;background:#D71F30;color:#fff;font-size:14px;font-weight:700;padding:3px 10px;border-radius:4px">مباشر</span></div>
+        <div style="padding:18px"><div style="color:#B01F2E;font-size:14px;font-weight:800">اقتصاد</div><div style="font-weight:700;font-size:20px;line-height:1.5;margin-top:8px">تغطية حية لمؤتمر البنك المركزي</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="البث والأسواق" data-screen-label="08" data-speaker-notes="البث المباشر بخط زمني رأسي. صفحة الأسواق بثلاثة كروت: عملات بـ sparkline، ذهب، وطقس. كل الأرقام tabular-nums." dir="rtl" lang="ar" style="width:100%;height:100%;background:#F4F5F7;display:flex;flex-direction:column;padding:90px 140px;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="border-inline-start:6px solid #B01F2E;padding-inline-start:32px;margin-bottom:56px">
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:70px;margin:0">البث المباشر والأسواق</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:44px;flex:1;min-height:0">
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:8px;padding:36px 40px;display:flex;flex-direction:column">
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:32px;margin-bottom:26px">التغطية لحظة بلحظة</div>
+        <div style="position:relative;padding-inline-start:30px;flex:1">
+          <div style="position:absolute;inset-inline-start:9px;top:8px;bottom:8px;width:2px;background:#E2E5E9"></div>
+          <div style="position:relative;padding-bottom:28px"><div style="position:absolute;inset-inline-start:-30px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;border:4px solid #B01F2E"></div><div style="color:#B01F2E;font-weight:800;font-size:22px;font-variant-numeric:tabular-nums">12:41</div><div style="font-size:22px;line-height:1.65;margin-top:6px">محافظ البنك المركزي يبدأ كلمته بالإشارة إلى استقرار التضخم.</div></div>
+          <div style="position:relative;padding-bottom:28px"><div style="position:absolute;inset-inline-start:-30px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;border:4px solid #B01F2E"></div><div style="color:#B01F2E;font-weight:800;font-size:22px;font-variant-numeric:tabular-nums">12:33</div><div style="font-size:22px;line-height:1.65;margin-top:6px">بدء المؤتمر الصحفي بحضور نواب المحافظ.</div></div>
+          <div style="position:relative"><div style="position:absolute;inset-inline-start:-30px;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;border:4px solid #B01F2E"></div><div style="color:#B01F2E;font-weight:800;font-size:22px;font-variant-numeric:tabular-nums">12:20</div><div style="font-size:22px;line-height:1.65;margin-top:6px">تجمع صحفي كبير أمام مقر البنك المركزي.</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:26px">
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:8px;padding:30px 34px;flex:1">
+          <div style="font-weight:800;font-size:28px;margin-bottom:18px">أسعار العملات</div>
+          <div style="display:flex;align-items:center;gap:16px;padding-block:14px;border-block-end:1px solid #E2E5E9"><span style="font-weight:700;font-size:21px;width:70px">USD</span><svg width="80" height="26" viewBox="0 0 60 22"><polyline points="0,18 8.6,15 17.1,10 25.7,12 34.3,8 42.9,6 51.4,4 60,2" fill="none" stroke="#0E8A4C" stroke-width="2"></polyline></svg><span style="margin-inline-start:auto;font-weight:700;font-size:21px;font-variant-numeric:tabular-nums">48.85</span><span style="background:#E7F4ED;color:#0E8A4C;font-size:17px;font-weight:700;padding:3px 10px;border-radius:999px;font-variant-numeric:tabular-nums">▲0.3%</span></div>
+          <div style="display:flex;align-items:center;gap:16px;padding-block:14px"><span style="font-weight:700;font-size:21px;width:70px">EUR</span><svg width="80" height="26" viewBox="0 0 60 22"><polyline points="0,3 8.6,5 17.1,7 25.7,10 34.3,13 42.9,13 51.4,17 60,18" fill="none" stroke="#C93030" stroke-width="2"></polyline></svg><span style="margin-inline-start:auto;font-weight:700;font-size:21px;font-variant-numeric:tabular-nums">52.10</span><span style="background:#FBEDED;color:#C93030;font-size:17px;font-weight:700;padding:3px 10px;border-radius:999px;font-variant-numeric:tabular-nums">▼0.15%</span></div>
+        </div>
+        <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:8px;padding:30px 34px;display:flex;align-items:center;gap:26px">
+          <span style="font-size:56px">☀️</span>
+          <div><div style="font-size:52px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1">34°</div><div style="color:#6A727C;font-size:20px;margin-top:8px">القاهرة · عليا 36° · دنيا 24° · رطوبة 32%</div></div>
+        </div>
+        <div style="background:#FFFFFF;border-block-start:1px solid #E2E5E9;box-shadow:0 -2px 12px rgba(23,26,31,.12);border-radius:8px;padding:0 30px;height:76px;display:flex;align-items:center;gap:34px">
+          <span style="display:flex;align-items:center;gap:10px"><span style="color:#6A727C;font-size:19px">دولار/جنيه</span><span style="font-weight:700;font-size:21px;font-variant-numeric:tabular-nums">48.85</span><span style="background:#E7F4ED;color:#0E8A4C;font-size:16px;font-weight:700;padding:3px 9px;border-radius:999px">▲0.3%</span></span>
+          <span style="display:flex;align-items:center;gap:10px"><span style="color:#6A727C;font-size:19px">ذهب 21</span><span style="font-weight:700;font-size:21px;font-variant-numeric:tabular-nums">3,550</span><span style="background:#E7F4ED;color:#0E8A4C;font-size:16px;font-weight:700;padding:3px 9px;border-radius:999px">▲0.8%</span></span>
+          <span style="color:#6A727C;font-size:18px;margin-inline-start:auto">الشريط اللاصق أسفل كل صفحة</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="لوحة التحكم" data-screen-label="09" data-speaker-notes="لوحة التحكم تقلب المعادلة: سايدبار داكن ومساحة عمل فاتحة. 14 صفحة تتحكم في المحتوى والإعلانات والشريط والتعليقات." dir="rtl" lang="ar" style="width:100%;height:100%;background:#FFFFFF;display:flex;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+    <div style="flex:0 0 560px;padding:110px 70px;display:flex;flex-direction:column;justify-content:center">
+      <div style="color:#B01F2E;font-size:26px;font-weight:800;margin-bottom:18px">١٤ صفحة</div>
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:62px;margin:0 0 32px;line-height:1.25">لوحة التحكم</h2>
+      <p style="font-size:26px;line-height:1.7;color:#3C434C;margin:0 0 32px">نفس التوكنز مع قلب المعادلة: سايدبار داكن ومساحة عمل فاتحة.</p>
+      <div style="display:flex;flex-direction:column;gap:20px;font-size:25px;color:#3C434C">
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px">محرر مقال بالبلوكات + توليد TTS</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px">إدارة العاجل والبث والتعليقات</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px">الإعلانات وشريط الأسواق</span>
+        <span style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px">جداول كثيفة بصف 44px</span>
+      </div>
+    </div>
+    <div style="flex:1;padding:70px 70px 70px 0;display:flex">
+      <div style="flex:1;border-radius:8px;overflow:hidden;box-shadow:0 4px 14px rgba(23,26,31,.10);display:flex;background:#F4F5F7">
+        <div style="flex:0 0 210px;background:#14171C;padding:24px 0;display:flex;flex-direction:column;gap:6px">
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px;margin:0 18px 22px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;color:#F5F6F7">الدفتر</div>
+          <div style="background:#B01F2E;color:#fff;margin:0 12px;padding:11px 14px;border-radius:6px;font-size:16px;font-weight:700">نظرة عامة</div>
+          <div style="color:#9AA1AA;padding:11px 26px;font-size:16px">المقالات</div>
+          <div style="color:#9AA1AA;padding:11px 26px;font-size:16px">الأخبار العاجلة</div>
+          <div style="color:#9AA1AA;padding:11px 26px;font-size:16px">الفيديوهات</div>
+          <div style="color:#9AA1AA;padding:11px 26px;font-size:16px">التعليقات</div>
+          <div style="color:#9AA1AA;padding:11px 26px;font-size:16px">الإعلانات</div>
+          <div style="color:#9AA1AA;padding:11px 26px;font-size:16px">شريط الأسواق</div>
+          <div style="color:#9AA1AA;padding:11px 26px;font-size:16px">المستخدمون</div>
+        </div>
+        <div style="flex:1;padding:26px;display:flex;flex-direction:column;gap:20px;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:26px">نظرة عامة</div>
+            <span style="background:#B01F2E;color:#fff;font-size:15px;font-weight:700;padding:9px 16px;border-radius:8px">+ خبر جديد</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:14px">
+            <div style="background:#fff;border:1px solid #E2E5E9;border-radius:6px;padding:16px"><div style="color:#6A727C;font-size:14px">زيارات اليوم</div><div style="font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:6px">84,210</div><div style="color:#0E8A4C;font-size:14px;font-weight:700;margin-top:4px">▲ 12.4%</div></div>
+            <div style="background:#fff;border:1px solid #E2E5E9;border-radius:6px;padding:16px"><div style="color:#6A727C;font-size:14px">مقالات منشورة</div><div style="font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:6px">36</div><div style="color:#0E8A4C;font-size:14px;font-weight:700;margin-top:4px">▲ 8.0%</div></div>
+            <div style="background:#fff;border:1px solid #E2E5E9;border-radius:6px;padding:16px"><div style="color:#6A727C;font-size:14px">تعليقات معلقة</div><div style="font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:6px">18</div><div style="color:#C93030;font-size:14px;font-weight:700;margin-top:4px">▼ 3.1%</div></div>
+            <div style="background:#fff;border:1px solid #E2E5E9;border-radius:6px;padding:16px"><div style="color:#6A727C;font-size:14px">مشاهدات فيديو</div><div style="font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:6px">21,540</div><div style="color:#0E8A4C;font-size:14px;font-weight:700;margin-top:4px">▲ 5.6%</div></div>
+          </div>
+          <div style="background:#fff;border:1px solid #E2E5E9;border-radius:6px;flex:1;overflow:hidden">
+            <div style="background:#F4F5F7;display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;padding:12px 16px;font-size:14px;font-weight:700;color:#6A727C"><span>العنوان</span><span>القسم</span><span>الحالة</span><span>المشاهدات</span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;padding:14px 16px;font-size:15px;border-block-start:1px solid #E2E5E9;align-items:center"><span style="font-weight:600">الرئيس يفتتح المرحلة الثانية من المحور</span><span style="color:#6A727C">مصر</span><span><span style="background:#E7F4ED;color:#0E8A4C;font-size:13px;font-weight:700;padding:3px 10px;border-radius:4px">منشور</span></span><span style="font-variant-numeric:tabular-nums">18,204</span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;padding:14px 16px;font-size:15px;border-block-start:1px solid #E2E5E9;align-items:center"><span style="font-weight:600">البنك المركزي يثبّت أسعار الفائدة</span><span style="color:#6A727C">اقتصاد</span><span><span style="background:#E7F4ED;color:#0E8A4C;font-size:13px;font-weight:700;padding:3px 10px;border-radius:4px">منشور</span></span><span style="font-variant-numeric:tabular-nums">9,410</span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;padding:14px 16px;font-size:15px;border-block-start:1px solid #E2E5E9;align-items:center"><span style="font-weight:600">الأهلي يحسم صفقة نجم الوسط</span><span style="color:#6A727C">رياضة</span><span><span style="background:#FBF3DF;color:#A97E14;font-size:13px;font-weight:700;padding:3px 10px;border-radius:4px">مجدول</span></span><span style="color:#6A727C">—</span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1fr 1fr 1fr;padding:14px 16px;font-size:15px;border-block-start:1px solid #E2E5E9;align-items:center"><span style="font-weight:600">تحقيق خاص: كواليس اجتماع البنك المركزي</span><span style="color:#6A727C">اقتصاد</span><span><span style="background:#EBEDF0;color:#3C434C;font-size:13px;font-weight:700;padding:3px 10px;border-radius:4px">مراجعة</span></span><span style="color:#6A727C">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section data-label="النطاق" data-screen-label="10" data-speaker-notes="النطاق المسلَّم: 33 شاشة كاملة، نظام تصميم موحد، وملف نشر واحد للعرض التفاعلي." dir="rtl" lang="ar" style="width:100%;height:100%;background:#14171C;display:flex;flex-direction:column;justify-content:center;padding:0 140px;box-sizing:border-box;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#F5F6F7">
+    <div style="border-inline-start:6px solid #B01F2E;padding-inline-start:32px;margin-bottom:80px">
+      <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:76px;margin:0;color:#FFFFFF">النطاق المسلَّم</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:40px;margin-bottom:90px">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:24px"><div style="font-size:92px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:#FFFFFF">19</div><div style="font-size:26px;color:#9AA1AA;margin-top:14px">صفحة عامة</div></div>
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:24px"><div style="font-size:92px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:#FFFFFF">14</div><div style="font-size:26px;color:#9AA1AA;margin-top:14px">صفحة لوحة تحكم</div></div>
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:24px"><div style="font-size:92px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:#FFFFFF">2</div><div style="font-size:26px;color:#9AA1AA;margin-top:14px">لغة · RTL و LTR</div></div>
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:24px"><div style="font-size:92px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:#FFFFFF">1</div><div style="font-size:26px;color:#9AA1AA;margin-top:14px">ملف نشر تفاعلي</div></div>
+    </div>
+    <div style="border-block-start:1px solid #3C434C;padding-block-start:44px;display:flex;justify-content:space-between;align-items:baseline">
+      <span style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:38px;color:#FFFFFF">الدفتر نيوز — سِجلّ اليوم.. خبراً خبراً</span>
+      <span style="color:#6A727C;font-size:26px">aldaftarnews.com</span>
+    </div>
+  </section>
+
+</x-import>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}"></script>
+</body>
+</html>

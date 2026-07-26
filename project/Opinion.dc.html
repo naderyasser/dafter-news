@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="opinion" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+    <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:24px">
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);margin:0;color:#171A1F">بالعقل والمنطق</h1>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:20px">
+      <sc-for list="{{ items }}" as="op" hint-placeholder-count="8">
+        <a href="ArticleOpinion.dc.html" style="display:flex;flex-direction:column;gap:14px;background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:22px;text-decoration:none">
+          <span style="color:#B01F2E;font-size:36px;font-weight:800;line-height:.6;font-family:Georgia,serif">"</span>
+          <div style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-size:16px;color:#171A1F;font-weight:700;line-height:1.6;flex:1">{{ op.quote }}</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:38px;height:38px;border-radius:50%;border:2px solid #B01F2E;background:#FBEEEF;color:#B01F2E;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">{{ op.initial }}</div>
+            <span style="color:#3C434C;font-size:13px;font-weight:600">{{ op.name }}</span>
+            <span style="color:#6A727C;font-size:12px;margin-inline-start:auto">{{ op.time }}</span>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const raw = [
+      { name: 'د. سامية فاروق', quote: 'الإصلاح الاقتصادي ليس رقماً في موازنة.. بل قرار مجتمع بأكمله', time: 'منذ يوم' },
+      { name: 'كريم عبد الوهاب', quote: 'لماذا يفوز المنتخب في الملعب الخطأ كل مرة؟', time: 'منذ يومين' },
+      { name: 'منى الشربيني', quote: 'جيل جديد من القراء.. وصحافة لم تتغيّر بعد', time: 'منذ 3 أيام' },
+      { name: 'أحمد لبيب', quote: 'الذكاء الاصطناعي في غرفة الأخبار: تهديد أم أداة؟', time: 'منذ 4 أيام' },
+      { name: 'ياسمين توفيق', quote: 'الصعيد ليس هامشاً.. هو متن الحكاية المصرية', time: 'منذ 5 أيام' },
+      { name: 'محمد العدوي', quote: 'الطرق الجديدة تبني اقتصاداً.. إن أُحسنت إدارتها', time: 'منذ أسبوع' },
+      { name: 'د. سامية فاروق', quote: 'الجنيه المستقر لا يكفي وحده لثقة المستثمر', time: 'منذ أسبوع' },
+      { name: 'كريم عبد الوهاب', quote: 'كرة القدم المصرية تحتاج بنية تحتلها لا نجوماً فقط', time: 'منذ أسبوعين' },
+    ];
+    const items = raw.map((it, i) => ({ ...it, avatarId: 'opinion-list-' + i, initial: (it.name || '؟').replace('د. ', '').charAt(0) }));
+    return { items };
+  }
+}
+
+</script>
+</body>
+</html>

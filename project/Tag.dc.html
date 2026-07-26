@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start">
+    <main style="flex:2 1 560px;min-width:0">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#FBEEEF;color:#B01F2E;font-weight:800;font-size:16px;padding:8px 18px;border-radius:999px;margin-bottom:24px">#{{ tagName }}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:20px">
+        <sc-for list="{{ cards }}" as="c" hint-placeholder-count="6">
+          <dc-import name="ArticleCard" lang="ar" variant="standard" href="{{ c.href }}" title="{{ c.title }}" section="{{ c.section }}" time="{{ c.time }}" badge="{{ c.badge }}" image-id="{{ c.imageId }}" hint-size="100%,260px"></dc-import>
+        </sc-for>
+      </div>
+    </main>
+    <aside style="flex:1 1 280px;max-width:320px;min-width:260px">
+      <dc-import name="MostReadList" lang="ar" hint-size="100%,360px"></dc-import>
+    </aside>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = (() => {
+    let tag = 'الذهب';
+    try { tag = new URLSearchParams(window.location.search).get('tag') || 'الذهب'; } catch (e) {}
+    return { tag };
+  })();
+  renderVals() {
+    const mk = (title, section, time, badge, i) => ({ href: 'Article.dc.html', title, section, time, badge: badge || 'none', imageId: 'tag-' + i });
+    const cards = [
+      mk('ارتفاع أسعار الذهب عالمياً مع تصاعد التوترات', 'اقتصاد', 'منذ ساعة', 'none', 1),
+      mk('الجنيه يسجل استقراراً أمام الدولار للأسبوع الثالث', 'اقتصاد', 'منذ ساعتين', 'exclusive', 2),
+      mk('بورصة مصر تغلق على ارتفاع بقيادة أسهم البنوك', 'اقتصاد', 'منذ 3 ساعات', 'none', 3),
+      mk('صندوق النقد يشيد ببرنامج الإصلاح الاقتصادي المصري', 'اقتصاد', 'منذ 4 ساعات', 'none', 4),
+      mk('البنك المركزي يثبّت أسعار الفائدة للاجتماع الثالث', 'اقتصاد', 'أمس', 'none', 5),
+      mk('ارتفاع صادرات الغزل والنسيج 18% خلال النصف الأول', 'اقتصاد', 'أمس', 'none', 6),
+    ];
+    return { tagName: this.state.tag, cards };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="articles" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / المحتوى</div>
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+            <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">المقالات</h1>
+          </div>
+        </div>
+        <a href="DashArticleEditor.dc.html" style="background:#B01F2E;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px" style-hover="background:#8E1624">+ مقال جديد</a>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input type="text" value="{{ query }}" onChange="{{ onQueryChange }}" placeholder="بحث في المقالات..." style="flex:1;min-width:200px;box-sizing:border-box;padding:9px 14px;border-radius:8px;border:1px solid #E2E5E9;background:#FFFFFF;font-size:13px;outline:none" style-focus="border-color:#B01F2E"/>
+        <sc-for list="{{ statusChips }}" as="c" hint-placeholder-count="5">
+          <button onClick="{{ c.go }}" style="{{ c.style }}">{{ c.label }}</button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;gap:14px;background:#FBEEEF;border:1px solid #B01F2E;border-radius:8px;padding:10px 16px">
+          <span style="color:#8E1624;font-size:13px;font-weight:700">{{ selectionLabel }}</span>
+          <button style="{{ bulkBtnStyle }}">نشر</button>
+          <button style="{{ bulkBtnStyle }}">أرشفة</button>
+          <button style="{{ bulkBtnDangerStyle }}">حذف</button>
+          <button onClick="{{ clearSelection }}" style="margin-inline-start:auto;background:none;border:none;color:#8E1624;font-size:13px;font-weight:600;cursor:pointer">إلغاء التحديد</button>
+        </div>
+      </sc-if>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:40px 2.2fr 1fr 1fr 1fr 1fr 1fr 70px;background:#F4F5F7;align-items:center">
+          <div></div>
+          <div style="{{ thStyle }}">العنوان</div><div style="{{ thStyle }}">القسم</div><div style="{{ thStyle }}">الكاتب</div><div style="{{ thStyle }}">الحالة</div><div style="{{ thStyle }}">المشاهدات</div><div style="{{ thStyle }}">التاريخ</div><div></div>
+        </div>
+        <sc-for list="{{ rows }}" as="a" hint-placeholder-count="8">
+          <div onMouseEnter="{{ a.onEnter }}" onMouseLeave="{{ a.onLeave }}" style="display:grid;grid-template-columns:40px 2.2fr 1fr 1fr 1fr 1fr 1fr 70px;align-items:center;min-height:44px;border-top:1px solid #E2E5E9">
+            <div style="padding-inline-start:14px"><span onClick="{{ a.toggle }}" style="{{ a.checkboxStyle }}">{{ a.checkMark }}</span></div>
+            <div style="{{ tdStyle }}">{{ a.title }}</div>
+            <div style="{{ tdStyleMuted }}">{{ a.section }}</div>
+            <div style="{{ tdStyleMuted }}">{{ a.author }}</div>
+            <div style="{{ tdStyle }}"><dc-import name="StatusBadge" status="{{ a.status }}" hint-size="90px,26px"></dc-import></div>
+            <div style="{{ tdStyleTnum }}">{{ a.views }}</div>
+            <div style="{{ tdStyleMuted }}">{{ a.date }}</div>
+            <div style="{{ a.actionsStyle }}"><a href="DashArticleEditor.dc.html" style="cursor:pointer;color:inherit;text-decoration:none" title="تعديل">✎</a><span onClick="{{ a.remove }}" style="cursor:pointer" title="حذف">🗑</span></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { selected: {}, hoverRow: null, statusFilter: 'all', query: '', removedIds: {} };
+  renderVals() {
+    const all = [
+      { id: 1, title: 'الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد', section: 'مصر', author: 'محمد العدوي', status: 'published', views: '18,204', date: '25 يوليو' },
+      { id: 2, title: 'البنك المركزي يثبّت أسعار الفائدة', section: 'اقتصاد', author: 'د. سامية فاروق', status: 'published', views: '9,410', date: '25 يوليو' },
+      { id: 3, title: 'الأهلي يحسم صفقة نجم الوسط', section: 'رياضة', author: 'كريم عبد الوهاب', status: 'scheduled', views: '—', date: '26 يوليو' },
+      { id: 4, title: 'تحقيق خاص: كواليس اجتماع البنك المركزي', section: 'اقتصاد', author: 'د. سامية فاروق', status: 'review', views: '—', date: '24 يوليو' },
+      { id: 5, title: 'افتتاح أول محطة لتحلية مياه البحر', section: 'مصر', author: 'محمد العدوي', status: 'draft', views: '—', date: '23 يوليو' },
+      { id: 6, title: 'ملخص مباراة الأهلي والترجي', section: 'رياضة', author: 'كريم عبد الوهاب', status: 'published', views: '31,822', date: '22 يوليو' },
+      { id: 7, title: 'حوار: مستقبل التعليم الفني في مصر', section: 'مصر', author: 'منى الشربيني', status: 'review', views: '—', date: '22 يوليو' },
+      { id: 8, title: 'ملف: الذكاء الاصطناعي في غرف الأخبار', section: 'رأي', author: 'أحمد لبيب', status: 'draft', views: '—', date: '21 يوليو' },
+      { id: 9, title: 'ارتفاع أسعار الذهب عالمياً', section: 'اقتصاد', author: 'د. سامية فاروق', status: 'published', views: '6,120', date: '20 يوليو' },
+      { id: 10, title: 'تقرير: مشروعات الطاقة الشمسية الجديدة', section: 'مصر', author: 'محمد العدوي', status: 'rejected', views: '—', date: '19 يوليو' },
+    ];
+    const q = this.state.query.trim();
+    const filtered = all.filter((a) => !this.state.removedIds[a.id] && (this.state.statusFilter === 'all' || a.status === this.state.statusFilter) && (!q || a.title.includes(q)));
+    const thStyle = { textAlign: 'start', padding: '10px 14px', fontSize: '12px', fontWeight: 700, color: '#6A727C' };
+    const tdStyle = { padding: '0 14px', fontSize: '13.5px', color: '#171A1F', fontWeight: 600 };
+    const tdStyleMuted = Object.assign({}, tdStyle, { color: '#6A727C', fontWeight: 400 });
+    const tdStyleTnum = Object.assign({}, tdStyle, { fontVariantNumeric: 'tabular-nums' });
+    const rows = filtered.map((a, i) => {
+      const sel = !!this.state.selected[a.id];
+      return {
+        ...a, tdStyle, tdStyleMuted, tdStyleTnum,
+        checkMark: sel ? '✓' : '',
+        checkboxStyle: { width: '18px', height: '18px', borderRadius: '4px', border: sel ? 'none' : '1px solid #C9CED4', background: sel ? '#B01F2E' : '#FFFFFF', color: '#fff', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
+        toggle: () => this.setState((s) => ({ selected: Object.assign({}, s.selected, { [a.id]: !s.selected[a.id] }) })),
+        onEnter: () => this.setState({ hoverRow: i }), onLeave: () => this.setState({ hoverRow: null }),
+        remove: () => this.setState((s) => ({ removedIds: Object.assign({}, s.removedIds, { [a.id]: true }) })),
+        actionsStyle: { display: 'flex', gap: '10px', fontSize: '14px', color: '#6A727C', opacity: this.state.hoverRow === i ? 1 : 0, paddingInlineEnd: '14px' },
+      };
+    });
+    const chipBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '8px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', background: '#FFFFFF', color: '#171A1F', whiteSpace: 'nowrap' };
+    const mkChip = (key, label) => ({ label, go: () => this.setState({ statusFilter: key }), style: Object.assign({}, chipBase, this.state.statusFilter === key ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : {}) });
+    const selectedCount = Object.values(this.state.selected).filter(Boolean).length;
+    return {
+      thStyle, rows, query: this.state.query, onQueryChange: (e) => this.setState({ query: e.target.value }),
+      statusChips: [mkChip('all', 'الكل'), mkChip('published', 'منشور'), mkChip('draft', 'مسودة'), mkChip('review', 'مراجعة'), mkChip('scheduled', 'مجدول')],
+      hasSelection: selectedCount > 0, selectionLabel: selectedCount + ' عنصر محدد',
+      bulkBtnStyle: { background: '#FFFFFF', border: '1px solid #C9CED4', borderRadius: '6px', padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', color: '#171A1F' },
+      bulkBtnDangerStyle: { background: '#FFFFFF', border: '1px solid #C93030', borderRadius: '6px', padding: '6px 14px', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', color: '#C93030' },
+      clearSelection: () => this.setState({ selected: {} }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

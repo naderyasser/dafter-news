@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>
+body { margin:0; }
+@keyframes daftar-pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.35); } }
+</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="markets" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+    <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:24px">
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);margin:0;color:#171A1F">الأسواق</h1>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));gap:20px;align-items:start">
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+        <div style="font-weight:800;font-size:16px;margin-bottom:14px;color:#171A1F">أسعار العملات</div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ currencies }}" as="c" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding-block:12px;border-block-end:1px solid #E2E5E9">
+              <span style="font-size:20px">{{ c.flag }}</span>
+              <span style="font-weight:700;font-size:14px;width:44px">{{ c.code }}</span>
+              <svg width="60" height="22" viewBox="0 0 60 22" style="flex-shrink:0">
+                <polyline points="{{ c.points }}" fill="none" style="{{ c.strokeStyle }}"></polyline>
+              </svg>
+              <span style="margin-inline-start:auto;text-align:end">
+                <div style="font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">{{ c.sell }}</div>
+                <div style="font-variant-numeric:tabular-nums;color:#6A727C;font-size:11px">شراء {{ c.buy }}</div>
+              </span>
+              <span style="{{ c.chipStyle }}">{{ c.change }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <span style="font-weight:800;font-size:16px;color:#171A1F">أسعار الذهب</span>
+          <span style="display:flex;align-items:center;gap:5px;color:#0E8A4C;font-size:12px;font-weight:700">
+            <span style="width:6px;height:6px;border-radius:50%;background:#0E8A4C;animation:daftar-pulse-dot 1.4s ease-in-out infinite"></span>تحديث مباشر
+          </span>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ gold }}" as="g" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding-block:12px;border-block-end:1px solid #E2E5E9">
+              <span style="font-weight:700;font-size:14px">{{ g.label }}</span>
+              <span style="margin-inline-start:auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:14px">{{ g.price }} ج.م</span>
+              <span style="{{ g.chipStyle }}">{{ g.change }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <sc-for list="{{ cities }}" as="ct" hint-placeholder-count="4">
+            <button onClick="{{ ct.go }}" style="{{ ct.style }}">{{ ct.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <span style="font-size:44px">{{ weather.icon }}</span>
+          <div>
+            <div style="font-size:44px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;color:#171A1F">{{ weather.temp }}°</div>
+            <div style="color:#6A727C;font-size:13px;margin-top:6px">عليا {{ weather.hi }}° • دنيا {{ weather.lo }}° • رطوبة {{ weather.humidity }}%</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { city: 'cairo' };
+  toPoints(series) {
+    const w = 60, h = 22, max = Math.max(...series), min = Math.min(...series);
+    const range = (max - min) || 1;
+    return series.map((v, i) => (i * (w / (series.length - 1))).toFixed(1) + ',' + (h - ((v - min) / range) * h).toFixed(1)).join(' ');
+  }
+  renderVals() {
+    const chip = (up) => ({ display: 'inline-flex', alignItems: 'center', fontSize: '11px', fontWeight: 700, padding: '2px 6px', borderRadius: '999px', fontVariantNumeric: 'tabular-nums', background: up ? '#E7F4ED' : '#FBEDED', color: up ? '#0E8A4C' : '#C93030' });
+    const rawCurrencies = [
+      { flag: '🇺🇸', code: 'USD', buy: '48.70', sell: '48.85', up: true, change: '▲0.3%', series: [48.2, 48.3, 48.5, 48.4, 48.6, 48.7, 48.8, 48.85] },
+      { flag: '🇪🇺', code: 'EUR', buy: '51.90', sell: '52.10', up: false, change: '▼0.15%', series: [52.6, 52.5, 52.4, 52.3, 52.2, 52.2, 52.1, 52.1] },
+      { flag: '🇬🇧', code: 'GBP', buy: '60.20', sell: '60.55', up: true, change: '▲0.2%', series: [59.8, 60.0, 59.9, 60.1, 60.2, 60.3, 60.4, 60.55] },
+      { flag: '🇸🇦', code: 'SAR', buy: '13.00', sell: '13.05', up: true, change: '▲0.1%', series: [12.9, 12.95, 13.0, 12.98, 13.0, 13.02, 13.03, 13.05] },
+    ];
+    const currencies = rawCurrencies.map((c) => ({ ...c, points: this.toPoints(c.series), strokeStyle: { stroke: c.up ? '#0E8A4C' : '#C93030', strokeWidth: 2 }, chipStyle: chip(c.up) }));
+    const gold = [
+      { label: 'عيار 24', price: '4,220', up: true, change: '▲0.9%' },
+      { label: 'عيار 21', price: '3,550', up: true, change: '▲0.8%' },
+      { label: 'عيار 18', price: '3,050', up: true, change: '▲0.7%' },
+      { label: 'جنيه ذهب', price: '33,760', up: false, change: '▼0.2%' },
+    ].map((g) => ({ ...g, chipStyle: chip(g.up) }));
+    const weatherData = {
+      cairo: { icon: '☀️', temp: 34, hi: 36, lo: 24, humidity: 32 },
+      alex: { icon: '⛅', temp: 29, hi: 31, lo: 23, humidity: 58 },
+      luxor: { icon: '☀️', temp: 41, hi: 43, lo: 27, humidity: 15 },
+      aswan: { icon: '☀️', temp: 43, hi: 45, lo: 29, humidity: 12 },
+    };
+    const cityBase = { border: '1px solid #E2E5E9', borderRadius: '999px', padding: '6px 14px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' };
+    const mkCity = (key, label) => ({ label, go: () => this.setState({ city: key }), style: Object.assign({}, cityBase, this.state.city === key ? { background: '#B01F2E', color: '#FFFFFF', borderColor: '#B01F2E' } : { background: '#FFFFFF', color: '#171A1F' }) });
+    return {
+      currencies, gold,
+      cities: [mkCity('cairo', 'القاهرة'), mkCity('alex', 'الإسكندرية'), mkCity('luxor', 'الأقصر'), mkCity('aswan', 'أسوان')],
+      weather: weatherData[this.state.city],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

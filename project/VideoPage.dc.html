@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="video" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px;display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start">
+    <main style="flex:2 1 560px;min-width:0">
+      <div style="position:relative;aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:#14171C">
+        <image-slot id="videopage-main" shape="rect" placeholder="أفلت فيديو أو صورة غلاف"></image-slot>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+          <span style="width:72px;height:72px;border-radius:50%;background:rgba(23,26,31,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;pointer-events:auto" style-hover="background:#B01F2E"><span style="display:inline-block;transform:scaleX(-1)">▶</span></span>
+        </div>
+        <span style="position:absolute;inset-inline-start:12px;inset-block-start:12px;background:#D71F30;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:4px">حصري</span>
+        <span style="position:absolute;inset-inline-start:12px;inset-block-end:12px;background:rgba(23,26,31,.75);color:#fff;font-size:12px;padding:3px 8px;border-radius:4px;font-variant-numeric:tabular-nums">07:20</span>
+      </div>
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.375rem, 1rem + 1.4vw, 1.75rem);margin:18px 0 10px;color:#171A1F">جولة داخل أكبر مصنع سيارات كهربائية في مصر</h1>
+      <div style="display:flex;align-items:center;gap:10px;color:#6A727C;font-size:13px;margin-bottom:20px">
+        <span>منذ 3 ساعات</span><span>•</span><span>👁 12,480 مشاهدة</span><span>•</span><span>↖ مشاركة</span>
+      </div>
+      <p style="color:#3C434C;font-size:16px;line-height:1.8;margin:0 0 28px">جولة تصويرية داخل خطوط الإنتاج الجديدة، بمشاركة مسؤولي المصنع الذين يستعرضون خطط التوسع في السوق المصري والإفريقي خلال العامين المقبلين.</p>
+
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px;margin-bottom:16px">
+        <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:18px;margin:0;color:#171A1F">التعليقات ({{ commentCount }})</h2>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:24px">
+        <textarea value="{{ draft }}" onChange="{{ onDraftChange }}" placeholder="أضف تعليقاً..." style="flex:1;box-sizing:border-box;border:1px solid #E2E5E9;border-radius:6px;padding:10px 14px;font-size:14px;font-family:inherit;min-height:44px;resize:vertical;outline:none" style-focus="border-color:#B01F2E"></textarea>
+        <button onClick="{{ addComment }}" style="background:#B01F2E;color:#fff;border:none;border-radius:6px;padding:0 20px;font-size:14px;font-weight:700;cursor:pointer;flex-shrink:0" style-hover="background:#8E1624">نشر</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <sc-for list="{{ comments }}" as="cm" hint-placeholder-count="3">
+          <div style="display:flex;gap:12px">
+            <div style="width:36px;height:36px;border-radius:50%;background:#EBEDF0;color:#3C434C;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0">{{ cm.initial }}</div>
+            <div>
+              <div style="display:flex;gap:8px;align-items:baseline">
+                <span style="font-weight:700;font-size:14px;color:#171A1F">{{ cm.name }}</span>
+                <span style="color:#6A727C;font-size:12px">{{ cm.time }}</span>
+              </div>
+              <p style="margin:4px 0 0;color:#3C434C;font-size:14px;line-height:1.6">{{ cm.text }}</p>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </main>
+    <aside style="flex:1 1 280px;max-width:340px;min-width:260px">
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:12px;font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:16px;color:#171A1F;margin-bottom:14px">فيديوهات مقترحة</div>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ suggested }}" as="s" hint-placeholder-count="4">
+          <div style="border-block-end:1px solid #E2E5E9;padding-block:12px">
+            <dc-import name="ArticleCard" lang="ar" variant="compact" href="VideoPage.dc.html" title="{{ s.title }}" section="{{ s.section }}" time="{{ s.time }}" badge="{{ s.badge }}" image-id="{{ s.imageId }}" hint-size="100%,90px"></dc-import>
+          </div>
+        </sc-for>
+      </div>
+    </aside>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    draft: '',
+    comments: [
+      { name: 'سارة أحمد', initial: 'س', time: 'منذ ساعة', text: 'تقرير رائع، أول مرة أشوف تفاصيل خط الإنتاج بهذا الشكل.' },
+      { name: 'عمر خالد', initial: 'ع', time: 'منذ ساعتين', text: 'هل فيه خطة لتصدير للسوق الأوروبي؟' },
+      { name: 'ندى محمود', initial: 'ن', time: 'أمس', text: 'تغطية ممتازة كالعادة 👏' },
+    ],
+  };
+  renderVals() {
+    const suggested = [
+      { title: 'لحظة إنقاذ طفل من الغرق على شاطئ الإسكندرية', section: 'مصر', time: 'منذ ساعة', badge: 'none' },
+      { title: 'تعليق الكابتن على أداء المنتخب في المباراة الأخيرة', section: 'رياضة', time: 'منذ ساعتين', badge: 'exclusive' },
+      { title: 'ردود الفعل الأولى بعد قرار البنك المركزي', section: 'اقتصاد', time: 'أمس', badge: 'none' },
+      { title: 'ملخص مباراة الأهلي والترجي في افريقيا', section: 'رياضة', time: 'أمس', badge: 'none' },
+    ].map((s, i) => ({ ...s, imageId: 'videopage-suggested-' + i }));
+    return {
+      draft: this.state.draft,
+      onDraftChange: (e) => this.setState({ draft: e.target.value }),
+      comments: this.state.comments,
+      commentCount: this.state.comments.length,
+      addComment: () => {
+        const text = this.state.draft.trim();
+        if (!text) return;
+        this.setState((s) => ({ comments: [{ name: 'أنت', initial: 'أ', time: 'الآن', text }, ...s.comments], draft: '' }));
+      },
+      suggested,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="media" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / الإدارة</div>
+          <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+            <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">الوسائط</h1>
+          </div>
+        </div>
+        <button style="background:#B01F2E;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#8E1624">⬆ رفع صور متعددة</button>
+      </div>
+      <input type="text" placeholder="بحث في الوسائط..." style="max-width:360px;box-sizing:border-box;padding:9px 14px;border-radius:8px;border:1px solid #E2E5E9;background:#FFFFFF;font-size:13px;outline:none" style-focus="border-color:#B01F2E"/>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:16px">
+        <sc-for list="{{ media }}" as="m" hint-placeholder-count="8">
+          <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;overflow:hidden">
+            <div style="aspect-ratio:4/3">
+              <image-slot id="{{ m.imageId }}" shape="rect" placeholder="صورة"></image-slot>
+            </div>
+            <div style="padding:10px 12px;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:12px;color:#171A1F;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.alt }}</span>
+              <span style="font-size:11px;color:#6A727C">{{ m.credit }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const items = [
+      ['محور الدلتا الجديد', 'تصوير: الدفتر نيوز'], ['مؤتمر البنك المركزي', 'رويترز'], ['نهائي البطولة الأفريقية', 'فيتو سبورت'],
+      ['محطة تحلية المياه', 'وزارة الإسكان'], ['مصنع السيارات الكهربائية', 'تصوير: الدفتر نيوز'], ['ميدان رمسيس', 'محافظة القاهرة'],
+      ['خط مترو حلوان', 'الهيئة القومية للأنفاق'], ['ساحل الإسكندرية', 'تصوير: الدفتر نيوز'],
+    ];
+    const media = items.map(([alt, credit], i) => ({ alt, credit, imageId: 'dashmedia-' + i }));
+    return { media };
+  }
+}
+
+</script>
+</body>
+</html>

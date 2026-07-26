@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="authors" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1200px;margin:0 auto;padding:32px 24px">
+    <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:16px;margin-bottom:24px">
+      <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:clamp(1.5rem, 1.2rem + 1.2vw, 2rem);margin:0;color:#171A1F">كتّابنا</h1>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:20px">
+      <sc-for list="{{ authors }}" as="a" hint-placeholder-count="6">
+        <a href="AuthorPage.dc.html" style="display:flex;flex-direction:column;align-items:center;text-align:center;background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:24px 16px;text-decoration:none">
+          <div style="width:76px;height:76px;border-radius:50%;overflow:hidden;margin-bottom:12px">
+            <image-slot id="{{ a.imageId }}" shape="circle" placeholder="صورة"></image-slot>
+          </div>
+          <span style="color:#171A1F;font-size:16px;font-weight:700">{{ a.name }}</span>
+          <span style="color:#6A727C;font-size:13px;margin-top:6px;line-height:1.6">{{ a.bio }}</span>
+          <span style="color:#B01F2E;font-size:12px;font-weight:700;margin-top:10px;font-variant-numeric:tabular-nums">{{ a.count }} مقال</span>
+        </a>
+      </sc-for>
+    </div>
+  </div>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const eastern = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const toEastern = (n) => String(n).split('').map((d) => eastern[+d]).join('');
+    const raw = [
+      { name: 'محمد العدوي', bio: 'محرر الشؤون المصرية', count: 214 },
+      { name: 'د. سامية فاروق', bio: 'كاتبة اقتصادية', count: 132 },
+      { name: 'كريم عبد الوهاب', bio: 'محلل رياضي', count: 187 },
+      { name: 'منى الشربيني', bio: 'محررة ثقافية', count: 96 },
+      { name: 'أحمد لبيب', bio: 'كاتب تقنية وذكاء اصطناعي', count: 58 },
+      { name: 'ياسمين توفيق', bio: 'مراسلة ميدانية', count: 143 },
+    ];
+    const authors = raw.map((a, i) => ({ ...a, count: toEastern(a.count), imageId: 'authors-list-' + i }));
+    return { authors };
+  }
+}
+
+</script>
+</body>
+</html>

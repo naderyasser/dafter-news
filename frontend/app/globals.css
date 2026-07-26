@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    margin: 0;
+    background: theme("colors.surface.DEFAULT");
+    color: theme("colors.ink.DEFAULT");
+  }
+}
+
+@layer utilities {
+  /* برief §3: كل الأرقام في سياق بيانات تأخذ tabular-nums عبر كلاس .tnum */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* برief §9: prefers-reduced-motion يعطّل كل الحركة. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<style>
+body { margin:0; }
+@keyframes daftar-pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(1.35); } }
+</style>
+</helmet>
+<div dir="rtl" lang="ar" style="display:flex;min-height:100vh;background:#F4F5F7;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="AdminSidebar" active="live" hint-size="260px,100%"></dc-import>
+  <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+    <dc-import name="AdminTopbar" hint-size="100%,64px"></dc-import>
+    <div style="padding:24px 28px;display:flex;flex-direction:column;gap:20px;max-width:820px">
+      <div>
+        <div style="color:#6A727C;font-size:12px;margin-bottom:4px">لوحة التحكم / الوسائط والبث</div>
+        <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+          <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:22px;margin:0;color:#171A1F">البث المباشر</h1>
+        </div>
+      </div>
+
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="{{ statusDotStyle }}"></span>
+          <div>
+            <div style="font-weight:800;font-size:15px">{{ statusLabel }}</div>
+            <div style="color:#6A727C;font-size:12px;margin-top:2px">تغطية لحظية: مؤتمر البنك المركزي حول أسعار الفائدة</div>
+          </div>
+        </div>
+        <button onClick="{{ toggleLive }}" style="{{ liveButtonStyle }}">{{ liveButtonLabel }}</button>
+      </div>
+
+      <div style="border-inline-start:3px solid #B01F2E;padding-inline-start:14px">
+        <h2 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:17px;margin:0;color:#171A1F">إدارة التغطية اللحظية</h2>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:16px;display:flex;gap:10px">
+        <input type="text" value="{{ draft }}" onChange="{{ onDraftChange }}" placeholder="أضف تحديثاً جديداً للتغطية اللحظية..." style="flex:1;box-sizing:border-box;padding:10px 14px;border-radius:6px;border:1px solid #E2E5E9;background:#F4F5F7;font-size:13.5px;outline:none" style-focus="border-color:#B01F2E;background:#fff"/>
+        <button onClick="{{ addUpdate }}" style="background:#B01F2E;color:#fff;border:none;border-radius:6px;padding:0 20px;font-size:13.5px;font-weight:700;cursor:pointer" style-hover="background:#8E1624">نشر</button>
+      </div>
+      <div style="background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:20px 20px 4px">
+        <div style="position:relative;padding-inline-start:24px">
+          <div style="position:absolute;inset-inline-start:7px;top:6px;bottom:6px;width:2px;background:#E2E5E9"></div>
+          <sc-for list="{{ updates }}" as="u" hint-placeholder-count="4">
+            <div style="position:relative;padding-bottom:22px">
+              <div style="position:absolute;inset-inline-start:-24px;top:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;border:3px solid #B01F2E"></div>
+              <div style="display:flex;justify-content:space-between;gap:10px">
+                <div>
+                  <div style="color:#B01F2E;font-weight:800;font-size:14px;font-variant-numeric:tabular-nums;margin-bottom:3px">{{ u.time }}</div>
+                  <div style="color:#171A1F;font-size:14px;line-height:1.6">{{ u.text }}</div>
+                </div>
+                <span onClick="{{ u.remove }}" style="cursor:pointer;color:#C93030;font-size:13px;flex-shrink:0">🗑</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = {
+    live: true, draft: '',
+    updates: [
+      { id: 1, time: '12:41', text: 'محافظ البنك المركزي يبدأ كلمته بالإشارة إلى استقرار معدلات التضخم.' },
+      { id: 2, time: '12:33', text: 'بدء المؤتمر الصحفي بحضور نواب المحافظ وممثلي البنوك الكبرى.' },
+      { id: 3, time: '12:20', text: 'تجمع صحفي كبير أمام مقر البنك المركزي قبل بدء المؤتمر.' },
+    ],
+  };
+  renderVals() {
+    const updates = this.state.updates.map((u) => ({ ...u, remove: () => this.setState((s) => ({ updates: s.updates.filter((x) => x.id !== u.id) })) }));
+    return {
+      statusDotStyle: { width: '12px', height: '12px', borderRadius: '50%', background: this.state.live ? '#D71F30' : '#9AA1AA', animation: this.state.live ? 'daftar-pulse-dot 1.4s ease-in-out infinite' : 'none' },
+      statusLabel: this.state.live ? 'البث نشط الآن' : 'البث متوقف',
+      liveButtonLabel: this.state.live ? '■ إيقاف البث' : '● بدء البث',
+      liveButtonStyle: { border: 'none', borderRadius: '8px', padding: '11px 22px', fontSize: '13.5px', fontWeight: 700, cursor: 'pointer', background: this.state.live ? '#171A1F' : '#B01F2E', color: '#fff' },
+      toggleLive: () => this.setState((s) => ({ live: !s.live })),
+      draft: this.state.draft, onDraftChange: (e) => this.setState({ draft: e.target.value }),
+      addUpdate: () => {
+        const t = this.state.draft.trim(); if (!t) return;
+        const now = new Date(); const time = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+        this.setState((s) => ({ updates: [{ id: Date.now(), time, text: t }, ...s.updates], draft: '' }));
+      },
+      updates,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"/>
+<script src="./image-slot.js"></script>
+<style>body { margin:0; }</style>
+</helmet>
+<div dir="rtl" lang="ar" style="background:#F4F5F7;min-height:100vh;font-family:'IBM Plex Sans Arabic','Segoe UI',Tahoma,system-ui,sans-serif;color:#171A1F">
+  <dc-import name="SiteHeader" lang="ar" active="authors" home-href="Home.dc.html" alt-lang-href="Home-EN.dc.html" hint-size="100%,160px"></dc-import>
+  <div style="max-width:1000px;margin:0 auto;padding:32px 24px">
+    <div style="display:flex;gap:20px;align-items:center;background:#FFFFFF;border:1px solid #E2E5E9;border-radius:6px;padding:28px;margin-bottom:28px;flex-wrap:wrap">
+      <div style="width:96px;height:96px;border-radius:50%;overflow:hidden;flex-shrink:0">
+        <image-slot id="authorpage-avatar" shape="circle" placeholder="صورة الكاتب"></image-slot>
+      </div>
+      <div style="min-width:200px">
+        <h1 style="font-family:'Noto Kufi Arabic','IBM Plex Sans Arabic',system-ui,sans-serif;font-weight:800;font-size:24px;margin:0 0 6px;color:#171A1F">محمد العدوي</h1>
+        <p style="color:#6A727C;font-size:14px;margin:0 0 10px;line-height:1.7;max-width:520px">محرر الشؤون المصرية بالدفتر نيوز، يغطي قضايا البنية التحتية والحكومة المحلية منذ 2016.</p>
+        <div style="display:flex;gap:16px;color:#3C434C;font-size:13px;font-weight:600">
+          <span>٢١٤ مقال</span><span>•</span><span>انضم في 2016</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <dc-import name="SectionBlock" lang="ar" title="مقالات الكاتب" see-all-href="#" card-variant="standard" cards="{{ articles }}" initial-count="6" hint-size="100%,420px"></dc-import>
+  <dc-import name="SiteFooter" lang="ar" home-href="Home.dc.html" hint-size="100%,260px"></dc-import>
+  <dc-import name="MarketsTicker" lang="ar" hint-size="100%,52px"></dc-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    const titles = [
+      'الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد', 'مجلس الوزراء يوافق على حزمة حوافز جديدة للمصانع الصغيرة',
+      'محافظ القاهرة يتابع أعمال تطوير ميدان رمسيس', 'توسعات جديدة في شبكة المترو تشمل خط حلوان',
+      'وزارة الصحة تطلق مبادرة الكشف المبكر عن الأمراض المزمنة', 'الأرصاد تحذر من رياح نشطة على السواحل الشمالية',
+    ];
+    const articles = titles.map((title, i) => ({ href: 'Article.dc.html', title, section: 'مصر', time: 'منذ ' + (i + 1) + ' أيام', badge: 'none', imageId: 'authorpage-art-' + i, isVideo: false, videoDuration: '', comments: 0 }));
+    return { articles };
+  }
+}
+
+</script>
+</body>
+</html>
