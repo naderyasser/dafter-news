@@ -13,6 +13,7 @@ urlpatterns = [
     path("api/", include("ads.urls")),
     path("api/", include("market.urls")),
     path("api/", include("siteconfig.urls")),
+    path("api/", include("integrations.urls")),
 ]
 
 if settings.DEBUG:

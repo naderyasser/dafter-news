@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "ads",
     "market",
     "siteconfig",
+    "integrations",
 ]
 
 MIDDLEWARE = [

@@ -65,6 +65,45 @@ placement uses logical properties rather than left/right (§4).
 Cases fixing a previously-shipped defect are marked `regression:` in their
 docstring, so it's clear why an odd-looking assertion matters.
 
+## External data feeds
+
+Six sources keep the ticker, weather, prayer times, match results and the
+wire rail current:
+
+| Source | Provider | Key | Why this one |
+|---|---|---|---|
+| العملات | exchangerate.host | — | keyless, commercial use allowed |
+| الذهب | gold-api.com | — | converts spot XAU to EGP per karat |
+| الطقس | OpenWeatherMap | required | free tier allows commercial use; Open-Meteo's does not |
+| مواقيت الصلاة | AlAdhan | — | keyless; method 5 = Egyptian General Authority of Survey |
+| المباريات | TheSportsDB | optional | covers the Egyptian league; football-data.org's free tier doesn't |
+| الأخبار | NewsData.io | required | production use allowed; NewsAPI.org's free plan is dev-only |
+
+```sh
+python manage.py sync_feeds                  # all sources
+python manage.py sync_feeds --only currency,gold
+python manage.py sync_feeds --skip newswire
+```
+
+Run it on a cron (every minute is fine — it's one call per source, not per
+visitor; readers always read the database).
+
+```
+* * * * * cd /path/to/backend && .venv/bin/python manage.py sync_feeds
+```
+
+**Failure behaviour is the point of the design.** Every source is isolated:
+one provider timing out, returning junk, or having no key configured never
+stops the others and never blanks what's already stored. A dead feed leaves
+yesterday's dollar rate on screen — recoverable — rather than an empty bar,
+which reads as a broken site. `SyncLog` records per-source status, last
+successful sync and a failure streak, surfaced at **/dashboard/feeds** with
+the age of the data as the primary column.
+
+Wire stories land in `WireArticle`, never in `Article`: that copy belongs to
+whoever filed it, so it surfaces with the source credited and a link out
+rather than silently becoming الدفتر نيوز content.
+
 ## What's real vs. presentational
 
 - All content (articles, sections, tags, videos, live coverage, ads,
