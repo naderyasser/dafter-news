@@ -2,12 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ArticleBlocks from "@/components/site/ArticleBlocks";
+import InfiniteSections from "@/components/site/InfiniteSections";
 import AudioPlayer from "@/components/site/AudioPlayer";
-import MostReadList from "@/components/site/MostReadList";
 import SectionBlock from "@/components/site/SectionBlock";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticle, getArticles, mediaUrl } from "@/lib/api";
+import { getArticle, getArticles, getSections, mediaUrl } from "@/lib/api";
 import { formatDate, relativeTime } from "@/lib/format";
 
 export const revalidate = 30;
@@ -16,10 +16,12 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   const article = await getArticle(params.slug);
   if (!article || article.kind !== "news") notFound();
 
-  const [related, mostRead] = await Promise.all([
+  const [related, sections] = await Promise.all([
     getArticles(`?section__key=${article.section?.key ?? ""}&ordering=-published_at&page_size=5`),
-    getArticles("?ordering=-views&page_size=5"),
+    getSections(),
   ]);
+  // Sections appended below the article; skip the one we're already in.
+  const feedSections = sections.results.filter((s) => s.key !== article.section?.key && s.key !== "opinion");
   const relatedCards = related.results
     .filter((a) => a.slug !== article.slug)
     .slice(0, 4)
@@ -29,8 +31,10 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   return (
     <SiteShell lang="ar" active={article.section?.key}>
-      <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
-        <main className="min-w-0 max-w-reading flex-[2_1_480px]">
+      {/* Centred reading column: equal inline margins both sides, and no
+          sidebar — it ran out of content and left a dead rail. */}
+      <div className="mx-auto w-full max-w-reading px-6 py-8">
+        <main className="min-w-0">
           <div className="mb-4 text-[13px] text-ink-3">
             <Link href="/" className="text-ink-3 no-underline hover:text-brand">
               الرئيسية
@@ -98,14 +102,13 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             </div>
           )}
         </main>
-        <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
-          <MostReadList lang="ar" items={mostRead.results.map((a) => ({ title: a.title, href: `/article/${a.slug}`, section: a.section_name }))} />
-        </aside>
       </div>
 
       {relatedCards.length > 0 && (
         <SectionBlock lang="ar" title="أخبار ذات صلة" seeAllHref={article.section ? `/section/${article.section.key}` : "/"} cards={relatedCards} />
       )}
+
+      <InfiniteSections lang="ar" sections={feedSections} excludeSlug={article.slug} />
     </SiteShell>
   );
 }
