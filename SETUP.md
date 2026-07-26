@@ -65,6 +65,26 @@ placement uses logical properties rather than left/right (§4).
 Cases fixing a previously-shipped defect are marked `regression:` in their
 docstring, so it's clear why an odd-looking assertion matters.
 
+## التشغيل السريع
+
+```sh
+git clone https://github.com/naderyasser/dafter-news.git
+cd dafter-news
+./start.sh
+```
+
+يجهّز البيئة الافتراضية والحزم وقاعدة البيانات والبيانات التجريبية ثم يشغّل
+الخادمين. آمن للتكرار — كل خطوة تتخطى نفسها لو خلصت قبل كده.
+
+- الموقع: http://localhost:3000
+- لوحة التحكم: http://localhost:3000/dashboard
+- الـAPI: http://localhost:8000/api/
+
+`./start.sh --check` يجهّز، يتأكد أن الصفحات تستجيب، ثم يخرج (للـCI).
+
+`.venv` و`node_modules` وقاعدة البيانات غير مرفوعة على git عمداً — لذلك لا
+يعمل المشروع بمجرد الاستنساخ حتى تشغّل السكربت مرة واحدة.
+
 ## External data feeds
 
 Six sources keep the ticker, weather, prayer times, match results and the
