@@ -5,7 +5,7 @@ import { getArticles, getLiveStreams, mediaUrl } from "@/lib/api";
 export const revalidate = 15;
 
 export default async function LivePage() {
-  const [streams, mostRead] = await Promise.all([getLiveStreams(), getArticles("?ordering=-views&page_size=5")]);
+  const [streams, mostRead] = await Promise.all([getLiveStreams(), getArticles("?language=ar&ordering=-views&page_size=5")]);
   const stream = streams.results.find((s) => s.is_live) ?? streams.results[0];
 
   return (

@@ -11,7 +11,7 @@ export default async function AuthorPage({ params }: { params: { username: strin
   const author = await getAuthor(params.username);
   if (!author) notFound();
 
-  const articles = await getArticles(`?page_size=12&ordering=-published_at`);
+  const articles = await getArticles(`?language=ar&page_size=12&ordering=-published_at`);
   const byAuthor = articles.results.filter((a) => a.author_username === author.username);
   const cards = byAuthor.map((a) => ({
     href: `/article/${a.slug}`,

@@ -17,7 +17,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   if (!article || article.kind !== "news") notFound();
 
   const [related, sections] = await Promise.all([
-    getArticles(`?section__key=${article.section?.key ?? ""}&ordering=-published_at&page_size=5`),
+    getArticles(`?language=ar&section__key=${article.section?.key ?? ""}&ordering=-published_at&page_size=5`),
     getSections(),
   ]);
   // Sections appended below the article; skip the one we're already in.

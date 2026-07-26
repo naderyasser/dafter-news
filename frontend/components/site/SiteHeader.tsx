@@ -24,7 +24,6 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
   const homeHref = isAr ? "/" : "/en";
   const altLangHref = isAr ? "/en" : "/";
-  const liveHref = "/live";
 
   const [breakingRes, sectionsRes, prayer] = await Promise.all([getBreakingNews(), getSections(), getPrayerTimes()]);
   const breaking = breakingRes;
@@ -49,8 +48,16 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
         { label: "Live", href: "/live" },
         { label: "About", href: "/about" },
       ];
-  const breakingText = breaking.results.length
-    ? breaking.results.map((b) => b.text).join("   •   ")
+  // BreakingNewsItem.text is a single column and every row in it is Arabic,
+  // so the English masthead was running an Arabic marquee. Take only the rows
+  // written in this page's script; when none match, the existing per-language
+  // default below still gives the bar something to say.
+  const breakingItems = breaking.results
+    .map((b) => b.text)
+    .filter((text) => /[؀-ۿ]/.test(text) === isAr);
+
+  const breakingText = breakingItems.length
+    ? breakingItems.join("   •   ")
     : isAr
       ? "الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد   •   البنك المركزي يثبّت أسعار الفائدة"
       : "President opens second phase of new Delta corridor   •   Central bank holds interest rates steady";
@@ -100,17 +107,11 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
             </span>
           </Link>
 
-          {/* Live sits beside the logo — «لقطة وتعليق» moved to the nav row. */}
-          <Link
-            href={liveHref}
-            className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill bg-brand px-[18px] py-2.5 text-[14px] font-bold text-paper no-underline shadow-1 transition-colors duration-fast hover:bg-brand-strong"
-          >
-            <span className="h-2 w-2 flex-shrink-0 animate-pulse-dot rounded-full bg-paper" />
-            {isAr ? "بث مباشر" : "Live now"}
-          </Link>
+          {/* The «بث مباشر» pill that used to sit here was removed on request;
+              /live stays reachable from the nav row and the drawer. */}
 
           <div className="ms-auto flex min-w-0 items-center justify-end">
-            <SearchBox lang={lang} />
+            <SearchBox lang={lang} sections={sections} />
           </div>
         </div>
       </div>

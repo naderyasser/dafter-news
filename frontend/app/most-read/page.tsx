@@ -5,7 +5,7 @@ import { getArticles } from "@/lib/api";
 export const revalidate = 60;
 
 export default async function MostReadPage() {
-  const articles = await getArticles("?ordering=-views&page_size=10");
+  const articles = await getArticles("?language=ar&ordering=-views&page_size=10");
 
   return (
     <SiteShell lang="ar" active="most-read">

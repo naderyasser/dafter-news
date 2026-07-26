@@ -11,8 +11,8 @@ export const revalidate = 60;
 export default async function SectionPage({ params }: { params: { key: string } }) {
   const [section, articles, mostRead] = await Promise.all([
     getSection(params.key),
-    getArticles(`?section__key=${params.key}&ordering=-published_at&page_size=24`),
-    getArticles("?ordering=-views&page_size=5"),
+    getArticles(`?language=ar&section__key=${params.key}&ordering=-published_at&page_size=24`),
+    getArticles("?language=ar&ordering=-views&page_size=5"),
   ]);
 
   if (!section) notFound();

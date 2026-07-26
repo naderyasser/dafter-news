@@ -7,7 +7,7 @@ import { relativeTime } from "@/lib/format";
 export const revalidate = 60;
 
 export default async function OpinionPage() {
-  const opinion = await getArticles("?kind=opinion&page_size=24");
+  const opinion = await getArticles("?language=ar&kind=opinion&page_size=24");
 
   return (
     <SiteShell lang="ar" active="opinion">

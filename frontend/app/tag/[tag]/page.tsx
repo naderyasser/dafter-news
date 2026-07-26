@@ -12,8 +12,8 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
   const tagSlug = decodeParam(params.tag);
   const [tags, articles, mostRead] = await Promise.all([
     getTags(),
-    getArticles(`?tags__slug=${encodeURIComponent(tagSlug)}&ordering=-published_at&page_size=24`),
-    getArticles("?ordering=-views&page_size=5"),
+    getArticles(`?language=ar&tags__slug=${encodeURIComponent(tagSlug)}&ordering=-published_at&page_size=24`),
+    getArticles("?language=ar&ordering=-views&page_size=5"),
   ]);
   const tag = tags.results.find((t) => t.slug === tagSlug);
 

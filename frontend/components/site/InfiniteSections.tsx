@@ -47,7 +47,7 @@ export default function InfiniteSections({
     setBusy(true);
     cursor.current += 1;
     try {
-      const res = await fetch(`${API_URL}/articles/?section__key=${next.key}&ordering=-published_at&page_size=4`);
+      const res = await fetch(`${API_URL}/articles/?language=ar&section__key=${next.key}&ordering=-published_at&page_size=4`);
       if (res.ok) {
         const page = await res.json();
         const articles = (page.results as ArticleCardType[]).filter((a) => a.slug !== excludeSlug).slice(0, 3);

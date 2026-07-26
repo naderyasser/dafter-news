@@ -5,10 +5,21 @@ import { ibmPlexSansArabic, inter, notoKufiArabic } from "@/lib/fonts";
 
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "الدفتر نيوز — aldaftarnews.com",
-  description: "موقع إخباري عربي يغطي مصر والمنطقة: سياسة، اقتصاد، رياضة، ورأي.",
-};
+// Title and description follow the same x-locale header the <html> tag reads
+// below. As a static export they were Arabic on every route, which put an
+// Arabic <title> on the English edition's tab and in its search snippet.
+export function generateMetadata(): Metadata {
+  const isEn = headers().get("x-locale") === "en";
+  return isEn
+    ? {
+        title: "Al Daftar News — aldaftarnews.com",
+        description: "Arabic news from Egypt and the region: politics, economy, sport and opinion.",
+      }
+    : {
+        title: "الدفتر نيوز — aldaftarnews.com",
+        description: "موقع إخباري عربي يغطي مصر والمنطقة: سياسة، اقتصاد، رياضة، ورأي.",
+      };
+}
 
 // The site is bilingual (AR RTL default / EN LTR — brief §4). App Router
 // root layouts are shared across every route, so dir/lang/font-family are
