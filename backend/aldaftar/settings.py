@@ -130,6 +130,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.AllowAny",
     ],
+    # PROTECT-blocked deletes are a client-side conflict, not a server fault.
+    "EXCEPTION_HANDLER": "aldaftar.exceptions.exception_handler",
 }
 
 CORS_ALLOWED_ORIGINS = [
