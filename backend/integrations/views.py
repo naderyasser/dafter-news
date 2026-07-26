@@ -2,10 +2,10 @@ from django.core.management import call_command
 from django.http import JsonResponse
 from django.utils import timezone
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from aldaftar.permissions import ReadOnlyOrStaff, StaffOnly
 from .models import Match, PrayerTimes, SyncLog, WireArticle
 from .serializers import MatchSerializer, PrayerTimesSerializer, SyncLogSerializer, WireArticleSerializer
 
@@ -15,7 +15,7 @@ class WireArticleViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = WireArticle.objects.all()
     serializer_class = WireArticleSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [StaffOnly]
     filterset_fields = ["provider", "language"]
     search_fields = ["title", "summary"]
 
@@ -23,7 +23,7 @@ class WireArticleViewSet(viewsets.ReadOnlyModelViewSet):
 class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Match.objects.all()
     serializer_class = MatchSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     filterset_fields = ["status", "league"]
     ordering_fields = ["kickoff_at"]
 
@@ -33,13 +33,13 @@ class SyncLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = SyncLog.objects.all()
     serializer_class = SyncLogSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [StaffOnly]
 
 
 class PrayerTimesView(APIView):
     """Today's timings for one city (?city=cairo)."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
 
     def get(self, request):
         city = request.query_params.get("city", "cairo")
@@ -59,7 +59,7 @@ class PrayerTimesView(APIView):
 class SyncNowView(APIView):
     """Manual refresh trigger for the dashboard's «تحديث الآن» button."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [StaffOnly]
 
     def post(self, request):
         source = request.data.get("source")

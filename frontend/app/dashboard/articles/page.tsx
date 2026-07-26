@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import ArticlesTable from "@/components/dashboard/ArticlesTable";
 import DashboardShell from "@/components/dashboard/DashboardShell";
-import { getArticles } from "@/lib/api";
+import { getArticles, FRESH } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 import type { ArticleStatus } from "@/lib/types";
 
@@ -13,7 +13,7 @@ export default async function DashArticlesPage() {
   // separately and merge — the dashboard needs the full mix, unlike the
   // public site's list endpoint which defaults to published-only.
   const statuses: ArticleStatus[] = ["published", "draft", "review", "scheduled", "rejected"];
-  const perStatus = await Promise.all(statuses.map((s) => getArticles(`?status=${s}&page_size=50`)));
+  const perStatus = await Promise.all(statuses.map((s) => getArticles(`?status=${s}&page_size=50`, FRESH)));
   const all = perStatus.flatMap((p) => p.results);
 
   const rows = all.map((a) => ({

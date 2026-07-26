@@ -132,7 +132,53 @@ REST_FRAMEWORK = {
     ],
     # PROTECT-blocked deletes are a client-side conflict, not a server fault.
     "EXCEPTION_HANDLER": "aldaftar.exceptions.exception_handler",
+    "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
+    "DEFAULT_THROTTLE_RATES": {
+        # Password guessing and sign-up spam are the two anonymous bursts that
+        # are never legitimate. Reads stay unthrottled: this is a news site.
+        "login": "10/min",
+    },
 }
+
+# The site and the API share one origin behind nginx, so the session cookie
+# rides along on its own. Django still needs the HTTPS origin listed before it
+# will accept a CSRF token on an unsafe method.
+# ---------------------------------------------------------------- email
+# There is no MTA on this host, so Django's default (SMTP on localhost:25)
+# would raise on every send. Point EMAIL_HOST at a real relay — a provider
+# mailbox, SES, Postmark — and set the credentials below.
+#
+# Until EMAIL_HOST is set the console backend is used: mail is written to the
+# service log instead of vanishing into a connection error, so a password
+# reset is still recoverable by an operator reading `journalctl`.
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@dafter.educore.software")
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", f"الدفتر نيوز <{ADMIN_EMAIL}>")
+SERVER_EMAIL = ADMIN_EMAIL
+ADMINS = [("Al Daftar admin", ADMIN_EMAIL)]
+
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+if EMAIL_HOST:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "1") == "1"
+    EMAIL_USE_SSL = os.environ.get("EMAIL_USE_SSL", "0") == "1"
+    EMAIL_TIMEOUT = 15
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "https://dafter.educore.software").split(",") if o.strip()
+]
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+# The client must read the CSRF cookie to echo it back in the header.
+CSRF_COOKIE_HTTPONLY = False
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 CORS_ALLOWED_ORIGINS = [
     o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o.strip()

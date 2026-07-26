@@ -1,8 +1,8 @@
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from aldaftar.permissions import ReadOnlyOrStaff
 from .models import DailyVisit, SiteSettings, SocialLink, WelcomeAlert
 from .serializers import (
     DailyVisitSerializer,
@@ -15,7 +15,7 @@ from .serializers import (
 class SiteSettingsView(APIView):
     """GET/PUT /api/settings/ — DashSettings.dc.html single-record form."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
 
     def get(self, request):
         return Response(SiteSettingsSerializer(SiteSettings.load()).data)
@@ -31,19 +31,19 @@ class SiteSettingsView(APIView):
 class SocialLinkViewSet(viewsets.ModelViewSet):
     queryset = SocialLink.objects.all()
     serializer_class = SocialLinkSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
 
 
 class DailyVisitViewSet(viewsets.ModelViewSet):
     queryset = DailyVisit.objects.all()
     serializer_class = DailyVisitSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
 
 
 class WelcomeAlertView(APIView):
     """GET/PUT /api/welcome-alert/ — the on-load modal, editor-controlled."""
 
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
 
     def get(self, request):
         return Response(WelcomeAlertSerializer(WelcomeAlert.load()).data)

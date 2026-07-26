@@ -1,6 +1,6 @@
 from rest_framework import viewsets
-from rest_framework.permissions import AllowAny
 
+from aldaftar.permissions import PublicSubmission, ReadOnlyOrStaff
 from aldaftar.mixins import SlugOrPkLookupMixin
 
 from .models import Video, VideoComment
@@ -9,7 +9,7 @@ from .serializers import VideoCommentSerializer, VideoDetailSerializer, VideoSer
 
 class VideoViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     queryset = Video.objects.select_related("section").prefetch_related("comments")
-    permission_classes = [AllowAny]
+    permission_classes = [ReadOnlyOrStaff]
     filterset_fields = ["section__key", "is_live", "is_exclusive"]
     search_fields = ["title"]
     lookup_field = "slug"
@@ -23,5 +23,5 @@ class VideoViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
 class VideoCommentViewSet(viewsets.ModelViewSet):
     queryset = VideoComment.objects.select_related("video")
     serializer_class = VideoCommentSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [PublicSubmission]
     filterset_fields = ["video"]

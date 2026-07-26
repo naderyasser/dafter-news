@@ -1,12 +1,12 @@
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import StatusBadge from "@/components/dashboard/StatusBadge";
-import { getAuthors, getArticles, mediaUrl } from "@/lib/api";
+import { getAuthors, getArticles, mediaUrl, FRESH } from "@/lib/api";
 import { formatDate, toEasternNumerals } from "@/lib/format";
 
 export const revalidate = 0;
 
 export default async function DashOpinionPage() {
-  const [authors, opinionArticles] = await Promise.all([getAuthors(), getArticles("?kind=opinion&page_size=50")]);
+  const [authors, opinionArticles] = await Promise.all([getAuthors(FRESH), getArticles("?kind=opinion&page_size=50", FRESH)]);
 
   return (
     <DashboardShell active="opinion" breadcrumb="لوحة التحكم / الوسائط والبث" title="بالعقل والمنطق">

@@ -1,11 +1,11 @@
 import DashboardShell from "@/components/dashboard/DashboardShell";
 import VideosManager from "@/components/dashboard/VideosManager";
-import { getVideos } from "@/lib/api";
+import { getVideos, FRESH } from "@/lib/api";
 
 export const revalidate = 0;
 
 export default async function DashVideosPage() {
-  const videos = await getVideos("?page_size=50");
+  const videos = await getVideos("?page_size=50", FRESH);
   return (
     <DashboardShell
       active="videos"

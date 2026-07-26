@@ -96,9 +96,18 @@ describe("read helpers", () => {
   });
 });
 
+/** The mutation is whichever fetch was not the /auth/csrf/ bootstrap. */
+function mutationCall() {
+  const calls = vi.mocked(fetch).mock.calls;
+  return calls.find(([url]) => !String(url).includes("/auth/csrf/")) ?? calls[0];
+}
+
 describe("apiMutate", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    // apiMutate fetches /auth/csrf/ first when the browser has no csrftoken
+    // cookie yet, so the mutation is not necessarily call 0.
+    vi.stubGlobal("document", { cookie: "csrftoken=test-token" });
   });
 
   afterEach(() => {
@@ -112,9 +121,10 @@ describe("apiMutate", () => {
     const result = await apiMutate<{ id: number }>("/articles/7/", "PATCH", { status: "published" });
 
     expect(result.id).toBe(7);
-    const [, init] = vi.mocked(fetch).mock.calls[0];
+    const [, init] = mutationCall();
     expect(init?.method).toBe("PATCH");
     expect(init?.body).toBe(JSON.stringify({ status: "published" }));
+    expect((init?.headers as Record<string, string>)["X-CSRFToken"]).toBe("test-token");
   });
 
   it("omits the body when none is given", async () => {
@@ -122,7 +132,7 @@ describe("apiMutate", () => {
 
     await apiMutate("/articles/7/", "DELETE");
 
-    const [, init] = vi.mocked(fetch).mock.calls[0];
+    const [, init] = mutationCall();
     expect(init?.body).toBeUndefined();
   });
 
