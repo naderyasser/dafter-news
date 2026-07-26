@@ -5,6 +5,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from aldaftar.mixins import SlugOrPkLookupMixin
+
 from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Tag
 from .serializers import (
     ArticleCardSerializer,
@@ -32,7 +34,7 @@ class TagViewSet(viewsets.ModelViewSet):
     lookup_field = "slug"
 
 
-class ArticleViewSet(viewsets.ModelViewSet):
+class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     """
     /api/articles/ — powers Home/Section/Tag/Search grids (public, published
     only unless ?status= is passed) and DashArticles.dc.html (all statuses).
@@ -59,19 +61,6 @@ class ArticleViewSet(viewsets.ModelViewSet):
         if self.action == "list" and "status" not in self.request.query_params:
             qs = qs.filter(status=Article.Status.PUBLISHED)
         return qs
-
-    def get_object(self):
-        """Accept either the public slug or the dashboard's numeric id in
-        the same /articles/<lookup>/ URL — DashArticleEditor.dc.html links
-        by id, every public page links by slug."""
-        lookup = self.kwargs[self.lookup_url_kwarg or self.lookup_field]
-        qs = self.filter_queryset(self.get_queryset())
-        obj = qs.filter(pk=lookup).first() if lookup.isdigit() else qs.filter(slug=lookup).first()
-        if obj is None:
-            from django.http import Http404
-            raise Http404
-        self.check_object_permissions(self.request, obj)
-        return obj
 
 
 class CommentViewSet(viewsets.ModelViewSet):

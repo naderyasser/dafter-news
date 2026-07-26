@@ -65,6 +65,9 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
 
     blocks = ArticleBlockSerializer(many=True, required=False)
     tag_names = serializers.ListField(child=serializers.CharField(), write_only=True, required=False)
+    # Optional on write — Article.save() derives it from the title (the
+    # browser can't slugify Arabic without stripping it away entirely).
+    slug = serializers.SlugField(max_length=300, allow_unicode=True, required=False)
 
     class Meta:
         model = Article

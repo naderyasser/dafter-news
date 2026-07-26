@@ -1,11 +1,13 @@
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 
+from aldaftar.mixins import SlugOrPkLookupMixin
+
 from .models import Video, VideoComment
 from .serializers import VideoCommentSerializer, VideoDetailSerializer, VideoSerializer
 
 
-class VideoViewSet(viewsets.ModelViewSet):
+class VideoViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     queryset = Video.objects.select_related("section").prefetch_related("comments")
     permission_classes = [AllowAny]
     filterset_fields = ["section__key", "is_live", "is_exclusive"]

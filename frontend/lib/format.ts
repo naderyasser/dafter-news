@@ -24,3 +24,27 @@ export function formatDate(iso: string | null | undefined, lang: "ar" | "en"): s
 
 const EASTERN = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
 export const toEasternNumerals = (n: number | string) => String(n).split("").map((d) => (EASTERN[+d] ?? d)).join("");
+
+/**
+ * Fully decode a route param that may be percent-encoded more than once.
+ *
+ * Arabic slugs (see Article.save() / Tag.slug) arrive encoded, and passing
+ * the request through middleware re-encodes the pathname — so a single
+ * decodeURIComponent leaves `%D8%A7...` behind and every slug comparison
+ * silently fails (which is what made /tag/<arabic> render its own encoded
+ * slug as the heading). Decode until the value stops changing.
+ */
+export function decodeParam(value: string): string {
+  let out = value;
+  for (let i = 0; i < 5; i++) {
+    let next: string;
+    try {
+      next = decodeURIComponent(out);
+    } catch {
+      return out; // malformed escape — keep what we have
+    }
+    if (next === out) return out;
+    out = next;
+  }
+  return out;
+}
