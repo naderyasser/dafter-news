@@ -1,0 +1,6 @@
+
+# آثار تشغيل start.sh
+backend.log
+frontend.log
+backend/.seeded
+check.out
