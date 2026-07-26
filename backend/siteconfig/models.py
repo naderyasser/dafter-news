@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -101,3 +102,33 @@ class DailyVisit(models.Model):
 
     def __str__(self):
         return f"{self.date}: {self.visits}"
+
+
+class PushSubscription(models.Model):
+    """
+    A browser that agreed to receive «عاجل» alerts.
+
+    Keyed by endpoint because that is what the Push API gives back and what
+    uniquely identifies the browser+profile; a reader on three devices is
+    three rows. `user` is optional — alerts are opt-in, not account-gated.
+    """
+
+    endpoint = models.URLField(max_length=500, unique=True)
+    p256dh = models.CharField(max_length=200)
+    auth = models.CharField(max_length=100)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="push_subscriptions"
+    )
+    user_agent = models.CharField(max_length=300, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_sent_at = models.DateTimeField(null=True, blank=True)
+    failure_count = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.endpoint[:60]
+
+    def as_push_info(self):
+        return {"endpoint": self.endpoint, "keys": {"p256dh": self.p256dh, "auth": self.auth}}
