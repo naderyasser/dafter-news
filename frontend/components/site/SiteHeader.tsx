@@ -1,20 +1,10 @@
 import Link from "next/link";
 
+import NavDrawer from "@/components/site/NavDrawer";
 import SearchBox from "@/components/site/SearchBox";
-import { getBreakingNews } from "@/lib/api";
+import { getBreakingNews, getSections } from "@/lib/api";
 
 type NavItem = { key: string; label: string; href: string };
-
-const NAV_AR: NavItem[] = [
-  { key: "home", label: "الرئيسية", href: "/" },
-  { key: "egypt", label: "مصر", href: "/section/egypt" },
-  { key: "economy", label: "اقتصاد", href: "/section/economy" },
-  { key: "sports", label: "رياضة", href: "/section/sports" },
-  { key: "opinion", label: "بالعقل والمنطق", href: "/opinion" },
-  { key: "video", label: "لقطة وتعليق", href: "/video" },
-  { key: "live", label: "بث مباشر", href: "/live" },
-  { key: "markets", label: "الأسواق", href: "/markets" },
-];
 
 const NAV_EN: NavItem[] = [
   { key: "home", label: "Home", href: "/en" },
@@ -31,12 +21,33 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
   const isAr = lang === "ar";
   const fontBody = isAr ? "font-body-ar" : "font-body-en";
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
-  const nav = isAr ? NAV_AR : NAV_EN;
   const homeHref = isAr ? "/" : "/en";
   const altLangHref = isAr ? "/en" : "/";
   const liveHref = "/live";
 
-  const breaking = await getBreakingNews();
+  const [breakingRes, sectionsRes] = await Promise.all([getBreakingNews(), getSections()]);
+  const breaking = breakingRes;
+  const sections = sectionsRes.results;
+
+  // The nav bar shows the sections themselves; «لقطة وتعليق» was dropped from
+  // the masthead buttons on request, so it lives here with the rest.
+  const nav: NavItem[] = isAr
+    ? [{ key: "home", label: "الرئيسية", href: "/" }, ...sections.map((s) => ({ key: s.key, label: s.name_ar, href: `/section/${s.key}` }))]
+    : NAV_EN;
+
+  const drawerExtras = isAr
+    ? [
+        { label: "الأسواق", href: "/markets" },
+        { label: "بث مباشر", href: "/live" },
+        { label: "الأكثر قراءة", href: "/most-read" },
+        { label: "كتّاب الدفتر", href: "/authors" },
+        { label: "من نحن", href: "/about" },
+      ]
+    : [
+        { label: "Markets", href: "/markets" },
+        { label: "Live", href: "/live" },
+        { label: "About", href: "/about" },
+      ];
   const breakingText = breaking.results.length
     ? breaking.results.map((b) => b.text).join("   •   ")
     : isAr
@@ -71,23 +82,35 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
         </div>
       </div>
 
-      {/* masthead */}
+      {/* masthead — hamburger at the inline start, search at the inline end */}
       <div className="border-b border-line bg-paper">
-        <div className="mx-auto flex max-w-container flex-wrap items-center gap-5 px-6 py-4">
+        <div className="mx-auto flex max-w-container items-center gap-4 px-6 py-4">
+          <NavDrawer lang={lang} sections={sections} extraLinks={drawerExtras} />
+
           <Link
             href={homeHref}
-            className={`${fontDisplay} flex flex-shrink-0 items-center border-s-[3px] border-brand ps-3 text-[22px] font-extrabold tracking-[-0.3px] text-ink no-underline`}
+            className={`${fontDisplay} flex flex-shrink-0 flex-col border-s-[3px] border-brand ps-3 no-underline`}
           >
-            {isAr ? "الدفتر نيوز" : "Al Daftar News"}
+            <span className="text-[22px] font-extrabold leading-tight tracking-[-0.3px] text-ink">
+              {isAr ? "الدفتر نيوز" : "Al Daftar News"}
+            </span>
+            <span className="text-[11px] font-semibold text-ink-3">
+              {isAr ? "سِجلّ اليوم.. خبراً خبراً" : "Today's record, story by story"}
+            </span>
           </Link>
-          <SearchBox lang={lang} />
+
+          {/* Live sits beside the logo — «لقطة وتعليق» moved to the nav row. */}
           <Link
             href={liveHref}
-            className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill bg-brand px-[18px] py-2.5 text-[14px] font-bold text-paper no-underline hover:bg-brand-strong"
+            className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-pill bg-brand px-[18px] py-2.5 text-[14px] font-bold text-paper no-underline shadow-1 transition-colors duration-fast hover:bg-brand-strong"
           >
             <span className="h-2 w-2 flex-shrink-0 animate-pulse-dot rounded-full bg-paper" />
             {isAr ? "بث مباشر" : "Live now"}
           </Link>
+
+          <div className="ms-auto flex min-w-0 items-center justify-end">
+            <SearchBox lang={lang} />
+          </div>
         </div>
       </div>
 

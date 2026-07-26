@@ -230,3 +230,25 @@ export type DashboardOverview = {
   recent_articles: { id: number; title: string; section: string; status: ArticleStatus; views: number }[];
   review_queue: { id: number; title: string; author: string; slug: string }[];
 };
+
+export type Story = {
+  id: number;
+  title: string;
+  image: string | null;
+  href: string;
+  section: number | null;
+  section_name: string | null;
+  active: boolean;
+  order: number;
+};
+
+export type WelcomeAlert = {
+  id: number;
+  active: boolean;
+  kicker: string;
+  title: string;
+  text: string;
+  cta_label: string;
+  cta_href: string;
+  image: string | null;
+};
