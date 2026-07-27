@@ -133,6 +133,19 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
             )}
           </Link>
 
+          {/* Site status, not a content label — the newsroom is publishing
+              while the build is still settling, so readers are told up front.
+              Sits beside the mark rather than in the topbar so it can't be
+              mistaken for one of the utility links. Remove this block when the
+              site goes fully live. */}
+          <span
+            className="flex flex-shrink-0 items-center gap-1.5 rounded-pill border border-gold/40 bg-gold/10 px-2.5 py-1 text-[11px] font-bold text-gold sm:text-xs"
+            title="الموقع قيد التشغيل التجريبي"
+          >
+            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-gold" aria-hidden />
+            {isAr ? "بث تجريبي" : "Beta"}
+          </span>
+
           {/* The «بث مباشر» pill that used to sit here was removed on request;
               /live stays reachable from the nav row and the drawer. */}
 
