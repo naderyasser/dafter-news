@@ -12,11 +12,20 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import StoriesRail from "@/components/site/StoriesRail";
-import { getArticles, getMatches, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
+import WorldNewsBlock from "@/components/site/WorldNewsBlock";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import type { ArticleCard as ArticleCardType, Badge } from "@/lib/types";
 
 export const revalidate = 60;
+
+/**
+ * Sections this page lays out by hand, in the order they appear below. Every
+ * other section is appended automatically by the tail loop, so adding one in
+ * the dashboard puts it on the home page instead of stranding it on a
+ * /section/… page no reader navigates to.
+ */
+const CURATED_KEYS = ["egypt", "gulf", "world", "economy", "art", "tech", "video", "sports", "opinion"];
 
 function toSectionCard(a: ArticleCardType) {
   return {
@@ -29,22 +38,49 @@ function toSectionCard(a: ArticleCardType) {
   };
 }
 
+function toWorldCard(a: ArticleCardType) {
+  return {
+    href: `/article/${a.slug}`,
+    title: a.title,
+    // Falls back to the section name when an editor hasn't set a subcategory,
+    // so the red chip is never blank.
+    label: a.subcategory || a.section_name,
+    time: relativeTime(a.published_at, "ar"),
+    imageSrc: mediaUrl(a.cover_image),
+  };
+}
+
+const sectionFeed = (key: string, size = 6) =>
+  getArticles(`?language=ar&section__key=${key}&ordering=-published_at&page_size=${size}`);
+
 export default async function HomePage() {
-  const [recent, egypt, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches] = await Promise.all([
-    getArticles("?language=ar&ordering=-published_at&page_size=12"),
-    getArticles("?language=ar&section__key=egypt&ordering=-published_at&page_size=6"),
-    getArticles("?language=ar&section__key=economy&ordering=-published_at&page_size=6"),
-    getArticles("?language=ar&section__key=sports&ordering=-published_at&page_size=6"),
-    getArticles("?language=ar&section__key=art&ordering=-published_at&page_size=6"),
-    getArticles("?language=ar&section__key=tech&ordering=-published_at&page_size=6"),
-    getVideos("?page_size=4"),
-    getArticles("?language=ar&kind=opinion&page_size=6"),
-    getArticles("?language=ar&ordering=-views&page_size=5"),
-    getTags(),
-    getArticles("?language=ar&ordering=-comment_count&page_size=6"),
-    getStories(),
-    getMatches(),
-  ]);
+  const [recent, egypt, gulf, world, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches, sections] =
+    await Promise.all([
+      getArticles("?language=ar&ordering=-published_at&page_size=12"),
+      sectionFeed("egypt"),
+      sectionFeed("gulf"),
+      sectionFeed("world", 7),
+      sectionFeed("economy"),
+      sectionFeed("sports"),
+      sectionFeed("art"),
+      sectionFeed("tech"),
+      getVideos("?page_size=4"),
+      getArticles("?language=ar&kind=opinion&page_size=6"),
+      getArticles("?language=ar&ordering=-views&page_size=5"),
+      getTags(),
+      getArticles("?language=ar&ordering=-comment_count&page_size=6"),
+      getStories(),
+      getMatches(),
+      getSections(),
+    ]);
+
+  // The tail: every section without a bespoke block above. Empty ones are
+  // dropped rather than rendered as a bare heading.
+  const tailSections = sections.results.filter((s) => !CURATED_KEYS.includes(s.key));
+  const tailFeeds = await Promise.all(tailSections.map((s) => sectionFeed(s.key, 4)));
+  const tail = tailSections
+    .map((section, i) => ({ section, articles: tailFeeds[i].results }))
+    .filter(({ articles }) => articles.length);
 
   // The hero rotates the top stories; the side rail carries what isn't in it.
   const heroSlides = recent.results.slice(0, 5).map((a) => ({
@@ -116,6 +152,19 @@ export default async function HomePage() {
 
       <SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={egypt.results.map(toSectionCard)} initialCount={4} />
       <SectionDivider />
+
+      {gulf.results.length ? (
+        <>
+          <SectionBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" cards={gulf.results.map(toSectionCard)} initialCount={4} />
+          <SectionDivider />
+        </>
+      ) : null}
+
+      {/* عرب وعالم — its own front-page treatment (lead + rail + tiles, red
+          category chips on the photos), deliberately not the «ثقافة وفن» grid. */}
+      <WorldNewsBlock title="عرب وعالم" href="/section/world" cards={world.results.map(toWorldCard)} />
+      {world.results.length ? <SectionDivider /> : null}
+
       <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econ.results.map(toSectionCard)} initialCount={4} />
       <SectionDivider />
 
@@ -151,6 +200,21 @@ export default async function HomePage() {
       <SectionDivider />
       <SectionBlock lang="ar" title="جوّه الجون" seeAllHref="/section/sports" cards={sports.results.map(toSectionCard)} initialCount={4} />
       <MatchesRail matches={matches.results} />
+
+      {/* ستايل ونجوم / أمن ومحاكم / ملف خاص / دليلك الأول — and anything added
+          later. Rendered here rather than left to /section/… pages. */}
+      {tail.map(({ section, articles }) => (
+        <div key={section.key}>
+          <SectionDivider />
+          <SectionBlock
+            lang="ar"
+            title={section.name_ar}
+            seeAllHref={`/section/${section.key}`}
+            cards={articles.map(toSectionCard)}
+            initialCount={4}
+          />
+        </div>
+      ))}
 
       <OpinionCarousel lang="ar" items={opinionItems} seeAllHref="/opinion" />
 

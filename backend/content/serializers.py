@@ -55,7 +55,7 @@ class ArticleCardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "href_slug", "section_name", "badge", "status", "cover_image",
+            "id", "title", "slug", "href_slug", "section_name", "subcategory", "badge", "status", "cover_image",
             "published_at", "views", "kind", "comment_count", "author_name", "author_username", "author_initial",
         ]
 
@@ -73,7 +73,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "kind", "section", "author", "tags", "language", "related_article",
+            "id", "title", "slug", "kind", "section", "subcategory", "author", "tags", "language", "related_article",
             "status", "badge", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "views", "read_minutes", "tts_status", "tts_audio", "tts_duration_seconds",
             "published_at", "scheduled_for", "created_at", "blocks",
@@ -92,7 +92,7 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "kind", "section", "author", "language", "related_article",
+            "id", "title", "slug", "kind", "section", "subcategory", "author", "language", "related_article",
             "status", "badge", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "scheduled_for", "blocks", "tag_names",
         ]

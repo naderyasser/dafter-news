@@ -30,7 +30,10 @@ export type Author = {
   bio: string;
   title: string;
   avatar: string | null;
+  is_hidden: boolean;
   article_count: number;
+  /** Opinion pieces only — what the «بالعقل والمنطق» card counts. */
+  opinion_count: number;
   date_joined: string;
 };
 
@@ -40,6 +43,7 @@ export type ArticleCard = {
   slug: string;
   href_slug: string;
   section_name: string;
+  subcategory: string;
   badge: Badge;
   status: ArticleStatus;
   cover_image: string | null;
@@ -70,6 +74,7 @@ export type ArticleDetail = {
   slug: string;
   kind: "news" | "opinion";
   section: Section | null;
+  subcategory: string;
   author: Author | null;
   tags: Tag[];
   language: "ar" | "en";
@@ -119,6 +124,7 @@ export type Video = {
   description: string;
   cover_image: string | null;
   file: string | null;
+  external_url: string;
   duration_seconds: number;
   duration_label: string;
   is_live: boolean;
@@ -183,7 +189,16 @@ export type WeatherCity = {
   order: number;
 };
 
-export type TickerModule = { id: number; key: string; label: string; source: string; active: boolean; order: number };
+export type TickerModule = {
+  id: number;
+  key: string;
+  label: string;
+  source: string;
+  active: boolean;
+  order: number;
+  /** Seconds between public-ticker refreshes for this module (minimum 15). */
+  refresh_seconds: number;
+};
 
 export type TickerPayload = {
   currencies: Currency[];
@@ -193,7 +208,22 @@ export type TickerPayload = {
   modules: TickerModule[];
 };
 
-export type MediaAsset = { id: number; image: string; alt: string; credit: string; created_at: string };
+export type MediaLicense = "owned" | "agency" | "cc" | "permission" | "unknown";
+
+export type MediaAsset = {
+  id: number;
+  image: string;
+  title: string;
+  alt: string;
+  credit: string;
+  license: MediaLicense;
+  license_label: string;
+  source: string;
+  article: number | null;
+  article_title: string | null;
+  article_slug: string | null;
+  created_at: string;
+};
 
 export type DashUser = {
   id: number;

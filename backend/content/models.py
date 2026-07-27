@@ -99,6 +99,13 @@ class Article(models.Model):
     slug = models.SlugField(max_length=300, unique=True, allow_unicode=True, blank=True)
     kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.NEWS)
     section = models.ForeignKey(Section, on_delete=models.PROTECT, related_name="articles", null=True, blank=True)
+    # Free-text label under the section — «سياسة» / «ثقافة وفنون» / «اقتصاد».
+    # Cards inside a section block already sit under its heading, so repeating
+    # the section name on each one says nothing; this is what the red tag in
+    # the «عرب وعالم» grid shows instead. Deliberately not a FK: the labels are
+    # editorial shorthand that varies per section and shouldn't need a taxonomy
+    # row (and a new one shouldn't need a migration).
+    subcategory = models.CharField(max_length=60, blank=True, help_text="تصنيف فرعي يظهر كوسم أحمر على البطاقة")
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="articles", null=True, blank=True
     )

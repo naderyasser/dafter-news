@@ -127,12 +127,13 @@ class Command(BaseCommand):
     def seed_articles(self, sections, tags, users):
         now = timezone.now()
 
-        def mk_article(slug, title, section_key, author_key, standfirst, badge, status, views, hours_ago, kind="news", tag_names=None, blocks=None):
+        def mk_article(slug, title, section_key, author_key, standfirst, badge, status, views, hours_ago, kind="news", tag_names=None, blocks=None, subcategory=""):
             article, _ = Article.objects.update_or_create(
                 slug=slug,
                 defaults=dict(
                     title=title, kind=kind, section=sections.get(section_key), author=users.get(author_key),
                     language=Article.Language.AR, status=status, badge=badge, standfirst=standfirst,
+                    subcategory=subcategory,
                     views=views, published_at=now - datetime.timedelta(hours=hours_ago) if status == "published" else None,
                 ),
             )
@@ -200,6 +201,86 @@ class Command(BaseCommand):
         ]
         for slug, title, badge, hrs, views in sports_rows:
             mk_article(slug, title, "sports", "k.abdelwahab", title, badge, "published", views, hrs, tag_names=["كرة القدم"])
+
+        # The rest of the site map. Without these the sections exist in the nav
+        # but every one of their blocks renders empty, so the home page looks
+        # like the site only covers مصر/اقتصاد/رياضة. «عرب وعالم» carries
+        # subcategories because its block puts them on the photo as a red chip.
+        gulf_rows = [
+            ("gcc-summit-riyadh", "قمة خليجية في الرياض تبحث ملفات الطاقة والأمن الإقليمي", "none", 3, 4210),
+            ("uae-egypt-investment-fund", "الإمارات ومصر توقّعان اتفاقاً لتأسيس صندوق استثماري مشترك", "exclusive", 6, 3180),
+            ("kuwait-budget-surplus", "الكويت تعلن فائضاً في الموازنة للعام المالي الجاري", "none", 12, 1460),
+            ("saudi-neom-phase", "السعودية تدشّن مرحلة جديدة من مشروع نيوم", "none", 20, 2740),
+            ("qatar-gas-expansion", "قطر توسّع طاقتها الإنتاجية من الغاز المسال", "none", 28, 1190),
+            ("bahrain-digital-economy", "البحرين تطلق استراتيجية الاقتصاد الرقمي 2030", "none", 34, 830),
+        ]
+        for slug, title, badge, hrs, views in gulf_rows:
+            mk_article(slug, title, "gulf", "s.farouk", title, badge, "published", views, hrs, tag_names=["الطاقة"])
+
+        world_rows = [
+            ("un-assembly-climate-vote", "الجمعية العامة للأمم المتحدة تصوّت على قرار المناخ الجديد", "breaking", 1, 7620, "سياسة"),
+            ("eu-migration-pact", "الاتحاد الأوروبي يقرّ حزمة إصلاحات في ملف الهجرة", "none", 4, 3410, "سياسة"),
+            ("venice-biennale-arab-pavilion", "الجناح العربي يخطف الأنظار في بينالي فينيسيا", "none", 9, 2180, "ثقافة وفنون"),
+            ("africa-trade-corridor", "إطلاق ممر تجاري جديد يربط شرق أفريقيا بالمتوسط", "exclusive", 15, 1970, "اقتصاد"),
+            ("asia-summit-supply-chains", "قمة آسيوية تبحث إعادة رسم سلاسل الإمداد العالمية", "none", 21, 1520, "اقتصاد"),
+            ("world-heritage-new-sites", "اليونسكو تضيف مواقع عربية جديدة لقائمة التراث العالمي", "none", 30, 2640, "ثقافة وفنون"),
+            ("latin-america-elections", "انتخابات حاسمة في أمريكا اللاتينية تعيد ترتيب المشهد", "none", 38, 1130, "سياسة"),
+        ]
+        for slug, title, badge, hrs, views, sub in world_rows:
+            mk_article(slug, title, "world", "m.elsherbiny", title, badge, "published", views, hrs, tag_names=["سياسات عامة"], subcategory=sub)
+
+        style_rows = [
+            ("cairo-fashion-week", "أسبوع القاهرة للموضة يعود بمشاركة مصممين عرب", "none", 7, 2310),
+            ("actor-returns-to-theatre", "نجم مصري يعود إلى خشبة المسرح بعد غياب سنوات", "none", 16, 1840),
+            ("summer-style-guide", "دليل إطلالات الصيف: الألوان الترابية تتصدّر", "none", 26, 960),
+            ("red-carpet-highlights", "أبرز إطلالات السجادة الحمراء في مهرجان الجونة", "none", 33, 1520),
+        ]
+        for slug, title, badge, hrs, views in style_rows:
+            mk_article(slug, title, "style", "a.labib", title, badge, "published", views, hrs, tag_names=["التعليم"])
+
+        security_rows = [
+            ("interior-ministry-network-bust", "الداخلية تضبط شبكة للاتجار غير المشروع في القاهرة", "none", 5, 5210),
+            ("court-verdict-corruption-case", "محكمة الجنايات تصدر حكمها في قضية فساد كبرى", "none", 13, 3870),
+            ("traffic-crackdown-campaign", "حملة مرورية موسّعة على الطرق السريعة", "none", 23, 1240),
+            ("cybercrime-unit-report", "مباحث الإنترنت تكشف تفاصيل بلاغات النصب الإلكتروني", "exclusive", 31, 2090),
+        ]
+        for slug, title, badge, hrs, views in security_rows:
+            mk_article(slug, title, "security", "k.abdelwahab", title, badge, "published", views, hrs, tag_names=["سياسات عامة"])
+
+        special_rows = [
+            ("file-water-security", "ملف: أمن المياه في مصر.. الأرقام والتحديات", "exclusive", 8, 6410),
+            ("file-informal-economy", "ملف: الاقتصاد غير الرسمي.. كيف يُدمج في المنظومة؟", "none", 18, 3120),
+            ("file-new-delta", "ملف: الدلتا الجديدة بعد ثلاث سنوات من الإطلاق", "none", 29, 2480),
+        ]
+        for slug, title, badge, hrs, views in special_rows:
+            mk_article(slug, title, "special", "m.eladawy", title, badge, "published", views, hrs, tag_names=["الدلتا الجديدة"])
+
+        guide_rows = [
+            ("guide-school-registration", "دليلك الأول: خطوات تسجيل أبنائك في المدارس إلكترونياً", "none", 11, 4830),
+            ("guide-property-registration", "دليلك الأول: أوراق الشهر العقاري ومواعيد التقديم", "none", 19, 2910),
+            ("guide-driving-licence", "دليلك الأول: تجديد رخصة القيادة في خطوات", "none", 27, 3540),
+            ("guide-health-insurance", "دليلك الأول: كيف تستفيد من التأمين الصحي الشامل؟", "none", 36, 1770),
+        ]
+        for slug, title, badge, hrs, views in guide_rows:
+            mk_article(slug, title, "guide", "m.elsherbiny", title, badge, "published", views, hrs, tag_names=["التعليم"])
+
+        tech_rows = [
+            ("egypt-ai-strategy", "مصر تطلق استراتيجية وطنية للذكاء الاصطناعي", "none", 10, 3960),
+            ("undersea-cable-landing", "تشغيل كابل بحري جديد يرفع سعة الإنترنت في مصر", "none", 17, 2150),
+            ("space-agency-satellite", "وكالة الفضاء المصرية تستعد لإطلاق قمر صناعي جديد", "exclusive", 24, 2830),
+            ("startups-funding-round", "شركات ناشئة مصرية تغلق جولات تمويل قياسية", "none", 32, 1420),
+            ("solar-storage-breakthrough", "تقدّم بحثي في تخزين الطاقة الشمسية بجامعات مصرية", "none", 39, 1080),
+        ]
+        for slug, title, badge, hrs, views in tech_rows:
+            mk_article(slug, title, "tech", "s.farouk", title, badge, "published", views, hrs, tag_names=["الطاقة"])
+
+        art_rows = [
+            ("cairo-book-fair-record", "معرض القاهرة للكتاب يسجّل رقماً قياسياً في عدد الزوار", "none", 14, 4270),
+            ("national-theatre-season", "المسرح القومي يفتتح موسمه الجديد بعرض مصري خالص", "none", 25, 1930),
+            ("museum-restoration-project", "انتهاء أعمال ترميم قاعة رئيسية بالمتحف المصري", "none", 35, 2560),
+        ]
+        for slug, title, badge, hrs, views in art_rows:
+            mk_article(slug, title, "art", "a.labib", title, badge, "published", views, hrs, tag_names=["التعليم"])
 
         # Not-yet-published statuses so DashArticles / DashOverview show a mix.
         mk_article("ahly-midfielder-deal-scheduled", "الأهلي يحسم صفقة نجم الوسط قبل إغلاق القيد", "sports", "k.abdelwahab", "—", "none", "scheduled", 0, 0)
