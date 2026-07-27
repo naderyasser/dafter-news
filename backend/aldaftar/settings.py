@@ -180,7 +180,19 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
+# The dev frontend runs on 3891, not 3000 — 3000 belongs to another service on
+# this host (see start.sh). Both localhost and 127.0.0.1 are listed because a
+# browser treats them as different origins, and which one you land on depends
+# on how you opened the page.
+_DEV_ORIGINS = [
+    "http://localhost:3891",
+    "http://127.0.0.1:3891",
+]
 CORS_ALLOWED_ORIGINS = [
-    o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(",") if o.strip()
+    o.strip() for o in os.environ.get("CORS_ALLOWED_ORIGINS", ",".join(_DEV_ORIGINS)).split(",") if o.strip()
 ]
 CORS_ALLOW_CREDENTIALS = True
+# Session login posts a CSRF token cross-origin in development, so the dev
+# origins have to be trusted as well or every dashboard write 403s.
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS + _DEV_ORIGINS))
