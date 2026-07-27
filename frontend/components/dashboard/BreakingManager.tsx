@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { API_URL, apiMutate } from "@/lib/api";
+import { API_URL, dashMutate } from "@/lib/api";
 import type { BreakingNewsItem } from "@/lib/types";
 
 type PushInfo = { configured: boolean; subscribers: number };
@@ -32,7 +32,7 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
     if (!text) return;
     setError("");
     try {
-      const created = await apiMutate<BreakingNewsItem>("/breaking/", "POST", {
+      const created = await dashMutate<BreakingNewsItem>("/breaking/", "POST", {
         text,
         order: 0,
         active: true,
@@ -56,8 +56,8 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
     setError("");
     try {
       await Promise.all([
-        apiMutate(`/breaking/${arr[i].id}/`, "PATCH", { order: i }),
-        apiMutate(`/breaking/${arr[j].id}/`, "PATCH", { order: j }),
+        dashMutate(`/breaking/${arr[i].id}/`, "PATCH", { order: i }),
+        dashMutate(`/breaking/${arr[j].id}/`, "PATCH", { order: j }),
       ]);
     } catch {
       setItems(before);
@@ -71,7 +71,7 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
     setItems((it) => it.map((x) => (x.id === id ? { ...x, active: !x.active } : x)));
     setError("");
     try {
-      await apiMutate(`/breaking/${id}/`, "PATCH", { active: !item.active });
+      await dashMutate(`/breaking/${id}/`, "PATCH", { active: !item.active });
     } catch {
       setItems((it) => it.map((x) => (x.id === id ? { ...x, active: item.active } : x)));
       fail("تغيير الحالة");
@@ -83,7 +83,7 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
     setItems((it) => it.filter((x) => x.id !== id));
     setError("");
     try {
-      await apiMutate(`/breaking/${id}/`, "DELETE");
+      await dashMutate(`/breaking/${id}/`, "DELETE");
     } catch {
       setItems(before);
       fail("الحذف");
@@ -95,7 +95,7 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
     setError("");
     setNote("");
     try {
-      const res = await apiMutate<{ sent: number; failed: number; pruned: number }>("/push/broadcast/", "POST", {
+      const res = await dashMutate<{ sent: number; failed: number; pruned: number }>("/push/broadcast/", "POST", {
         title: "عاجل",
         body: item.text,
         url: "/",

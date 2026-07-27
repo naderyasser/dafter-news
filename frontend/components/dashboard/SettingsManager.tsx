@@ -2,14 +2,15 @@
 
 import { useRef, useState } from "react";
 
-import { apiMutate, apiUpload, mediaUrl } from "@/lib/api";
+import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
 import type { SiteSettings } from "@/lib/types";
 
+// Keys match SocialLink.Platform on the server.
 const SOCIAL_FIELDS: { key: string; label: string; placeholder: string }[] = [
-  { key: "facebook", label: "فيسبوك", placeholder: "facebook.com/aldaftarnews" },
-  { key: "x", label: "X", placeholder: "x.com/aldaftarnews" },
-  { key: "instagram", label: "إنستغرام", placeholder: "instagram.com/aldaftarnews" },
-  { key: "youtube", label: "يوتيوب", placeholder: "youtube.com/@aldaftarnews" },
+  { key: "facebook", label: "فيسبوك", placeholder: "https://facebook.com/aldaftarnews" },
+  { key: "x", label: "X", placeholder: "https://x.com/aldaftarnews" },
+  { key: "instagram", label: "إنستغرام", placeholder: "https://instagram.com/aldaftarnews" },
+  { key: "youtube", label: "يوتيوب", placeholder: "https://youtube.com/@aldaftarnews" },
 ];
 
 export default function SettingsManager({ initial }: { initial: SiteSettings | null }) {
@@ -25,12 +26,47 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // The four inputs were rendered with no value and no handler, so social
+  // links could be typed but never loaded and never saved. Seed from what the
+  // API returned, keyed by platform.
+  const [socials, setSocials] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const f of SOCIAL_FIELDS) map[f.key] = "";
+    for (const link of initial?.social_links ?? []) map[link.platform] = link.url;
+    return map;
+  });
+  // Remember which platforms already have a row, so saving PATCHes those and
+  // POSTs the rest — SocialLink.platform is unique, so a blind POST would 400
+  // on the second save.
+  const [socialIds, setSocialIds] = useState<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    for (const link of initial?.social_links ?? []) map[link.platform] = link.id;
+    return map;
+  });
+
+  const saveSocials = async () => {
+    const ids = { ...socialIds };
+    for (const f of SOCIAL_FIELDS) {
+      const url = socials[f.key]?.trim() ?? "";
+      const existing = ids[f.key];
+      if (existing) {
+        await dashMutate(`/social-links/${existing}/`, "PATCH", { url });
+      } else if (url) {
+        // Only create a row once there's something to store — an empty input
+        // shouldn't leave a blank record behind.
+        const created = await dashMutate<{ id: number }>("/social-links/", "POST", { platform: f.key, url });
+        ids[f.key] = created.id;
+      }
+    }
+    setSocialIds(ids);
+  };
+
   // The toast used to fire from inside the catch, so a save that failed looked
   // exactly like one that worked.
   const save = async () => {
     setError("");
     try {
-      await apiMutate("/settings/", "PUT", {
+      await dashMutate("/settings/", "PUT", {
         site_name: siteName,
         tagline,
         seo_title: seoTitle,
@@ -38,6 +74,7 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
         lang_ar_enabled: langAr,
         lang_en_enabled: langEn,
       });
+      await saveSocials();
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 2500);
     } catch {
@@ -51,7 +88,7 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
     try {
       const form = new FormData();
       form.append("logo", file);
-      const saved = await apiUpload<{ logo: string | null }>("/settings/", "PUT", form);
+      const saved = await dashUpload<{ logo: string | null }>("/settings/", "PUT", form);
       setLogo(saved.logo);
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 2500);
@@ -123,9 +160,17 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
           {SOCIAL_FIELDS.map((f) => (
             <div key={f.key} className="flex items-center gap-2.5">
               <span className="w-[70px] text-[13px] text-ink-3">{f.label}</span>
-              <input placeholder={f.placeholder} className="flex-1 rounded-lg border border-line px-3 py-2 text-[13px] outline-none focus:border-brand" />
+              <input
+                value={socials[f.key] ?? ""}
+                onChange={(e) => setSocials((s) => ({ ...s, [f.key]: e.target.value }))}
+                placeholder={f.placeholder}
+                dir="ltr"
+                aria-label={`رابط ${f.label}`}
+                className="flex-1 rounded-lg border border-line px-3 py-2 text-start text-[13px] outline-none focus:border-brand"
+              />
             </div>
           ))}
+          <p className="m-0 text-[11.5px] text-ink-3">تُعرض في تذييل الموقع. اتركه فارغاً لإخفاء المنصة.</p>
         </div>
 
         <div className="flex flex-col gap-2.5 rounded-card border border-line bg-paper p-5">

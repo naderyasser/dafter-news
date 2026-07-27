@@ -61,6 +61,13 @@ class TickerModule(models.Model):
     source = models.CharField(max_length=120, blank=True)
     active = models.BooleanField(default=True)
     order = models.PositiveSmallIntegerField(default=0)
+    # How often the public ticker re-fetches this module. Per-module rather
+    # than one global setting: gold and currencies move on different clocks
+    # from the weather, and polling all of them at the fastest rate is wasted
+    # traffic. Floor of 15s so a mistyped value can't hammer the API.
+    refresh_seconds = models.PositiveIntegerField(
+        default=60, help_text="زمن إعادة جلب البيانات بالثواني (15 على الأقل)"
+    )
 
     class Meta:
         ordering = ["order", "id"]

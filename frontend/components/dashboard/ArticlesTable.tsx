@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import StatusBadge from "@/components/dashboard/StatusBadge";
-import { apiMutate } from "@/lib/api";
+import { dashMutate } from "@/lib/api";
 import type { ArticleStatus } from "@/lib/types";
 
 export type ArticleRow = { id: number; title: string; section: string; author: string; status: ArticleStatus; views: number; date: string };
@@ -34,7 +34,7 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
   const remove = async (id: number) => {
     setRows((r) => r.filter((a) => a.id !== id));
     try {
-      await apiMutate(`/articles/${id}/`, "DELETE");
+      await dashMutate(`/articles/${id}/`, "DELETE");
     } catch {
       // optimistic delete already applied; ignore network errors in this demo build
     }
@@ -46,7 +46,7 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
       else if (action === "publish") {
         setRows((r) => r.map((a) => (a.id === +id ? { ...a, status: "published" } : a)));
         try {
-          await apiMutate(`/articles/${id}/`, "PATCH", { status: "published" });
+          await dashMutate(`/articles/${id}/`, "PATCH", { status: "published" });
         } catch {}
       }
     }

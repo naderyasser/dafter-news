@@ -18,16 +18,29 @@ from .serializers import (
 )
 
 
-class AuthorViewSet(viewsets.ReadOnlyModelViewSet):
-    """GET /api/authors/ — بالعقل والمنطق writers + bylines (public)."""
+class AuthorViewSet(viewsets.ModelViewSet):
+    """
+    /api/authors/ — بالعقل والمنطق writers + bylines.
 
-    queryset = User.objects.filter(role__in=[User.Role.AUTHOR, User.Role.EDITOR]).order_by("first_name")
+    Reads are public; writes are staff-only via ReadOnlyOrStaff, which is what
+    lets the dashboard panel add, rename, re-photograph, hide and delete a
+    columnist. Hidden authors stay in the staff listing (that's how you unhide
+    one) but drop out of the public one.
+    """
+
     serializer_class = AuthorSerializer
     permission_classes = [ReadOnlyOrStaff]
     lookup_field = "username"
     # DRF's default lookup regex excludes '.' (reserved for format suffixes
     # like .json) — usernames here are dotted (e.g. "m.eladawy"), so widen it.
     lookup_value_regex = r"[^/]+"
+
+    def get_queryset(self):
+        qs = User.objects.filter(role__in=[User.Role.AUTHOR, User.Role.EDITOR]).order_by("first_name")
+        user = self.request.user
+        if not (user.is_authenticated and (user.is_staff or user.is_superuser)):
+            qs = qs.filter(is_hidden=False)
+        return qs
 
 
 class UserViewSet(viewsets.ModelViewSet):

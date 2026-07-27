@@ -1,15 +1,23 @@
 from django.db import models
+from django.utils.text import slugify
 
 
 class Video(models.Model):
     """لقطة وتعليق — VideoList.dc.html / VideoPage.dc.html / DashVideos.dc.html."""
 
     title = models.CharField(max_length=280)
-    slug = models.SlugField(max_length=300, unique=True)
+    # Blank on write: derived from the title in save(), same as Article — the
+    # dashboard can't slugify an Arabic title in the browser without stripping
+    # it to nothing.
+    slug = models.SlugField(max_length=300, unique=True, allow_unicode=True, blank=True)
     section = models.ForeignKey("content.Section", on_delete=models.SET_NULL, null=True, blank=True, related_name="videos")
     description = models.TextField(blank=True)
     cover_image = models.ImageField(upload_to="video_covers/", blank=True, null=True)
     file = models.FileField(upload_to="videos/", blank=True, null=True)
+    # Either upload the file or point at one that's already hosted (YouTube,
+    # a CDN, the station's own player). The dashboard offers both; the player
+    # prefers the uploaded file when both are set.
+    external_url = models.URLField(max_length=500, blank=True, help_text="رابط فيديو خارجي بديلاً عن رفع الملف")
     duration_seconds = models.PositiveIntegerField(default=0)
     is_live = models.BooleanField(default=False)
     is_exclusive = models.BooleanField(default=False)
@@ -18,6 +26,17 @@ class Video(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.title, allow_unicode=True) or "video"
+            slug = base[:290]
+            n = 2
+            while Video.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base[:285]}-{n}"
+                n += 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ArticleCard from "@/components/site/ArticleCard";
 import SiteShell from "@/components/site/SiteShell";
 import VideoComments from "@/components/site/VideoComments";
+import VideoPlayer from "@/components/site/VideoPlayer";
 import { getVideo, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 
@@ -19,25 +20,14 @@ export default async function VideoPage({ params }: { params: { slug: string } }
     <SiteShell lang="ar" active="video">
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-8 px-6 py-8">
         <main className="min-w-0 flex-[2_1_560px]">
-          <div className="relative aspect-video overflow-hidden rounded-card bg-header-bg">
-            {video.cover_image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={mediaUrl(video.cover_image)} alt={video.title} className="h-full w-full object-cover" />
-            ) : null}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[rgba(23,26,31,.55)] text-[26px] text-paper">
-                <span className="inline-block -scale-x-100">▶</span>
-              </span>
-            </div>
-            {video.is_exclusive && (
-              <span className="absolute start-3 top-3 rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">حصري</span>
-            )}
-            {!video.is_live && video.duration_label !== "—" && (
-              <span className="tnum absolute bottom-3 start-3 rounded-badge bg-[rgba(23,26,31,.75)] px-2 py-1 text-xs text-paper">
-                {video.duration_label}
-              </span>
-            )}
-          </div>
+          <VideoPlayer
+            src={mediaUrl(video.file)}
+            externalUrl={video.external_url}
+            poster={mediaUrl(video.cover_image)}
+            title={video.title}
+            isExclusive={video.is_exclusive}
+            durationLabel={video.is_live ? undefined : video.duration_label}
+          />
           <h1 className="font-display-ar mb-2.5 mt-4.5 text-[clamp(1.375rem,1rem+1.4vw,1.75rem)] font-extrabold text-ink">{video.title}</h1>
           <div className="mb-5 flex items-center gap-2.5 text-[13px] text-ink-3">
             <span>{relativeTime(video.created_at, "ar")}</span>

@@ -1,6 +1,16 @@
 import Link from "next/link";
 
-export default function SiteFooter({ lang }: { lang: "ar" | "en" }) {
+import { getSiteSettings } from "@/lib/api";
+
+/** Glyph and label per platform key — matches SocialLink.Platform. */
+const SOCIAL_META: Record<string, { glyph: string; label: string }> = {
+  facebook: { glyph: "f", label: "فيسبوك" },
+  x: { glyph: "X", label: "X" },
+  instagram: { glyph: "in", label: "إنستغرام" },
+  youtube: { glyph: "▶", label: "يوتيوب" },
+};
+
+export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
   const isAr = lang === "ar";
   const fontBody = isAr ? "font-body-ar" : "font-body-en";
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
@@ -33,7 +43,13 @@ export default function SiteFooter({ lang }: { lang: "ar" | "en" }) {
         { label: "Privacy", href: "#" },
       ];
 
-  const socials = ["f", "X", "in", "▶"];
+  // These four used to be hardcoded glyphs pointing at "#". They now come from
+  // Settings → روابط التواصل; a platform with no URL saved simply doesn't
+  // render, so the row never shows a dead link.
+  const settings = await getSiteSettings();
+  const socials = (settings?.social_links ?? [])
+    .filter((l) => l.url && SOCIAL_META[l.platform])
+    .map((l) => ({ ...l, ...SOCIAL_META[l.platform] }));
 
   return (
     <footer className={`${fontBody} bg-header-bg pb-[52px]`} dir={isAr ? "rtl" : "ltr"}>
@@ -45,17 +61,23 @@ export default function SiteFooter({ lang }: { lang: "ar" | "en" }) {
           <p className="my-4 max-w-[320px] text-[14px] leading-[1.7] text-header-muted">
             {isAr ? "سِجلّ اليوم.. خبراً خبراً" : "Today's record, story by story."}
           </p>
-          <div className="flex gap-2.5">
-            {socials.map((s) => (
-              <a
-                key={s}
-                href="#"
-                className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-ink-2 text-[13px] font-bold text-header-ink no-underline hover:border-brand hover:text-brand"
-              >
-                {s}
-              </a>
-            ))}
-          </div>
+          {socials.length > 0 && (
+            <div className="flex gap-2.5">
+              {socials.map((s) => (
+                <a
+                  key={s.platform}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label}
+                  title={s.label}
+                  className="flex h-[34px] w-[34px] items-center justify-center rounded-full border border-ink-2 text-[13px] font-bold text-header-ink no-underline hover:border-brand hover:text-brand"
+                >
+                  {s.glyph}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
         <div className="min-w-[160px] flex-1">
           <div className={`${fontDisplay} mb-4 border-s-[3px] border-brand ps-2.5 text-[15px] font-bold text-header-ink`}>

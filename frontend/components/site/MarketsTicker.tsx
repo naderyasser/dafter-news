@@ -1,5 +1,9 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+import { API_URL } from "@/lib/api";
 import type { TickerPayload } from "@/lib/types";
 
 const AR_LABELS: Record<string, string> = {
@@ -31,6 +35,9 @@ const EN_CITY: Record<string, string> = {
   aswan: "Aswan",
 };
 
+/** Fallback ordering when the TickerModule table hasn't been set up. */
+const DEFAULT_ORDER = ["currencies", "gold", "weather"];
+
 function Chip({ up, children }: { up: boolean; children: React.ReactNode }) {
   return (
     <span
@@ -53,14 +60,54 @@ function Chip({ up, children }: { up: boolean; children: React.ReactNode }) {
  * that's what makes it read as endless rather than as a jump. Motion pauses
  * on hover so a reader can actually take a number in.
  */
-export default function MarketsTicker({ lang, data }: { lang: "ar" | "en"; data: TickerPayload }) {
+export default function MarketsTicker({ lang, data: initial }: { lang: "ar" | "en"; data: TickerPayload }) {
   const isAr = lang === "ar";
   const fontBody = isAr ? "font-body-ar" : "font-body-en";
-  const gold = data.gold.find((g) => g.label.includes("21")) ?? data.gold[0];
+  const [data, setData] = useState(initial);
+
+  // `modules` was fetched and then ignored, so the dashboard's on/off switches
+  // and its ordering changed nothing out here. Drive both from it now: only
+  // active modules render, and they render in the order the newsroom set.
+  //
+  // With no modules configured at all there's no curation to honour, so show
+  // everything rather than blanking the bar — an empty table is "nobody has
+  // set this up", not "hide the ticker".
+  const configured = data.modules.filter((m) => m.active).sort((a, b) => a.order - b.order);
+  const active: { key: string; refresh_seconds: number }[] = data.modules.length
+    ? configured
+    : DEFAULT_ORDER.map((key) => ({ key, refresh_seconds: 60 }));
+
+  // One timer at the shortest interval any active module asks for. Per-module
+  // timers would mean several overlapping requests to a single combined
+  // endpoint that returns all of them anyway.
+  const refreshMs = Math.max(15, Math.min(...active.map((m) => m.refresh_seconds), 3600)) * 1000;
+
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await fetch(`${API_URL}/ticker/`, { cache: "no-store" });
+        if (!res.ok) return;
+        const next = (await res.json()) as TickerPayload;
+        if (!cancelled) setData(next);
+      } catch {
+        // Keep the last good numbers rather than emptying the bar.
+      }
+    };
+    const id = setInterval(poll, refreshMs);
+    document.addEventListener("visibilitychange", poll);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", poll);
+    };
+  }, [refreshMs]);
+
   const weather = data.weather;
 
-  const items = [
-    ...data.currencies.map((c) => (
+  const byKey: Record<string, React.ReactNode[]> = {
+    currencies: data.currencies.map((c) => (
       <div key={`c-${c.code}`} className="flex flex-shrink-0 items-center gap-2">
         <span className="whitespace-nowrap text-[13px] text-ink-3">{isAr ? AR_LABELS[c.code] ?? c.code : `${c.code}/EGP`}</span>
         <span className="tnum whitespace-nowrap text-[14px] font-bold text-ink">{c.sell}</span>
@@ -69,7 +116,7 @@ export default function MarketsTicker({ lang, data }: { lang: "ar" | "en"; data:
         </Chip>
       </div>
     )),
-    ...data.gold.map((g) => (
+    gold: data.gold.map((g) => (
       <div key={`g-${g.label}`} className="flex flex-shrink-0 items-center gap-2">
         <span className="whitespace-nowrap text-[13px] text-ink-3">{isAr ? `ذهب ${g.label}` : EN_GOLD[g.label] ?? g.label}</span>
         <span className="tnum whitespace-nowrap text-[14px] font-bold text-ink">{g.price}</span>
@@ -78,15 +125,21 @@ export default function MarketsTicker({ lang, data }: { lang: "ar" | "en"; data:
         </Chip>
       </div>
     )),
-    weather ? (
-      <div key="w" className="flex flex-shrink-0 items-center gap-2">
-        <span className="whitespace-nowrap text-[13px] text-ink-3">
-          {isAr ? weather.label : EN_CITY[weather.key] ?? weather.key} {weather.icon}
-        </span>
-        <span className="tnum whitespace-nowrap text-[14px] font-bold text-ink">{weather.temp}°</span>
-      </div>
-    ) : null,
-  ].filter(Boolean);
+    weather: weather
+      ? [
+          <div key="w" className="flex flex-shrink-0 items-center gap-2">
+            <span className="whitespace-nowrap text-[13px] text-ink-3">
+              {isAr ? weather.label : EN_CITY[weather.key] ?? weather.key} {weather.icon}
+            </span>
+            <span className="tnum whitespace-nowrap text-[14px] font-bold text-ink">{weather.temp}°</span>
+          </div>,
+        ]
+      : [],
+  };
+
+  // Modules with no data of their own yet (index, oil) simply contribute
+  // nothing — they stay switchable in the dashboard for when they do.
+  const items = active.flatMap((m) => byKey[m.key] ?? []);
 
   const strip = (copy: string) => (
     <div className="flex flex-shrink-0 items-center gap-7 pe-7" aria-hidden={copy === "b"}>

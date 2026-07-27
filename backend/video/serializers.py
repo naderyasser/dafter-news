@@ -15,12 +15,15 @@ class VideoSerializer(serializers.ModelSerializer):
     duration_label = serializers.CharField(read_only=True)
     comment_count = serializers.IntegerField(source="comments.count", read_only=True)
 
+    # Optional on write — Video.save() derives it from the title.
+    slug = serializers.SlugField(max_length=300, allow_unicode=True, required=False)
+
     class Meta:
         model = Video
         fields = [
             "id", "title", "slug", "section", "section_name", "description", "cover_image", "file",
-            "duration_seconds", "duration_label", "is_live", "is_exclusive", "views", "comment_count",
-            "created_at",
+            "external_url", "duration_seconds", "duration_label", "is_live", "is_exclusive", "views",
+            "comment_count", "created_at",
         ]
 
 

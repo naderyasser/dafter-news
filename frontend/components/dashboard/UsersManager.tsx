@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import StatusBadge from "@/components/dashboard/StatusBadge";
-import { apiMutate } from "@/lib/api";
+import { dashMutate } from "@/lib/api";
 import type { DashUser, Role } from "@/lib/types";
 
 const ROLES: { key: Role; label: string }[] = [
@@ -25,7 +25,7 @@ export default function UsersManager({ users: initial }: { users: DashUser[] }) 
     const [first, ...rest] = name.trim().split(" ");
     const payload = { username: email.split("@")[0] || `user${Date.now()}`, first_name: first || "", last_name: rest.join(" "), email, role };
     try {
-      const created = await apiMutate<DashUser>("/users/", "POST", payload);
+      const created = await dashMutate<DashUser>("/users/", "POST", payload);
       setUsers((us) => [created, ...us]);
     } catch {
       setUsers((us) => [{ id: Date.now(), username: payload.username, name: name || email, email, role, last_login: null, is_active: true, date_joined: new Date().toISOString() }, ...us]);

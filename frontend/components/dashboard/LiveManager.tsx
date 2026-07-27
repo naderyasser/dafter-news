@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { apiMutate } from "@/lib/api";
+import { dashMutate } from "@/lib/api";
 import type { LiveStream, LiveUpdate } from "@/lib/types";
 
 export default function LiveManager({ stream: initial }: { stream: LiveStream | null }) {
@@ -17,7 +17,7 @@ export default function LiveManager({ stream: initial }: { stream: LiveStream | 
     const next = !stream.is_live;
     setStream((s) => (s ? { ...s, is_live: next } : s));
     try {
-      await apiMutate(`/live-streams/${stream.id}/`, "PATCH", { is_live: next });
+      await dashMutate(`/live-streams/${stream.id}/`, "PATCH", { is_live: next });
     } catch {}
   };
 
@@ -28,7 +28,7 @@ export default function LiveManager({ stream: initial }: { stream: LiveStream | 
     const now = new Date();
     const time_label = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     try {
-      const created = await apiMutate<LiveUpdate>("/live-updates/", "POST", { stream: stream.id, time_label, text });
+      const created = await dashMutate<LiveUpdate>("/live-updates/", "POST", { stream: stream.id, time_label, text });
       setStream((s) => (s ? { ...s, updates: [created, ...s.updates] } : s));
     } catch {
       setStream((s) => (s ? { ...s, updates: [{ id: Date.now(), stream: stream.id, time_label, text, created_at: "" }, ...s.updates] } : s));
@@ -38,7 +38,7 @@ export default function LiveManager({ stream: initial }: { stream: LiveStream | 
   const removeUpdate = async (id: number) => {
     setStream((s) => (s ? { ...s, updates: s.updates.filter((u) => u.id !== id) } : s));
     try {
-      await apiMutate(`/live-updates/${id}/`, "DELETE");
+      await dashMutate(`/live-updates/${id}/`, "DELETE");
     } catch {}
   };
 

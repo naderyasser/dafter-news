@@ -155,8 +155,8 @@ export const getAdPlacements = () =>
 export const getTickerModules = () =>
   safeGet<Paginated<TickerModule>>(`/ticker-modules/?ordering=order`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 0 });
 
-export const getMediaAssets = () =>
-  safeGet<Paginated<MediaAsset>>(`/media/`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 0 });
+export const getMediaAssets = (query = "") =>
+  safeGet<Paginated<MediaAsset>>(`/media/${query}`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 0 });
 
 export const getUsers = () =>
   safeGet<Paginated<DashUser>>(`/users/`, { count: 0, next: null, previous: null, results: [] }, { revalidate: 0 });
@@ -231,6 +231,39 @@ export async function apiMutate<T>(path: string, method: "POST" | "PATCH" | "PUT
     headers: token ? { "X-CSRFToken": token } : {},
     revalidate: 0,
   });
+}
+
+/**
+ * apiMutate + apiUpload for dashboard writes: same call, but the public side's
+ * cached renders are dropped afterwards so the change is live immediately
+ * rather than at the end of that page's revalidate window.
+ *
+ * Reader-side writes (posting a comment, subscribing to alerts) keep using the
+ * plain versions — one reader's comment shouldn't rebuild the whole site.
+ *
+ * The revalidation is awaited but its failure is swallowed: the write already
+ * landed, so reporting an error here would tell the editor their save failed
+ * when it didn't. Worst case the page falls back to its normal TTL.
+ */
+export async function dashMutate<T>(path: string, method: "POST" | "PATCH" | "PUT" | "DELETE", body?: unknown): Promise<T> {
+  const result = await apiMutate<T>(path, method, body);
+  await revalidatePublicPages();
+  return result;
+}
+
+export async function dashUpload<T>(path: string, method: "POST" | "PATCH" | "PUT", form: FormData): Promise<T> {
+  const result = await apiUpload<T>(path, method, form);
+  await revalidatePublicPages();
+  return result;
+}
+
+async function revalidatePublicPages(): Promise<void> {
+  try {
+    const { revalidateSite } = await import("./revalidate");
+    await revalidateSite();
+  } catch {
+    // Server action unreachable (offline, mid-deploy) — the write stands.
+  }
 }
 
 // ------------------------------------------------------------------- auth
