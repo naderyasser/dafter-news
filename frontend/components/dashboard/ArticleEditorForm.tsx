@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { apiMutate } from "@/lib/api";
+import { dashMutate } from "@/lib/api";
 import type { ArticleBlock, ArticleDetail, Badge } from "@/lib/types";
 
 type Block = { id: number; type: ArticleBlock["type"]; text: string; caption: string; credit: string };
@@ -40,6 +40,7 @@ export default function ArticleEditorForm({
   );
   const [nextId, setNextId] = useState((blocks.at(-1)?.id ?? 0) + 1);
   const [section, setSection] = useState(initial?.section?.key ?? sections[0]?.key ?? "egypt");
+  const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
   const [badge, setBadge] = useState<Badge>(initial?.badge ?? "none");
   const [lang, setLang] = useState<"ar" | "en">(initial?.language ?? "ar");
   const [tags, setTags] = useState<string[]>(initial?.tags.map((t) => t.name) ?? []);
@@ -81,16 +82,17 @@ export default function ArticleEditorForm({
       badge,
       language: lang,
       section: sectionId,
+      subcategory: subcategory.trim(),
       blocks: blocks.map((b, i) => ({ order: i, type: b.type, text: b.text, caption: b.caption, credit: b.credit })),
       tag_names: tags,
     };
     try {
       if (articleId) {
-        await apiMutate(`/articles/${articleId}/`, "PATCH", payload);
+        await dashMutate(`/articles/${articleId}/`, "PATCH", payload);
       } else {
         // No slug sent on purpose: the browser can't slugify an Arabic
         // headline (it strips to empty), so Article.save() derives it.
-        await apiMutate("/articles/", "POST", payload);
+        await dashMutate("/articles/", "POST", payload);
       }
       router.push("/dashboard/articles");
       router.refresh();
@@ -201,6 +203,19 @@ export default function ArticleEditorForm({
               </button>
             ))}
           </div>
+        </div>
+        {/* The red tag on the card grids. Optional — a card with no
+            subcategory just falls back to its section name. */}
+        <div className="rounded-card border border-line bg-paper p-4">
+          <div className="mb-2.5 text-[13px] font-bold">التصنيف الفرعي</div>
+          <input
+            value={subcategory}
+            onChange={(e) => setSubcategory(e.target.value)}
+            maxLength={60}
+            placeholder="سياسة / ثقافة وفنون / اقتصاد"
+            className="w-full rounded-lg border border-line px-2.5 py-2 text-xs outline-none focus:border-brand"
+          />
+          <div className="mt-2 text-[11px] leading-relaxed text-ink-3">يظهر كوسم أحمر فوق عنوان البطاقة في الصفحة الرئيسية.</div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">الوسوم</div>
