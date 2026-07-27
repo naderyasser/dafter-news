@@ -24,6 +24,10 @@ class User(AbstractUser):
     bio = models.CharField(max_length=280, blank=True, help_text="نبذة قصيرة تظهر في صفحة الكاتب")
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     title = models.CharField(max_length=120, blank=True, help_text="مثال: كاتبة اقتصادية")
+    # Takes the byline off the public «كتّاب الدفتر» and «بالعقل والمنطق»
+    # surfaces without deleting the account or unpublishing what they wrote —
+    # a columnist on hiatus keeps their archive reachable by direct link.
+    is_hidden = models.BooleanField(default=False, help_text="إخفاء الكاتب من صفحات الموقع العامة")
 
     class Meta:
         ordering = ["first_name", "last_name", "username"]

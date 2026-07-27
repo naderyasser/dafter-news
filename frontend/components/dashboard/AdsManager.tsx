@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { apiMutate } from "@/lib/api";
+import { dashMutate } from "@/lib/api";
 import type { AdPlacement } from "@/lib/types";
 
 export default function AdsManager({ placements: initial }: { placements: AdPlacement[] }) {
@@ -14,7 +14,7 @@ export default function AdsManager({ placements: initial }: { placements: AdPlac
     const next = !p.active;
     setPlacements((ps) => ps.map((x) => (x.id === id ? { ...x, active: next } : x)));
     try {
-      await apiMutate(`/ads/${id}/`, "PATCH", { active: next });
+      await dashMutate(`/ads/${id}/`, "PATCH", { active: next });
     } catch {}
   };
 

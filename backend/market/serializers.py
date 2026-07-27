@@ -24,4 +24,12 @@ class WeatherCitySerializer(serializers.ModelSerializer):
 class TickerModuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = TickerModule
-        fields = ["id", "key", "label", "source", "active", "order"]
+        fields = ["id", "key", "label", "source", "active", "order", "refresh_seconds"]
+
+    def validate_refresh_seconds(self, value):
+        # Mirrors the model's documented floor — without it a 1s interval from
+        # the dashboard would have every open tab polling the API once a
+        # second.
+        if value < 15:
+            raise serializers.ValidationError("أقل زمن تحديث مسموح به 15 ثانية.")
+        return value

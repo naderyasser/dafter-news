@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import StatusBadge from "@/components/dashboard/StatusBadge";
-import { apiMutate } from "@/lib/api";
+import { dashMutate } from "@/lib/api";
 import type { Comment } from "@/lib/types";
 
 const STATUS_KEY: Record<Comment["status"], string> = { pending: "review", approved: "active", banned: "rejected" };
@@ -15,7 +15,7 @@ export default function CommentsManager({ comments: initial }: { comments: Comme
   const setStatus = async (id: number, status: Comment["status"]) => {
     setComments((cs) => cs.map((c) => (c.id === id ? { ...c, status } : c)));
     try {
-      await apiMutate(`/comments/${id}/`, "PATCH", { status });
+      await dashMutate(`/comments/${id}/`, "PATCH", { status });
     } catch {}
   };
 

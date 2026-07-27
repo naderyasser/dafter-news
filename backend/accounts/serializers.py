@@ -4,18 +4,55 @@ from .models import Follow, SavedArticle, User
 
 
 class AuthorSerializer(serializers.ModelSerializer):
-    """Public-facing author card (Authors.dc.html / AuthorPage.dc.html)."""
+    """
+    Public-facing author card (Authors.dc.html / AuthorPage.dc.html) and the
+    write shape behind the dashboard's «كتّاب الرأي» panel.
+
+    `name` is read-only and derived from first/last name, so the dashboard
+    sends `first_name`/`last_name` to rename someone. Both are write-only
+    here to keep the public payload the same shape it has always been.
+    """
 
     name = serializers.CharField(source="display_name", read_only=True)
     initial = serializers.CharField(read_only=True)
     article_count = serializers.SerializerMethodField()
+    opinion_count = serializers.SerializerMethodField()
+    first_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    last_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    # Only needed on create; PATCHes from the panel leave it out.
+    username = serializers.CharField(required=False)
 
     class Meta:
         model = User
-        fields = ["id", "username", "name", "initial", "bio", "title", "avatar", "article_count", "date_joined"]
+        fields = [
+            "id", "username", "name", "first_name", "last_name", "initial", "bio", "title",
+            "avatar", "is_hidden", "article_count", "opinion_count", "date_joined",
+        ]
 
     def get_article_count(self, obj):
         return obj.articles.filter(status="published").count()
+
+    def get_opinion_count(self, obj):
+        """What the «بالعقل والمنطق» card counts — opinion pieces, not bylines."""
+        return obj.articles.filter(kind="opinion").count()
+
+    def create(self, validated_data):
+        # A columnist created from the dashboard is an author account with no
+        # usable password — same posture as UserCreateSerializer, so the row
+        # can't be signed into until someone runs a set/reset flow.
+        validated_data.setdefault("role", User.Role.AUTHOR)
+        user = User(**validated_data)
+        user.set_unusable_password()
+        user.save()
+        return user
+
+    def validate_username(self, value):
+        qs = User.objects.filter(username=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("اسم المستخدم مأخوذ بالفعل.")
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):

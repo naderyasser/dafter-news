@@ -6,7 +6,12 @@ from .serializers import MediaAssetSerializer
 
 
 class MediaAssetViewSet(viewsets.ModelViewSet):
-    queryset = MediaAsset.objects.all()
+    # select_related so the grid's per-tile article link doesn't fire a query
+    # per row.
+    queryset = MediaAsset.objects.select_related("article").all()
     serializer_class = MediaAssetSerializer
     permission_classes = [ReadOnlyOrStaff]
-    search_fields = ["alt", "credit"]
+    # Drives the library's search box (?search=…) — SearchFilter is on by
+    # default in REST_FRAMEWORK, so listing the columns here is all it takes.
+    search_fields = ["title", "alt", "credit", "source", "article__title"]
+    filterset_fields = ["license", "article"]
