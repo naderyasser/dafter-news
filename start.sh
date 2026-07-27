@@ -10,8 +10,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
-BACKEND_PORT="${BACKEND_PORT:-8000}"
-FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+# This box is shared with other apps — 8000 is wasla-backend.service and 3000
+# is ELECTRQ. The kill step below frees whatever holds our ports, so defaulting
+# to 8000/3000 would take those neighbours down every run. Keep these off the
+# common ports; override with BACKEND_PORT=… FRONTEND_PORT=… ./start.sh
+BACKEND_PORT="${BACKEND_PORT:-8891}"
+FRONTEND_PORT="${FRONTEND_PORT:-3891}"
 
 # --check: جهّز، تأكد أن الخادمين يستجيبان، ثم اخرج بدل الانتظار.
 # للاستخدام في CI أو للتأكد السريع أن البيئة سليمة.
@@ -35,12 +39,25 @@ ok "python $(python3 -V | cut -d' ' -f2) · node $(node -v)"
 
 # المنافذ مشغولة؟ ده أكثر سبب يخلي الموقع "مش بيفتح": خادم قديم ماسك المنفذ
 # وبيقدّم نسخة قديمة، أو الخادم الجديد بيموت في صمت.
+# Only ever kill our own leftovers. This used to kill -9 anything on the port,
+# which on a shared box means killing a stranger's production service because
+# our default happened to collide with theirs.
 for PORT in "$BACKEND_PORT" "$FRONTEND_PORT"; do
-  if command -v lsof >/dev/null && lsof -ti tcp:"$PORT" >/dev/null 2>&1; then
-    warn "المنفذ $PORT مشغول — سيتم إنهاء العملية القديمة"
-    lsof -ti tcp:"$PORT" | xargs kill -9 2>/dev/null || true
-    sleep 1
-  fi
+  command -v lsof >/dev/null || continue
+  for PID in $(lsof -ti tcp:"$PORT" 2>/dev/null); do
+    PID_CWD="$(readlink -f "/proc/$PID/cwd" 2>/dev/null || echo '')"
+    case "$PID_CWD" in
+      "$ROOT"|"$ROOT"/*)
+        warn "المنفذ $PORT ماسكه خادم قديم من نفس المشروع (pid $PID) — سيتم إنهاؤه"
+        kill -9 "$PID" 2>/dev/null || true
+        sleep 1
+        ;;
+      *)
+        die "المنفذ $PORT مشغول بعملية من خارج المشروع (pid $PID — ${PID_CWD:-غير معروف}).
+    لن يتم إنهاؤها. شغّل على منفذ آخر:  BACKEND_PORT=… FRONTEND_PORT=… ./start.sh"
+        ;;
+    esac
+  done
 done
 
 # ------------------------------------------------------------------ الخلفية
