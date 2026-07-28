@@ -76,11 +76,20 @@ class Command(BaseCommand):
         ]
         created = {}
         for username, first, last, name_en, role, title in people:
+            # is_staff must match UserCreateSerializer/UserSerializer's rule
+            # (accounts/serializers.py): staff for every role except AUTHOR.
+            # This used to be ADMIN/EDITOR only, which left a seeded
+            # «مشرف تعليقات» unable to do the one thing the role exists for —
+            # PublicSubmission gates the moderation queue on is_staff, not on
+            # role. NB the permission classes in aldaftar/permissions.py have
+            # no per-role granularity, so is_staff currently means "full
+            # newsroom write access"; narrowing a moderator to comments alone
+            # needs a real per-role policy, not a different flag here.
             user, _ = User.objects.update_or_create(
                 username=username,
                 defaults=dict(
                     first_name=first, last_name=last, name_en=name_en, role=role, title=title,
-                    bio=title, email=f"{username}@aldaftarnews.com", is_staff=role in (User.Role.ADMIN, User.Role.EDITOR),
+                    bio=title, email=f"{username}@aldaftarnews.com", is_staff=role != User.Role.AUTHOR,
                     is_superuser=(role == User.Role.ADMIN),
                 ),
             )
@@ -636,7 +645,13 @@ class Command(BaseCommand):
             if rest:
                 video.comments.all().delete()
                 for name, text in rest[0]:
-                    VideoComment.objects.create(video=video, name=name, text=text)
+                    # Demo comments are meant to show up on the seeded video
+                    # page immediately, same as before VideoComment grew a
+                    # moderation status (default pending) — approve them
+                    # rather than seeding a queue of invisible comments.
+                    VideoComment.objects.create(
+                        video=video, name=name, text=text, status=VideoComment.Status.APPROVED,
+                    )
 
     # ------------------------------------------------------------------- live
     def seed_live(self):

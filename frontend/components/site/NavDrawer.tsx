@@ -33,6 +33,9 @@ const T = {
   },
 };
 
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 /**
  * Slide-out navigation drawer opened from the masthead hamburger.
  *
@@ -87,7 +90,39 @@ export default function NavDrawer({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        return;
+      }
+      // role="dialog" aria-modal="true" promises that Tab stays inside the
+      // panel. Without this, Tab/Shift+Tab would walk into the portalled-
+      // behind page content, which is only visually hidden by the dimmed
+      // overlay — a keyboard user could activate it while the drawer still
+      // looks modal on screen.
+      if (e.key !== "Tab" || !panelRef.current) return;
+      // Every match is a real nav/link/input the drawer itself renders while
+      // open (no conditionally display:none focusable rows to filter out
+      // here), so a plain selector query is enough — and unlike an
+      // offsetParent-based visibility check, it isn't at the mercy of a test
+      // environment that never computes layout.
+      const focusable = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusable.length === 0) {
+        e.preventDefault();
+        panelRef.current.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first || active === panelRef.current) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else if (active === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";

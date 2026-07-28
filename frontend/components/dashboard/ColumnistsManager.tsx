@@ -152,10 +152,22 @@ export default function ColumnistsManager({
           onSave={async (draft, avatar) => {
             setError("");
             try {
+              // Commit the created author to local state as soon as the create
+              // succeeds — the avatar is a second, independent request, and if
+              // it fails the row must not disappear (it already exists on the
+              // server) nor show a duplicate-username error that isn't what
+              // actually failed.
               const created = await dashMutate<Author>("/authors/", "POST", draft);
-              const withPhoto = avatar ? await uploadAvatar(created.username, avatar) : created;
-              setAuthors((as) => [...as, withPhoto]);
+              setAuthors((as) => [...as, created]);
               setAdding(false);
+              if (avatar) {
+                try {
+                  const withPhoto = await uploadAvatar(created.username, avatar);
+                  setAuthors((as) => as.map((a) => (a.id === withPhoto.id ? withPhoto : a)));
+                } catch {
+                  setError("أُضيف الكاتب لكن تعذّر رفع صورته — أعد المحاولة من «تعديل».");
+                }
+              }
             } catch {
               setError("تعذّر إضافة الكاتب — تأكد أن اسم المستخدم غير مكرر.");
             }
@@ -173,9 +185,19 @@ export default function ColumnistsManager({
             const target = editing;
             setEditing(null);
             try {
+              // Same shape as the add path: apply the successful PATCH to local
+              // state right away so a later avatar-upload failure can't leave
+              // the on-screen table showing stale pre-edit data.
               const saved = await dashMutate<Author>(`/authors/${target.username}/`, "PATCH", draft);
-              const withPhoto = avatar ? await uploadAvatar(saved.username, avatar) : saved;
-              setAuthors((as) => as.map((a) => (a.id === withPhoto.id ? withPhoto : a)));
+              setAuthors((as) => as.map((a) => (a.id === saved.id ? saved : a)));
+              if (avatar) {
+                try {
+                  const withPhoto = await uploadAvatar(saved.username, avatar);
+                  setAuthors((as) => as.map((a) => (a.id === withPhoto.id ? withPhoto : a)));
+                } catch {
+                  setError("حُفظت بيانات الكاتب لكن تعذّر رفع صورته — أعد المحاولة من «تعديل».");
+                }
+              }
             } catch {
               setError("تعذّر حفظ بيانات الكاتب.");
             }

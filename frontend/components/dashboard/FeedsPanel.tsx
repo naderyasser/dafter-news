@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { API_URL } from "@/lib/api";
+import { dashMutate } from "@/lib/api";
 import type { SyncLog } from "@/lib/types";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -40,13 +40,11 @@ export default function FeedsPanel({ logs: initial }: { logs: SyncLog[] }) {
     setBusy(source ?? "all");
     setError("");
     try {
-      const res = await fetch(`${API_URL}/sync-now/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(source ? { source } : {}),
-      });
-      if (!res.ok) throw new Error(String(res.status));
-      setLogs(await res.json());
+      // Goes through dashMutate (not a bare fetch) so the session cookie and
+      // the X-CSRFToken header SessionAuthentication requires on unsafe
+      // methods are both attached — a bare fetch here always came back 403.
+      const updated = await dashMutate<SyncLog[]>("/sync-now/", "POST", source ? { source } : {});
+      setLogs(updated);
     } catch {
       setError("تعذّر تشغيل التحديث — راجع سجلّ الخادم");
     } finally {

@@ -49,16 +49,20 @@ export default function BreakingManager({ items: initial }: { items: BreakingNew
     const i = items.findIndex((x) => x.id === id);
     const j = i + dir;
     if (j < 0 || j >= items.length) return;
-    const before = items;
     const arr = [...items];
     [arr[i], arr[j]] = [arr[j], arr[i]];
-    setItems(arr);
+    // Renumber the whole list rather than PATCHing just the two swapped rows'
+    // raw array indices — that left every other row's `order` untouched, and
+    // since new items are always created with order:0 that quickly produced
+    // duplicate order values (ties broken by -created_at) that silently
+    // reshuffled the strip on the next fetch. Same fix as
+    // TickerManager.move() / TaxonomyManager.move() in this same directory.
+    const renumbered = arr.map((it, idx) => ({ ...it, order: idx + 1 }));
+    const before = items;
+    setItems(renumbered);
     setError("");
     try {
-      await Promise.all([
-        dashMutate(`/breaking/${arr[i].id}/`, "PATCH", { order: i }),
-        dashMutate(`/breaking/${arr[j].id}/`, "PATCH", { order: j }),
-      ]);
+      await Promise.all(renumbered.map((it) => dashMutate(`/breaking/${it.id}/`, "PATCH", { order: it.order })));
     } catch {
       setItems(before);
       fail("إعادة الترتيب");

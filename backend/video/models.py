@@ -50,10 +50,23 @@ class Video(models.Model):
 
 
 class VideoComment(models.Model):
+    """
+    Moderation queue row for a video's comment thread — same posture as
+    content.Comment: a reader may submit without an account, but the row
+    isn't shown on the public video page until staff approve it (see
+    VideoCommentViewSet.perform_create and VideoDetailSerializer.get_comments).
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "معلّق"
+        APPROVED = "approved", "مقبول"
+        BANNED = "banned", "محظور"
+
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name="comments")
     name = models.CharField(max_length=80, default="زائر")
     initial = models.CharField(max_length=2, blank=True)
     text = models.TextField()
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

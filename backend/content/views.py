@@ -63,7 +63,13 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
         .order_by("-published_at", "-created_at", "-pk")
     )
     permission_classes = [ReadOnlyOrStaff]
-    filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug", "pinned"]
+    # author__username lets the author bio page ask the API for "this
+    # author's articles" directly. Before this, app/authors/[username]/page.tsx
+    # worked around the missing filter by fetching the site's 12 most recent
+    # articles and filtering them client-side by author_username — so any
+    # author whose latest piece wasn't in that global top-12 got an empty
+    # "مقالات الكاتب" block despite article_count showing a nonzero total.
+    filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug", "pinned", "author__username"]
     search_fields = ["title", "standfirst"]
     ordering_fields = ["published_at", "views", "created_at", "comment_count"]
     lookup_field = "slug"
@@ -76,8 +82,23 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
         return ArticleDetailSerializer
 
     def get_queryset(self):
+        """
+        Non-staff callers only ever see published articles.
+
+        This used to gate on `self.action == "list"`, which left `retrieve`
+        (and therefore SlugOrPkLookupMixin.get_object, used by every detail
+        route) completely unfiltered — an anonymous GET on a draft/review/
+        scheduled article's slug or id returned the full body. The list-time
+        filter was also only an *opt-out*: any `?status=` value at all (not
+        just a staff-intended one) skipped it, since django-filter applies
+        the `status` filterset field afterwards regardless. Scope the
+        published-only restriction to the caller's staff status instead, on
+        every action, and let staff keep using `?status=` to pick a status.
+        """
         qs = super().get_queryset()
-        if self.action == "list" and "status" not in self.request.query_params:
+        user = self.request.user
+        is_staff = user.is_authenticated and (user.is_staff or user.is_superuser)
+        if not is_staff:
             qs = qs.filter(status=Article.Status.PUBLISHED)
         return qs
 
@@ -97,6 +118,10 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
             )
             .exclude(pk=article.pk)
             .select_related("section", "author")
+            # Mirror ArticleViewSet.queryset's annotation — without it,
+            # ArticleCardSerializer.comment_count has nothing to read and
+            # silently falls back to its default of 0 for every card here.
+            .annotate(comment_count=Count("comments", distinct=True))
         )
 
         tag_ids = list(article.tags.values_list("id", flat=True))

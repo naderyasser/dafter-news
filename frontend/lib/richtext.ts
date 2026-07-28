@@ -23,10 +23,74 @@
 /** A run of body text, optionally coloured. */
 export type Segment = { text: string; color?: string; background?: string };
 
-/** `{c:#RRGGBB|…}` = text colour, `{h:#RRGGBB|…}` = highlight. */
-const INLINE = /\{([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\|([^{}]*)\}/g;
+/** One `kind:#hex|` prefix segment — the building block of a token. */
+const PAIR_SRC = "[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\|";
+const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\|`, "g");
+
+/**
+ * `{c:#RRGGBB|…}` = text colour, `{h:#RRGGBB|…}` = highlight, and the two can
+ * stack on the same run as `{c:#RRGGBB|h:#RRGGBB|…}` — one token, one or more
+ * `kind:color|` prefixes, then the text. Stacking is what lets an editor
+ * colour a word and then highlight it without re-selecting (see
+ * TextColorToolbar's apply()); it has to be one token rather than a nested
+ * `{c:…|{h:…|…}}` pair because the inner group below (`[^{}]*`) — deliberately,
+ * so stray braces in body text can't be mistaken for markup — cannot match
+ * across a nested brace, which used to leak the outer wrapper as literal text.
+ */
+const INLINE = new RegExp(`\\{((?:${PAIR_SRC})+)([^{}]*)\\}`, "g");
+
+/**
+ * One level of `{kind:color|{kind:color|text}}` nesting — the shape a stale
+ * textarea selection could produce before apply() started merging into a
+ * single token instead — collapsed into the stacked form INLINE understands.
+ * Looped so already-published bodies written by the old code render
+ * correctly without a data migration.
+ */
+const NESTED = new RegExp(`\\{((?:${PAIR_SRC})+)\\{((?:${PAIR_SRC})+)([^{}]*)\\}\\}`, "g");
+
+function unnestTokens(text: string): string {
+  let out = text;
+  for (let i = 0; i < 5; i++) {
+    const next = out.replace(NESTED, "{$1$2$3}");
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+}
 
 export const COLOR_OPEN = (kind: "c" | "h", color: string) => `{${kind}:${color}|`;
+
+/**
+ * Re-applying a colour/highlight to a selection that a previous apply() left
+ * selected (TextColorToolbar re-selects the just-wrapped text so a colour can
+ * be followed by a highlight without re-selecting) used to wrap a brand-new
+ * `{kind:color|…}` *inside* that existing token. Detects that case — the text
+ * right before `start` ends an open token and the text right after `end` is
+ * its closing brace — and folds the new kind/colour into the same token
+ * instead of nesting a second one. Returns null when the selection isn't
+ * sitting inside an existing token, so the caller falls back to a plain wrap.
+ */
+export function mergeColorWrap(
+  value: string,
+  start: number,
+  end: number,
+  kind: "c" | "h",
+  color: string,
+): { next: string; selStart: number; selEnd: number } | null {
+  const openAt = new RegExp(`\\{((?:${PAIR_SRC})+)$`).exec(value.slice(0, start));
+  if (!openAt || value[end] !== "}") return null;
+
+  const pairs = new Map<string, string>();
+  for (const p of openAt[1].matchAll(PAIR)) pairs.set(p[1], p[2]);
+  pairs.set(kind, color);
+  const newPrefix = Array.from(pairs, ([k, c]) => `${k}:${c}|`).join("");
+
+  const openStart = start - openAt[0].length;
+  const selected = value.slice(start, end);
+  const next = value.slice(0, openStart) + "{" + newPrefix + selected + "}" + value.slice(end + 1);
+  const selStart = openStart + 1 + newPrefix.length;
+  return { next, selStart, selEnd: selStart + selected.length };
+}
 
 /**
  * Split text into coloured and uncoloured runs.
@@ -37,22 +101,30 @@ export const COLOR_OPEN = (kind: "c" | "h", color: string) => `{${kind}:${color}
  */
 export function parseInline(text: string): Segment[] {
   if (!text) return [];
+  const normalised = unnestTokens(text);
   const out: Segment[] = [];
   let last = 0;
-  for (const m of text.matchAll(INLINE)) {
+  for (const m of normalised.matchAll(INLINE)) {
     const at = m.index ?? 0;
-    if (at > last) out.push({ text: text.slice(last, at) });
-    const [, kind, color, inner] = m;
-    if (inner) out.push(kind === "c" ? { text: inner, color } : { text: inner, background: color });
+    if (at > last) out.push({ text: normalised.slice(last, at) });
+    const [, prefix, inner] = m;
+    if (inner) {
+      const seg: Segment = { text: inner };
+      for (const p of prefix.matchAll(PAIR)) {
+        if (p[1] === "c") seg.color = p[2];
+        else seg.background = p[2];
+      }
+      out.push(seg);
+    }
     last = at + m[0].length;
   }
-  if (last < text.length) out.push({ text: text.slice(last) });
-  return out.length ? out : [{ text }];
+  if (last < normalised.length) out.push({ text: normalised.slice(last) });
+  return out.length ? out : [{ text: normalised }];
 }
 
 /** Markup-free length, for word counts that shouldn't see the tokens. */
 export function stripInline(text: string): string {
-  return text.replace(INLINE, "$3");
+  return unnestTokens(text).replace(INLINE, "$2");
 }
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;

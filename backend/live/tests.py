@@ -1,8 +1,11 @@
 """Tests for the live stream and its «التغطية لحظة بلحظة» timeline."""
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from live.models import LiveStream, LiveUpdate
+
+User = get_user_model()
 
 
 class LiveModelTests(TestCase):
@@ -27,6 +30,8 @@ class LiveAPITests(APITestCase):
     def setUp(self):
         self.stream = LiveStream.objects.create(title="تغطية لحظية: مؤتمر البنك المركزي", is_live=True)
         LiveUpdate.objects.create(stream=self.stream, time_label="12:41", text="محافظ البنك يبدأ كلمته")
+        self.staff = User.objects.create(username="live-staff", is_staff=True)
+        self.client.force_authenticate(self.staff)
 
     def test_list_embeds_updates(self):
         res = self.client.get("/api/live-streams/")

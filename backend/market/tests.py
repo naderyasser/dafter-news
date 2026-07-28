@@ -3,10 +3,13 @@
 Per brief §11 everything is served from one /api/ticker/ endpoint so the
 sticky bar, the markets page and the dashboard all read the same payload.
 """
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from market.models import Currency, GoldKarat, TickerModule, WeatherCity
+
+User = get_user_model()
 
 
 class MarketModelTests(TestCase):
@@ -92,9 +95,11 @@ class TickerEndpointTests(APITestCase):
 class TickerModuleAPITests(APITestCase):
     def test_reorder_and_toggle(self):
         module = TickerModule.objects.create(key="gold", label="الذهب", active=True, order=2)
+        self.client.force_authenticate(User.objects.create(username="ticker-staff", is_staff=True))
 
-        self.client.patch(f"/api/ticker-modules/{module.pk}/", {"order": 1, "active": False}, format="json")
+        res = self.client.patch(f"/api/ticker-modules/{module.pk}/", {"order": 1, "active": False}, format="json")
 
+        self.assertEqual(res.status_code, 200)
         module.refresh_from_db()
         self.assertEqual(module.order, 1)
         self.assertFalse(module.active)

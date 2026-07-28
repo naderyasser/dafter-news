@@ -133,16 +133,58 @@ class ArticleAPITests(APITestCase):
         self.assertNotIn("draft-one", slugs)
 
     def test_list_returns_requested_status(self):
+        """Only a staff caller may opt into ?status= — see
+        test_anonymous_status_param_does_not_leak_drafts for the flip side."""
+        staff = User.objects.create(username="dash-staff", is_staff=True)
+        self.client.force_authenticate(staff)
+
         res = self.client.get("/api/articles/?status=draft")
 
         slugs = [a["slug"] for a in res.json()["results"]]
         self.assertEqual(slugs, ["draft-one"])
+
+    def test_anonymous_status_param_does_not_leak_drafts(self):
+        """regression: the list-time published-only filter used to be an
+        opt-out — any ?status= value at all (not just a staff-intended one)
+        skipped it, since django-filter applies the filterset field
+        afterwards regardless. An anonymous ?status=draft must come back
+        empty, not hand over every draft in the database."""
+        res = self.client.get("/api/articles/?status=draft")
+
+        self.assertEqual(res.json()["results"], [])
+
+    def test_anonymous_retrieve_of_a_draft_404s(self):
+        """regression: get_queryset() only ever restricted the `list` action
+        to published articles — `retrieve` (used by both slug and numeric-id
+        lookups) applied no filter at all, so an anonymous GET on a draft's
+        slug or id returned the full unpublished body."""
+        by_slug = self.client.get(f"/api/articles/{self.draft.slug}/")
+        by_id = self.client.get(f"/api/articles/{self.draft.pk}/")
+
+        self.assertEqual(by_slug.status_code, 404)
+        self.assertEqual(by_id.status_code, 404)
 
     def test_filter_by_section_key(self):
         other = Section.objects.create(key="sports", name_ar="رياضة")
         Article.objects.create(title="رياضة", slug="sport-one", section=other, status=Article.Status.PUBLISHED)
 
         res = self.client.get("/api/articles/?section__key=egypt")
+
+        self.assertEqual([a["slug"] for a in res.json()["results"]], ["published-one"])
+
+    def test_filter_by_author_username(self):
+        """regression: there was no way to ask the API for "this author's
+        articles" at all — app/authors/[username]/page.tsx worked around it by
+        fetching the site's 12 most recent articles and filtering client-side,
+        so an author whose latest piece fell outside that global top-12 got an
+        empty author page despite having published plenty."""
+        other_author = User.objects.create(username="other-writer", first_name="كاتب", last_name="آخر", role=User.Role.AUTHOR)
+        Article.objects.create(
+            title="مقال لكاتب آخر", slug="other-writer-one", section=self.section,
+            author=other_author, status=Article.Status.PUBLISHED, published_at=timezone.now(),
+        )
+
+        res = self.client.get("/api/articles/", {"author__username": self.author.username})
 
         self.assertEqual([a["slug"] for a in res.json()["results"]], ["published-one"])
 
@@ -251,6 +293,8 @@ class ArticleAPITests(APITestCase):
 class ArticleWriteAPITests(APITestCase):
     def setUp(self):
         self.section = Section.objects.create(key="egypt", name_ar="مصر")
+        self.staff = User.objects.create(username="editor-staff", is_staff=True)
+        self.client.force_authenticate(self.staff)
 
     def test_create_without_slug_derives_one(self):
         """regression: the editor no longer sends a slug at all, because the
@@ -292,6 +336,21 @@ class ArticleWriteAPITests(APITestCase):
         tag = Tag.objects.get(name="كرة القدم")
         self.assertTrue(tag.slug)
         self.assertNotEqual(tag.slug, "")
+
+    def test_tag_name_with_slash_gets_a_routable_slug(self):
+        """regression: _sync_tags used to build a new tag's slug with
+        `name.replace(" ", "-")` instead of slugify(allow_unicode=True), so a
+        tag name containing "/" (no spaces, so the replace is a no-op) was
+        stored with the slash verbatim — an unroutable slug, since DRF's
+        router segment pattern excludes "/". The detail route must resolve."""
+        res = self.client.post("/api/articles/", {"title": "مقال", "tag_names": ["قسم/فرعي"]}, format="json")
+        self.assertEqual(res.status_code, 201, res.data)
+
+        tag = Tag.objects.get(name="قسم/فرعي")
+        self.assertNotIn("/", tag.slug)
+
+        detail = self.client.get(f"/api/tags/{tag.slug}/")
+        self.assertEqual(detail.status_code, 200)
 
     def test_update_replaces_blocks(self):
         article = Article.objects.create(title="مقال", slug="a1")
@@ -350,6 +409,24 @@ class ArticleBlockTests(TestCase):
 class CommentAPITests(APITestCase):
     def setUp(self):
         self.article = Article.objects.create(title="مقال", slug="c1", status=Article.Status.PUBLISHED)
+        # PublicSubmission allows anonymous POST only — moderation queue
+        # reads/edits are staff work.
+        self.staff = User.objects.create(username="mod-staff", is_staff=True)
+        self.client.force_authenticate(self.staff)
+
+    def test_public_submission_is_pinned_to_pending(self):
+        """A reader may submit without an account (PublicSubmission), but a
+        POST carrying status="approved" must never skip the queue."""
+        self.client.force_authenticate(user=None)
+
+        res = self.client.post(
+            "/api/comments/",
+            {"article": self.article.pk, "user_name": "قارئ", "text": "تعليق", "status": "approved"},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(Comment.objects.get(pk=res.json()["id"]).status, Comment.Status.PENDING)
 
     def test_filter_by_status(self):
         Comment.objects.create(article=self.article, user_name="أ", text="1", status=Comment.Status.PENDING)
@@ -387,6 +464,8 @@ class BreakingNewsAPITests(APITestCase):
         self.assertEqual([i["text"] for i in res.json()["results"]], ["أول", "ثالث"])
 
     def test_create_and_toggle(self):
+        self.client.force_authenticate(User.objects.create(username="breaking-staff", is_staff=True))
+
         res = self.client.post(
             "/api/breaking/",
             {"text": "خبر عاجل", "order": 0, "active": True, "expires_at": timezone.now().isoformat()},
@@ -405,6 +484,9 @@ class DashboardOverviewTests(APITestCase):
     def setUp(self):
         from siteconfig.models import DailyVisit
         from video.models import Video
+
+        self.staff = User.objects.create(username="overview-staff", is_staff=True)
+        self.client.force_authenticate(self.staff)
 
         section = Section.objects.create(key="egypt", name_ar="مصر")
         author = User.objects.create(username="author1", first_name="كاتب", role=User.Role.AUTHOR)
@@ -525,6 +607,8 @@ class StoryAPITests(APITestCase):
         self.assertEqual(res.json()["results"][0]["section_name"], "ثقافة وفن")
 
     def test_create_and_reorder(self):
+        self.client.force_authenticate(User.objects.create(username="stories-staff", is_staff=True))
+
         res = self.client.post("/api/stories/", {"title": "قصة جديدة", "order": 9, "active": True}, format="json")
         self.assertEqual(res.status_code, 201)
 

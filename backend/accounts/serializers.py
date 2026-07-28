@@ -64,6 +64,16 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "username", "name", "email", "role", "last_login", "is_active", "date_joined"]
 
+    def update(self, instance, validated_data):
+        user = super().update(instance, validated_data)
+        if "role" in validated_data:
+            # Every write permission in aldaftar/permissions.py checks
+            # is_staff, never role — without this, changing someone's role
+            # away from "author" here left them just as powerless as before.
+            user.is_staff = user.role != User.Role.AUTHOR
+            user.save(update_fields=["is_staff"])
+        return user
+
 
 class UserCreateSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
@@ -74,6 +84,13 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop("password", None)
+        # is_staff is what every ReadOnlyOrStaff/StaffOnly/PublicSubmission
+        # gate actually checks (see aldaftar/permissions.py), never role — a
+        # newsroom account (editor/moderator/admin) created here without it
+        # could authenticate but do nothing: not publish, not moderate, not
+        # touch a single staff-gated endpoint. "author" is the byline-only
+        # columnist posture (see AuthorSerializer.create()) and stays non-staff.
+        validated_data["is_staff"] = validated_data.get("role", User.Role.AUTHOR) != User.Role.AUTHOR
         user = User(**validated_data)
         if password:
             user.set_password(password)
@@ -114,7 +131,17 @@ class FollowSerializer(serializers.ModelSerializer):
         fields = ["id", "section", "author", "section_key", "section_name", "author_username", "author_name", "created_at"]
 
     def validate(self, attrs):
-        if bool(attrs.get("section")) == bool(attrs.get("author")):
+        # A PATCH only carries the keys the caller actually sent — falling
+        # back to the *existing* instance for anything missing means we
+        # validate the row's resulting merged state, not just the submitted
+        # partial body. Without this, PATCHing just {"section": <id>} onto a
+        # Follow that already has `author` set passes this check (attrs has
+        # no "author" key at all) and then crashes with an IntegrityError
+        # against the follow_targets_exactly_one CheckConstraint instead of
+        # a clean 400.
+        section = attrs["section"] if "section" in attrs else getattr(self.instance, "section", None)
+        author = attrs["author"] if "author" in attrs else getattr(self.instance, "author", None)
+        if bool(section) == bool(author):
             raise serializers.ValidationError("اختر قسماً أو كاتباً — واحداً فقط.")
         return attrs
 

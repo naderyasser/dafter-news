@@ -1,9 +1,12 @@
 """Tests for the لقطة وتعليق video section and its comment thread."""
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from content.models import Section
 from video.models import Video, VideoComment
+
+User = get_user_model()
 
 
 class VideoModelTests(TestCase):
@@ -69,11 +72,32 @@ class VideoAPITests(APITestCase):
         self.assertEqual(row["section_name"], "اقتصاد")
 
     def test_detail_by_slug_embeds_comments(self):
-        VideoComment.objects.create(video=self.video, name="سارة", text="تعليق")
+        VideoComment.objects.create(video=self.video, name="سارة", text="تعليق", status=VideoComment.Status.APPROVED)
 
         res = self.client.get("/api/videos/factory-tour/")
 
         self.assertEqual(res.status_code, 200)
+        self.assertEqual(len(res.json()["comments"]), 1)
+
+    def test_pending_comments_are_hidden_from_the_public_detail(self):
+        """regression: VideoComment had no moderation/status field at all,
+        so any anonymous POST to /api/video-comments/ was published on the
+        video page instantly with no approval step, unlike article
+        comments. A pending comment must not appear to an anonymous caller."""
+        VideoComment.objects.create(video=self.video, name="مجهول", text="سبام", status=VideoComment.Status.PENDING)
+
+        res = self.client.get("/api/videos/factory-tour/")
+
+        self.assertEqual(res.json()["comments"], [])
+
+    def test_staff_sees_pending_comments_on_the_detail_view(self):
+        """Staff moderating the video page need to see the pending queue
+        alongside what's already approved, not just the public view."""
+        VideoComment.objects.create(video=self.video, name="مجهول", text="سبام", status=VideoComment.Status.PENDING)
+        self.client.force_authenticate(User.objects.create(username="video-staff-4", is_staff=True))
+
+        res = self.client.get("/api/videos/factory-tour/")
+
         self.assertEqual(len(res.json()["comments"]), 1)
 
     def test_detail_by_numeric_id(self):
@@ -85,6 +109,8 @@ class VideoAPITests(APITestCase):
         self.assertEqual(res.json()["slug"], "factory-tour")
 
     def test_patch_toggle_by_numeric_id(self):
+        self.client.force_authenticate(User.objects.create(username="video-staff-1", is_staff=True))
+
         res = self.client.patch(f"/api/videos/{self.video.pk}/", {"is_exclusive": False}, format="json")
 
         self.assertEqual(res.status_code, 200)
@@ -92,6 +118,8 @@ class VideoAPITests(APITestCase):
         self.assertFalse(self.video.is_exclusive)
 
     def test_patch_toggle_by_slug(self):
+        self.client.force_authenticate(User.objects.create(username="video-staff-2", is_staff=True))
+
         res = self.client.patch("/api/videos/factory-tour/", {"is_live": True}, format="json")
 
         self.assertEqual(res.status_code, 200)
@@ -113,10 +141,42 @@ class VideoAPITests(APITestCase):
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.json()["initial"], "ن")
 
+    def test_anonymous_post_is_pinned_to_pending(self):
+        """regression: an anonymous submission used to be published on the
+        video page the instant it was created — perform_create must force
+        it to pending even if the client tries to send another status."""
+        res = self.client.post(
+            "/api/video-comments/",
+            {"video": self.video.pk, "name": "زائر", "text": "تعليق", "status": VideoComment.Status.APPROVED},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201)
+        comment = VideoComment.objects.get(pk=res.json()["id"])
+        self.assertEqual(comment.status, VideoComment.Status.PENDING)
+
+    def test_staff_post_can_publish_directly(self):
+        """A moderator adding a comment from the dashboard queue should be
+        able to set the status explicitly rather than always landing pending."""
+        self.client.force_authenticate(User.objects.create(username="video-staff-5", is_staff=True))
+
+        res = self.client.post(
+            "/api/video-comments/",
+            {"video": self.video.pk, "name": "محرر", "text": "تعليق رسمي", "status": VideoComment.Status.APPROVED},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201)
+        comment = VideoComment.objects.get(pk=res.json()["id"])
+        self.assertEqual(comment.status, VideoComment.Status.APPROVED)
+
     def test_comments_can_be_filtered_by_video(self):
+        """PublicSubmission allows anonymous POST only — listing/filtering
+        the comment thread (GET) is staff work, same as content.Comment."""
         other = Video.objects.create(title="آخر", slug="other-v2")
         VideoComment.objects.create(video=self.video, name="أ", text="1")
         VideoComment.objects.create(video=other, name="ب", text="2")
+        self.client.force_authenticate(User.objects.create(username="video-staff-3", is_staff=True))
 
         res = self.client.get(f"/api/video-comments/?video={self.video.pk}")
 

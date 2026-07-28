@@ -14,7 +14,12 @@ export const revalidate = 30;
 
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
   const article = await getArticle(params.slug);
-  if (!article || article.kind !== "news") notFound();
+  // status is re-checked here even though the API already scopes anonymous
+  // reads to published articles: this keeps a draft/scheduled/rejected story
+  // from rendering in full if the API ever forwards a staff session (see
+  // lib/api.ts's serverCookieHeader) into a fetch cached for every anonymous
+  // visitor for the rest of this page's revalidate window.
+  if (!article || article.kind !== "news" || article.status !== "published") notFound();
 
   // Related by shared tags (people/topics) first, section recency as the
   // fallback — computed by /related/ so every surface ranks the same way.

@@ -1,12 +1,17 @@
 """Tests for site settings (a singleton) and the daily-visit series that
 feeds the dashboard's 7-day chart."""
 import datetime
+from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
-from siteconfig.models import DailyVisit, SiteSettings, SocialLink, WelcomeAlert
+from siteconfig.models import DailyVisit, PushSubscription, SiteSettings, SocialLink, WelcomeAlert
+from siteconfig.push import MAX_FAILURES, send_to_all
+
+User = get_user_model()
 
 
 class SiteSettingsSingletonTests(TestCase):
@@ -52,6 +57,10 @@ class DailyVisitTests(TestCase):
 
 
 class SiteSettingsAPITests(APITestCase):
+    def setUp(self):
+        self.staff = User.objects.create(username="settings-staff", is_staff=True)
+        self.client.force_authenticate(self.staff)
+
     def test_get_returns_settings_and_social_links(self):
         settings_obj = SiteSettings.load()
         settings_obj.site_name = "الدفتر نيوز"
@@ -122,6 +131,10 @@ class WelcomeAlertTests(TestCase):
 
 
 class WelcomeAlertAPITests(APITestCase):
+    def setUp(self):
+        self.staff = User.objects.create(username="alert-staff", is_staff=True)
+        self.client.force_authenticate(self.staff)
+
     def test_get_creates_the_row_on_first_call(self):
         WelcomeAlert.objects.all().delete()
 
@@ -159,3 +172,45 @@ class WelcomeAlertAPITests(APITestCase):
         alert = WelcomeAlert.load()
         self.assertFalse(alert.active)
         self.assertEqual(alert.title, "خبر")
+
+
+class PushBroadcastTests(TestCase):
+    """send_to_all()'s per-subscription failure handling."""
+
+    def setUp(self):
+        configured_patch = patch("siteconfig.push.configured", return_value=True)
+        configured_patch.start()
+        self.addCleanup(configured_patch.stop)
+
+    def test_non_webpush_exception_is_counted_and_eventually_pruned(self):
+        """regression: only the WebPushException branch touched
+        failure_count/pruning. Any other exception (timeouts, connection
+        errors, ...) landed in the bare `except Exception` and just did
+        `failed += 1` — a systematically broken subscription never got
+        pruned and never showed up anywhere. Reaching MAX_FAILURES via this
+        path must prune the row exactly like a bad WebPush status code does."""
+        sub = PushSubscription.objects.create(
+            endpoint="https://push.example.com/near-limit", p256dh="k", auth="a",
+            failure_count=MAX_FAILURES - 1,
+        )
+
+        with patch("siteconfig.push.webpush", side_effect=ConnectionError("boom")):
+            sent, failed, pruned = send_to_all("عاجل", "خبر")
+
+        self.assertEqual((sent, failed, pruned), (0, 1, 1))
+        self.assertFalse(PushSubscription.objects.filter(pk=sub.pk).exists())
+
+    def test_non_webpush_exception_increments_failure_count(self):
+        """Same exception path, but below the prune threshold — the row
+        must survive with its failure streak bumped by one, not silently
+        unchanged."""
+        sub = PushSubscription.objects.create(
+            endpoint="https://push.example.com/fresh", p256dh="k", auth="a", failure_count=0,
+        )
+
+        with patch("siteconfig.push.webpush", side_effect=TimeoutError("slow")):
+            sent, failed, pruned = send_to_all("عاجل", "خبر")
+
+        self.assertEqual((sent, failed, pruned), (0, 1, 0))
+        sub.refresh_from_db()
+        self.assertEqual(sub.failure_count, 1)

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-import { COLOR_OPEN, parseInline } from "@/lib/richtext";
+import { COLOR_OPEN, mergeColorWrap, parseInline } from "@/lib/richtext";
 
 /**
  * Text-colour and highlight controls for a body block — «فين لو عايز الون خبر
@@ -62,6 +62,23 @@ export default function TextColorToolbar({
       window.alert("حدّد النص الذي تريد تلوينه أولاً.");
       return;
     }
+    // If this exact selection is what a previous apply() left selected — the
+    // whole point of the reselect below is letting a colour be followed by a
+    // highlight without re-selecting — fold the new kind/colour into that
+    // same token instead of wrapping a second one inside it. Nesting like
+    // that produces a token the shared parser can't read (see
+    // lib/richtext.ts), which used to leak as literal markup on the public
+    // article page.
+    const merged = mergeColorWrap(value, start, end, kind, color);
+    if (merged) {
+      onChange(merged.next);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.setSelectionRange(merged.selStart, merged.selEnd);
+      });
+      return;
+    }
+
     const selected = value.slice(start, end);
     const next = value.slice(0, start) + COLOR_OPEN(kind, color) + selected + "}" + value.slice(end);
     onChange(next);
@@ -80,7 +97,7 @@ export default function TextColorToolbar({
     if (!el) return;
     const { selectionStart: start, selectionEnd: end } = el;
     const target = start === end ? value : value.slice(start, end);
-    const stripped = target.replace(/\{[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\|([^{}]*)\}/g, "$1");
+    const stripped = target.replace(/\{(?:[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\|)+([^{}]*)\}/g, "$1");
     onChange(start === end ? stripped : value.slice(0, start) + stripped + value.slice(end));
   };
 

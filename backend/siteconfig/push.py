@@ -10,6 +10,7 @@ gets a silent no-op is worse than one who is told the feature is off.
 """
 
 import json
+import logging
 import os
 
 from django.utils import timezone
@@ -23,12 +24,33 @@ from aldaftar.permissions import StaffOnly
 
 from .models import PushSubscription
 
+logger = logging.getLogger(__name__)
+
 VAPID_PUBLIC = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:admin@dafter.educore.software")
 
 # Chrome drops a subscription after ~4 consecutive failures; prune at that point.
 MAX_FAILURES = 4
+
+
+def _record_failure(sub):
+    """
+    Bump a subscription's failure streak, pruning it once it crosses
+    MAX_FAILURES. Shared by every non-success path in send_to_all() so a
+    delivery failure that *isn't* a WebPushException with a bad status code
+    (a timeout, connection error, SSL error, or anything else the underlying
+    `requests` call can raise) is still counted and eventually pruned instead
+    of leaving a permanently-broken subscription invisible forever.
+
+    Returns True if the subscription was pruned.
+    """
+    count = sub.failure_count + 1
+    if count >= MAX_FAILURES:
+        sub.delete()
+        return True
+    PushSubscription.objects.filter(pk=sub.pk).update(failure_count=count)
+    return False
 
 
 def configured():
@@ -108,14 +130,19 @@ def send_to_all(title, body, url="/", tag="breaking"):
                 pruned += 1
             else:
                 failed += 1
-                count = sub.failure_count + 1
-                if count >= MAX_FAILURES:
-                    sub.delete()
+                if _record_failure(sub):
                     pruned += 1
-                else:
-                    PushSubscription.objects.filter(pk=sub.pk).update(failure_count=count)
         except Exception:  # noqa: BLE001 — one bad endpoint must not stop the fan-out
+            # Anything other than WebPushException (timeout, connection
+            # error, ...) used to be swallowed here with no counting and no
+            # logging — a systematically broken subscription, or a wider
+            # environment issue, never got pruned and produced zero
+            # operational signal. Log it and count it exactly like a bad
+            # response status.
+            logger.exception("push delivery failed for subscription %s", sub.pk)
             failed += 1
+            if _record_failure(sub):
+                pruned += 1
 
     return sent, failed, pruned
 

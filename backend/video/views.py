@@ -24,4 +24,19 @@ class VideoCommentViewSet(viewsets.ModelViewSet):
     queryset = VideoComment.objects.select_related("video")
     serializer_class = VideoCommentSerializer
     permission_classes = [PublicSubmission]
-    filterset_fields = ["video"]
+    filterset_fields = ["video", "status"]
+
+    def perform_create(self, serializer):
+        """
+        A reader may submit, never publish — mirrors
+        content.CommentViewSet.perform_create. `status` is writable so staff
+        can moderate from the queue, but anything from a non-staff caller
+        (the public form never sends it, but nothing stopped it before) is
+        pinned to pending rather than appearing on the video page instantly.
+        """
+        user = self.request.user
+        is_staff = user.is_authenticated and (user.is_staff or user.is_superuser)
+        if is_staff:
+            serializer.save()
+        else:
+            serializer.save(status=VideoComment.Status.PENDING)

@@ -36,7 +36,13 @@ function embedUrl(raw: string): string | null {
   }
 }
 
+const T = {
+  ar: { play: "تشغيل", unavailable: "الفيديو غير متاح حالياً", exclusive: "حصري" },
+  en: { play: "Play", unavailable: "This video is currently unavailable", exclusive: "Exclusive" },
+};
+
 export default function VideoPlayer({
+  lang = "ar",
   src,
   externalUrl,
   poster,
@@ -44,6 +50,7 @@ export default function VideoPlayer({
   isExclusive,
   durationLabel,
 }: {
+  lang?: "ar" | "en";
   src?: string;
   externalUrl?: string;
   poster?: string;
@@ -51,6 +58,7 @@ export default function VideoPlayer({
   isExclusive?: boolean;
   durationLabel?: string;
 }) {
+  const t = T[lang];
   const [playing, setPlaying] = useState(false);
   const embed = externalUrl ? embedUrl(externalUrl) : null;
   // An uploaded file wins over a link: it's served from our own origin, so it
@@ -97,7 +105,7 @@ export default function VideoPlayer({
         <button
           type="button"
           onClick={() => setPlaying(true)}
-          aria-label={`تشغيل: ${title}`}
+          aria-label={`${t.play}: ${title}`}
           className="absolute inset-0 flex items-center justify-center"
         >
           <span className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-[rgba(23,26,31,.55)] text-[26px] text-paper transition-colors duration-fast hover:bg-brand">
@@ -109,13 +117,13 @@ export default function VideoPlayer({
         // would do nothing.
         <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-4">
           <span className="rounded-badge bg-[rgba(23,26,31,.7)] px-3 py-1.5 text-xs font-semibold text-paper">
-            الفيديو غير متاح حالياً
+            {t.unavailable}
           </span>
         </div>
       )}
 
       {isExclusive && (
-        <span className="absolute start-3 top-3 rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">حصري</span>
+        <span className="absolute start-3 top-3 rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">{t.exclusive}</span>
       )}
       {durationLabel && durationLabel !== "—" && (
         <span className="tnum absolute bottom-3 start-3 rounded-badge bg-[rgba(23,26,31,.75)] px-2 py-1 text-xs text-paper">
