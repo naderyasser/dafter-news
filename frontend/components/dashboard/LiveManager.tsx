@@ -8,6 +8,7 @@ import type { LiveStream, LiveUpdate } from "@/lib/types";
 export default function LiveManager({ stream: initial }: { stream: LiveStream | null }) {
   const [stream, setStream] = useState(initial);
   const [draft, setDraft] = useState("");
+  const [error, setError] = useState("");
 
   if (!stream) {
     return <div className="rounded-card border border-line bg-paper p-8 text-center text-ui text-ink-3">لا يوجد بث بعد</div>;
@@ -16,34 +17,53 @@ export default function LiveManager({ stream: initial }: { stream: LiveStream | 
   const toggleLive = async () => {
     const next = !stream.is_live;
     setStream((s) => (s ? { ...s, is_live: next } : s));
+    setError("");
     try {
       await dashMutate(`/live-streams/${stream.id}/`, "PATCH", { is_live: next });
-    } catch {}
+    } catch {
+      setStream((s) => (s ? { ...s, is_live: !next } : s));
+      setError(`تعذّر ${next ? "بدء" : "إيقاف"} البث. لم تُحفظ الحالة — حاول مرة أخرى.`);
+    }
   };
 
   const addUpdate = async () => {
     const text = draft.trim();
     if (!text) return;
     setDraft("");
+    setError("");
     const now = new Date();
     const time_label = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
     try {
       const created = await dashMutate<LiveUpdate>("/live-updates/", "POST", { stream: stream.id, time_label, text });
       setStream((s) => (s ? { ...s, updates: [created, ...s.updates] } : s));
     } catch {
-      setStream((s) => (s ? { ...s, updates: [{ id: Date.now(), stream: stream.id, time_label, text, created_at: "" }, ...s.updates] } : s));
+      // Used to insert a fake local update on failure, so a post that never
+      // reached the server still showed up in the timeline — indistinguishable
+      // from one a reader could actually see on the live page.
+      setDraft(text);
+      setError("تعذّر نشر التحديث. لم يُنشر — تحقق من الاتصال وحاول مرة أخرى.");
     }
   };
 
   const removeUpdate = async (id: number) => {
+    const before = stream;
     setStream((s) => (s ? { ...s, updates: s.updates.filter((u) => u.id !== id) } : s));
+    setError("");
     try {
       await dashMutate(`/live-updates/${id}/`, "DELETE");
-    } catch {}
+    } catch {
+      setStream(before);
+      setError("تعذّر حذف التحديث. حاول مرة أخرى.");
+    }
   };
 
   return (
     <div className="flex max-w-[820px] flex-col gap-5">
+      {error ? (
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+          {error}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-line bg-paper p-5">
         <div className="flex items-center gap-3">
           <span className={`h-3 w-3 rounded-full ${stream.is_live ? "animate-pulse-dot bg-badge-breaking" : "bg-header-muted"}`} />

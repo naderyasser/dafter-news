@@ -11,12 +11,18 @@ const STATUS_KEY: Record<Comment["status"], string> = { pending: "review", appro
 export default function CommentsManager({ comments: initial }: { comments: Comment[] }) {
   const [comments, setComments] = useState(initial);
   const [filter, setFilter] = useState<Comment["status"] | "all">("pending");
+  const [error, setError] = useState("");
 
   const setStatus = async (id: number, status: Comment["status"]) => {
+    const before = comments;
     setComments((cs) => cs.map((c) => (c.id === id ? { ...c, status } : c)));
+    setError("");
     try {
       await dashMutate(`/comments/${id}/`, "PATCH", { status });
-    } catch {}
+    } catch {
+      setComments(before);
+      setError("تعذّر تحديث حالة التعليق. لم يُحفظ التغيير — حاول مرة أخرى.");
+    }
   };
 
   const filtered = filter === "all" ? comments : comments.filter((c) => c.status === filter);
@@ -29,6 +35,11 @@ export default function CommentsManager({ comments: initial }: { comments: Comme
 
   return (
     <>
+      {error ? (
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+          {error}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         {chips.map((c) => (
           <button

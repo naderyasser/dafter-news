@@ -23,6 +23,7 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [hoverRow, setHoverRow] = useState<number | null>(null);
+  const [error, setError] = useState("");
 
   const filtered = useMemo(
     () => rows.filter((a) => (statusFilter === "all" || a.status === statusFilter) && (!query.trim() || a.title.includes(query.trim()))),
@@ -31,23 +32,47 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
   const selectedCount = Object.values(selected).filter(Boolean).length;
 
   const toggle = (id: number) => setSelected((s) => ({ ...s, [id]: !s[id] }));
-  const remove = async (id: number) => {
+
+  // A failed delete/publish that stays optimistic looks identical to a
+  // successful one until the next reload — the row is gone (or "published")
+  // in front of the editor, then reappears unpublished after a refresh with
+  // no explanation. Reverting on failure and saying so keeps what's on
+  // screen honest with what's actually saved.
+  const remove = async (id: number, title: string) => {
+    if (!confirm(`حذف «${title}» نهائياً؟`)) return;
+    const before = rows;
     setRows((r) => r.filter((a) => a.id !== id));
+    setError("");
     try {
       await dashMutate(`/articles/${id}/`, "DELETE");
     } catch {
-      // optimistic delete already applied; ignore network errors in this demo build
+      setRows(before);
+      setError(`تعذّر حذف «${title}». لم يُحذف الخبر — حاول مرة أخرى.`);
     }
   };
   const bulkAction = async (action: "publish" | "archive" | "delete") => {
-    const ids = Object.keys(selected).filter((id) => selected[+id]);
-    for (const id of ids) {
-      if (action === "delete") await remove(+id);
-      else if (action === "publish") {
-        setRows((r) => r.map((a) => (a.id === +id ? { ...a, status: "published" } : a)));
-        try {
-          await dashMutate(`/articles/${id}/`, "PATCH", { status: "published" });
-        } catch {}
+    const ids = Object.keys(selected).filter((id) => selected[+id]).map(Number);
+    if (!ids.length) return;
+    if (action === "delete") {
+      if (!confirm(`حذف ${ids.length} خبر نهائياً؟`)) return;
+      const before = rows;
+      setRows((r) => r.filter((a) => !ids.includes(a.id)));
+      setError("");
+      const results = await Promise.allSettled(ids.map((id) => dashMutate(`/articles/${id}/`, "DELETE")));
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed) {
+        setRows(before);
+        setError(`تعذّر حذف ${failed} من ${ids.length} خبر. لم يُحذف أي منها — حاول مرة أخرى.`);
+      }
+    } else if (action === "publish") {
+      const before = rows;
+      setRows((r) => r.map((a) => (ids.includes(a.id) ? { ...a, status: "published" as const } : a)));
+      setError("");
+      const results = await Promise.allSettled(ids.map((id) => dashMutate(`/articles/${id}/`, "PATCH", { status: "published" })));
+      const failed = results.filter((r) => r.status === "rejected").length;
+      if (failed) {
+        setRows(before);
+        setError(`تعذّر نشر ${failed} من ${ids.length} خبر. لم يُنشر أي منها — حاول مرة أخرى.`);
       }
     }
     setSelected({});
@@ -58,6 +83,11 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
 
   return (
     <>
+      {error ? (
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+          {error}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center gap-2.5">
         <input
           value={query}
@@ -130,7 +160,7 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
               <Link href={`/dashboard/articles/${a.id}/edit`} className="cursor-pointer text-inherit no-underline" title="تعديل">
                 ✎
               </Link>
-              <span onClick={() => remove(a.id)} className="cursor-pointer" title="حذف">
+              <span onClick={() => remove(a.id, a.title)} className="cursor-pointer" title="حذف">
                 🗑
               </span>
             </div>

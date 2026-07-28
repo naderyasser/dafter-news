@@ -36,6 +36,71 @@ export function mediaUrl(path?: string | null): string | undefined {
   return `${API_ORIGIN}${path}`;
 }
 
+/**
+ * Thrown by apiFetch/apiUpload on a non-2xx response, carrying the parsed
+ * JSON body (DRF validation errors, `{"detail": "..."}`, etc.) when the
+ * response was JSON. A bare "failed: 400" told an editor nothing about
+ * *what* to fix; this gives describeApiError() something to read instead of
+ * a caller having to guess from a status code alone.
+ */
+export class ApiError extends Error {
+  status: number;
+  body: unknown;
+  constructor(path: string, status: number, statusText: string, body: unknown) {
+    super(`API ${path} failed: ${status} ${statusText}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
+async function readErrorBody(res: Response): Promise<unknown> {
+  try {
+    return await res.json();
+  } catch {
+    // Not a JSON body (a bare 502 from nginx, an empty 500) — the caller
+    // falls back to its own generic message.
+    return null;
+  }
+}
+
+const DRF_FIELD_LABELS_AR: Record<string, string> = {
+  title: "العنوان",
+  slug: "الرابط الدائم",
+  section: "القسم",
+  standfirst: "المقدمة",
+  blocks: "المحتوى",
+  tag_names: "الوسوم",
+  cover_image: "صورة الغلاف",
+  cover_asset_id: "صورة الغلاف",
+  language: "اللغة",
+  status: "الحالة",
+  username: "اسم المستخدم",
+  email: "البريد الإلكتروني",
+  text: "النص",
+  non_field_errors: "بيانات الخبر",
+  detail: "",
+};
+
+/**
+ * Turn a caught error into one line an editor can act on — which field DRF
+ * rejected and why — instead of a generic "تعذّر الحفظ". Falls back to
+ * `fallback` for network failures or bodies that aren't DRF's usual
+ * {field: [messages]} shape.
+ */
+export function describeApiError(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError) || !err.body || typeof err.body !== "object") return fallback;
+  const body = err.body as Record<string, unknown>;
+  const parts: string[] = [];
+  for (const [field, messages] of Object.entries(body)) {
+    const label = DRF_FIELD_LABELS_AR[field] ?? field;
+    const text = Array.isArray(messages) ? messages.join("، ") : String(messages);
+    if (!text) continue;
+    parts.push(label ? `${label}: ${text}` : text);
+  }
+  return parts.length ? parts.join(" — ") : fallback;
+}
+
 type FetchOptions = RequestInit & { revalidate?: number };
 
 /**
@@ -80,7 +145,7 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     cache: revalidate === 0 ? "no-store" : undefined,
   });
   if (!res.ok) {
-    throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);
+    throw new ApiError(path, res.status, res.statusText, await readErrorBody(res));
   }
   if (res.status === 204) return undefined as T;
   return res.json();
@@ -220,7 +285,7 @@ export async function apiUpload<T>(path: string, method: "POST" | "PATCH" | "PUT
     headers: token ? { "X-CSRFToken": token } : {},
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);
+  if (!res.ok) throw new ApiError(path, res.status, res.statusText, await readErrorBody(res));
   if (res.status === 204) return undefined as T;
   return res.json();
 }

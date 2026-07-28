@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { API_ORIGIN, apiMutate, getArticle, getArticles, getTicker, mediaUrl } from "./api";
+import { API_ORIGIN, ApiError, apiMutate, describeApiError, getArticle, getArticles, getTicker, mediaUrl } from "./api";
 
 const okJson = (body: unknown) =>
   Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) } as Response);
@@ -141,5 +141,45 @@ describe("apiMutate", () => {
     vi.mocked(fetch).mockResolvedValue({ ok: false, status: 400, statusText: "Bad Request" } as Response);
 
     await expect(apiMutate("/articles/", "POST", {})).rejects.toThrow();
+  });
+
+  it("carries the response body on the rejection so the caller can explain the failure", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 400,
+      statusText: "Bad Request",
+      json: () => Promise.resolve({ title: ["This field may not be blank."] }),
+    } as unknown as Response);
+
+    await expect(apiMutate("/articles/", "POST", {})).rejects.toMatchObject({
+      body: { title: ["This field may not be blank."] },
+    });
+  });
+});
+
+describe("describeApiError", () => {
+  it("translates a DRF field-error body into a readable line", () => {
+    const err = new ApiError("/articles/", 400, "Bad Request", { title: ["This field may not be blank."] });
+
+    expect(describeApiError(err, "fallback")).toBe("العنوان: This field may not be blank.");
+  });
+
+  it("joins multiple field errors and messages", () => {
+    const err = new ApiError("/articles/", 400, "Bad Request", {
+      title: ["Required."],
+      section: ["Invalid pk.", "Must not be null."],
+    });
+
+    expect(describeApiError(err, "fallback")).toBe("العنوان: Required. — القسم: Invalid pk.، Must not be null.");
+  });
+
+  it("falls back for a network failure with no response body", () => {
+    expect(describeApiError(new Error("offline"), "تعذّر الاتصال")).toBe("تعذّر الاتصال");
+  });
+
+  it("falls back when the response wasn't JSON", () => {
+    const err = new ApiError("/articles/", 502, "Bad Gateway", null);
+
+    expect(describeApiError(err, "تعذّر الاتصال")).toBe("تعذّر الاتصال");
   });
 });
