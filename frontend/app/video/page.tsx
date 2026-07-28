@@ -22,7 +22,7 @@ export default async function VideoListPage() {
   return (
     <SiteShell lang="ar" active="video">
       <div className="mx-auto max-w-container px-6 py-8">
-        <div className="mb-5 border-s-[3px] border-brand ps-4">
+        <div className="mb-5 rule-accent ps-4">
           <h1 className="font-display-ar m-0 text-[clamp(1.5rem,1.2rem+1.2vw,2rem)] font-extrabold text-ink">لقطة وتعليق</h1>
         </div>
         <VideoGrid items={items} />

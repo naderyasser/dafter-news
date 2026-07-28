@@ -65,7 +65,16 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
   const elapsed = (progress / 100) * total;
 
   return (
-    <div className="my-5 flex items-center gap-3.5 rounded-pill border border-line bg-surface px-[18px] py-2.5">
+    <div className="my-5">
+      {/* The transport alone never said what it was for — a bare play button
+          under a headline reads as a video that failed to load. The label is
+          the secondary blue so it registers as a feature being offered, not
+          as another red control. */}
+      <div className={`${isAr ? "font-display-ar" : "font-display-en"} mb-2 flex items-center gap-2 text-[14px] font-bold text-accent`}>
+        <span aria-hidden>🎧</span>
+        {isAr ? "استمع للمقال" : "Listen to this article"}
+      </div>
+      <div className="flex items-center gap-3.5 rounded-pill border border-line bg-surface px-[18px] py-2.5">
       {audioSrc && (
         <audio
           ref={audioRef}
@@ -98,6 +107,7 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
       >
         x{speed}
       </button>
+      </div>
     </div>
   );
 }

@@ -26,6 +26,7 @@ export type Author = {
   id: number;
   username: string;
   name: string;
+  name_en: string;
   initial: string;
   bio: string;
   title: string;
@@ -52,6 +53,8 @@ export type ArticleCard = {
   kind: "news" | "opinion";
   comment_count: number;
   author_name: string | null;
+  /** Byline for English surfaces; falls back to author_name when unset. */
+  author_name_en: string | null;
   author_username: string | null;
   author_initial: string | null;
 };
@@ -62,6 +65,9 @@ export type ArticleBlock = {
   type: "paragraph" | "heading" | "image" | "quote" | "related";
   text: string;
   image: string | null;
+  /** Stored file name (e.g. library/x.jpg) — echoed back on save as
+   * keep_image so re-saving an article doesn't strip its photos. */
+  image_name: string;
   caption: string;
   credit: string;
   related_article: number | null;
@@ -81,6 +87,7 @@ export type ArticleDetail = {
   related_article: number | null;
   status: ArticleStatus;
   badge: Badge;
+  pinned: boolean;
   standfirst: string;
   cover_image: string | null;
   cover_caption: string;
@@ -109,6 +116,8 @@ export type Comment = {
 export type BreakingNewsItem = {
   id: number;
   text: string;
+  /** Where the ticker entry leads; blank renders as plain text. */
+  href: string;
   order: number;
   active: boolean;
   expires_at: string;

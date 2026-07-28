@@ -32,14 +32,14 @@ const BUTTON_STATES = [
 ];
 
 function SectionHead({ children }: { children: React.ReactNode }) {
-  return <div className="font-display-ar mb-4 border-s-[3px] border-brand ps-3.5 text-[20px] font-extrabold text-ink">{children}</div>;
+  return <div className="font-display-ar mb-4 rule-accent ps-3.5 text-[20px] font-extrabold text-ink">{children}</div>;
 }
 
 export default function ShowcasePage() {
   return (
     <SiteShell lang="ar">
       <div className="mx-auto flex max-w-container flex-col gap-10 px-6 py-8">
-        <div className="border-s-[3px] border-brand ps-4">
+        <div className="rule-accent ps-4">
           <h1 className="font-display-ar m-0 text-[28px] font-extrabold text-ink">Showcase — دليل المكونات المرئي</h1>
           <p className="mt-1.5 text-[14px] text-ink-3">مرجع بصري لكل مكونات الدفتر نيوز: الألوان، الطباعة، الشارات، الأزرار، الكروت، وحالات التحميل والفراغ</p>
         </div>
@@ -177,10 +177,10 @@ export default function ShowcasePage() {
         <section>
           <SectionHead>خط هامش الدفتر (Signature)</SectionHead>
           <div className="flex flex-col gap-4 rounded-card border border-line bg-paper p-5">
-            <div className="font-display-ar border-s-[3px] border-brand ps-3.5 font-extrabold">
+            <div className="font-display-ar rule-accent ps-3.5 font-extrabold">
               اللوجو وعناوين الأقسام وH2 والاقتباسات فقط — لا يُستخدم في أي مكان آخر
             </div>
-            <blockquote className="m-0 border-s-[3px] border-brand ps-5 text-[18px] font-semibold text-ink-2">اقتباس بخط الهامش المميز</blockquote>
+            <blockquote className="m-0 rule-accent ps-5 text-[18px] font-semibold text-ink-2">اقتباس بخط الهامش المميز</blockquote>
           </div>
         </section>
       </div>

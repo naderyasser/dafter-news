@@ -11,10 +11,12 @@ import SectionBlock from "@/components/site/SectionBlock";
 import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
+import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
-import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
+import { getLiveStreams, getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
+import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { ArticleCard as ArticleCardType, Badge } from "@/lib/types";
 
 export const revalidate = 60;
@@ -54,15 +56,16 @@ const sectionFeed = (key: string, size = 6) =>
   getArticles(`?language=ar&section__key=${key}&ordering=-published_at&page_size=${size}`);
 
 export default async function HomePage() {
-  const [recent, egypt, gulf, world, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches, sections] =
+  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches, sections, breaking, streams] =
     await Promise.all([
+      getArticles("?language=ar&pinned=true&ordering=-published_at&page_size=5"),
       getArticles("?language=ar&ordering=-published_at&page_size=12"),
       sectionFeed("egypt"),
       sectionFeed("gulf"),
       sectionFeed("world", 7),
       sectionFeed("economy"),
       sectionFeed("sports"),
-      sectionFeed("art"),
+      sectionFeed("art", 7),
       sectionFeed("tech"),
       getVideos("?page_size=4"),
       getArticles("?language=ar&kind=opinion&page_size=6"),
@@ -72,7 +75,18 @@ export default async function HomePage() {
       getStories(),
       getMatches(),
       getSections(),
+      getArticles("?language=ar&badge=breaking&ordering=-published_at&page_size=5"),
+      getLiveStreams(),
     ]);
+
+  // Symmetric with /en's isLatin filter: stories, videos and tags are
+  // single-column fields that now hold BOTH languages in the seed, so each
+  // edition takes only what is written in its own script — without this the
+  // English rows would surface under Arabic headings here.
+  const isArabicText = (t: string) => /[؀-ۿ]/.test(t);
+  const arStories = stories.results.filter((st) => isArabicText(st.title));
+  const arVideos = videos.results.filter((v) => isArabicText(v.title));
+  const arTags = tags.results.filter((t) => isArabicText(t.name));
 
   // The tail: every section without a bespoke block above. Empty ones are
   // dropped rather than rendered as a bare heading.
@@ -82,8 +96,27 @@ export default async function HomePage() {
     .map((section, i) => ({ section, articles: tailFeeds[i].results }))
     .filter(({ articles }) => articles.length);
 
-  // The hero rotates the top stories; the side rail carries what isn't in it.
-  const heroSlides = recent.results.slice(0, 5).map((a) => ({
+
+  /**
+   * The vertical carousel takes what is actually breaking; when nothing
+   * carries the «عاجل» badge it falls back to the most recent stories, so the
+   * block is never a heading with an empty frame under it.
+   */
+  const liveItems = (breaking.results.length ? breaking.results : recent.results.slice(0, 5)).map((a) => ({
+    href: `/article/${a.slug}`,
+    title: a.title,
+    kicker: a.subcategory || a.section_name,
+    time: relativeTime(a.published_at, "ar"),
+    imageSrc: mediaUrl(a.cover_image),
+  }));
+  const isLive = streams.results.some((s) => s.is_live);
+
+  // The hero rotates the top stories — pinned first («تثبيت في الرئيسية»
+  // from the editor), the latest filling whatever slots remain. The side
+  // rail carries what isn't in it.
+  const pinnedIds = new Set(pinnedRes.results.map((a) => a.id));
+  const heroPool = [...pinnedRes.results, ...recent.results.filter((a) => !pinnedIds.has(a.id))].slice(0, 5);
+  const heroSlides = heroPool.map((a) => ({
     href: `/article/${a.slug}`,
     title: a.title,
     section: a.section_name,
@@ -91,10 +124,10 @@ export default async function HomePage() {
     badge: a.badge,
     imageSrc: mediaUrl(a.cover_image),
   }));
-  const heroIds = new Set(recent.results.slice(0, 5).map((a) => a.id));
+  const heroIds = new Set(heroPool.map((a) => a.id));
   const heroSide = recent.results.filter((a) => !heroIds.has(a.id)).slice(0, 4);
 
-  const videoCards = videos.results.map((v) => ({
+  const videoCards = arVideos.map((v) => ({
     href: `/video/${v.slug}`,
     title: v.title,
     section: "لقطة وتعليق",
@@ -126,7 +159,7 @@ export default async function HomePage() {
 
   return (
     <SiteShell lang="ar" active="home">
-      <StoriesRail lang="ar" stories={stories.results} />
+      <StoriesRail lang="ar" stories={arStories} />
 
       <div className="mx-auto flex max-w-container flex-wrap gap-5 px-6 py-6">
         <div className="min-w-0 flex-[2_1_480px]">
@@ -150,59 +183,69 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={egypt.results.map(toSectionCard)} initialCount={4} />
+      <VerticalNewsCarousel lang="ar" items={liveItems} isLive={isLive} heading="التغطية المباشرة" />
+      <SectionDivider />
+
+      <SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={egypt.results.map(toSectionCard)} initialCount={4} sectionKey="egypt" />
       <SectionDivider />
 
       {gulf.results.length ? (
         <>
-          <SectionBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" cards={gulf.results.map(toSectionCard)} initialCount={4} />
+          <SectionBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" cards={gulf.results.map(toSectionCard)} initialCount={4} sectionKey="gulf" />
           <SectionDivider />
         </>
       ) : null}
 
+      {/* لقطة وتعليق — third in the page order on the client's request: the
+          video desk is a flagship, so it sits with the lead sections rather
+          than below the fold. */}
+      <SectionBlock lang="ar" title="لقطة وتعليق" seeAllHref="/video" cards={videoCards} initialCount={4} sectionKey="video" />
+      <SectionDivider />
+
       {/* عرب وعالم — its own front-page treatment (lead + rail + tiles, red
-          category chips on the photos), deliberately not the «ثقافة وفن» grid. */}
-      <WorldNewsBlock title="عرب وعالم" href="/section/world" cards={world.results.map(toWorldCard)} />
+          category chips on the photos), deliberately not a grid shared with
+          any other section: the client asked for this design to be this
+          section's alone. */}
+      <WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={world.results.map(toWorldCard)} sectionKey="world" />
       {world.results.length ? <SectionDivider /> : null}
 
-      <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econ.results.map(toSectionCard)} initialCount={4} />
+      <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econ.results.map(toSectionCard)} initialCount={4} sectionKey="economy" />
       <SectionDivider />
 
-      {/* ثقافة وفن — image-forward cards, so it reads differently from the
-          text-dense sections above it. */}
+      {/* ثقافة وفن — the arrow-navigated horizontal rail the client asked
+          for («شريط تمرير أفقي مزود بأسهم»), in the section's own colours. */}
       {art.results.length ? (
-        <section className="mx-auto max-w-container px-6 py-6">
-          <SectionHeading lang="ar" title="ثقافة وفن" href="/section/art" />
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5">
-            {art.results.slice(0, 3).map((a) => (
-              <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} />
-            ))}
-          </div>
-        </section>
+        <>
+          <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("art")}>
+            <SectionHeading lang="ar" title="ثقافة وفن" href="/section/art" sectionKey="art" />
+            <ArrowCarousel lang="ar" itemClassName="w-[300px]">
+              {art.results.map((a) => (
+                <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} accent={sectionColor("art")} />
+              ))}
+            </ArrowCarousel>
+          </section>
+          <SectionDivider />
+        </>
       ) : null}
-
-      <SectionDivider />
 
       {/* علوم وتكنولوجيا — arrow-navigated rail (the عكاظ pattern). */}
       {tech.results.length ? (
-        <section className="mx-auto max-w-container px-6 py-6">
-          <SectionHeading lang="ar" title="علوم وتكنولوجيا" href="/section/tech" />
+        <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("tech")}>
+          <SectionHeading lang="ar" title="علوم وتكنولوجيا" href="/section/tech" sectionKey="tech" />
           <ArrowCarousel lang="ar" itemClassName="w-[300px]">
             {tech.results.map((a) => (
-              <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} />
+              <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} accent={sectionColor("tech")} />
             ))}
           </ArrowCarousel>
         </section>
       ) : null}
 
       <SectionDivider />
-      <SectionBlock lang="ar" title="لقطة وتعليق" seeAllHref="/video" cards={videoCards} initialCount={4} />
-      <SectionDivider />
-      <SectionBlock lang="ar" title="جوّه الجون" seeAllHref="/section/sports" cards={sports.results.map(toSectionCard)} initialCount={4} />
-      <MatchesRail matches={matches.results} />
+      <SectionBlock lang="ar" title="جوّه الجون" seeAllHref="/section/sports" cards={sports.results.map(toSectionCard)} initialCount={4} sectionKey="sports" />
+      <MatchesRail lang="ar" matches={matches.results} />
 
-      {/* ستايل ونجوم / أمن ومحاكم / ملف خاص / دليلك الأول — and anything added
-          later. Rendered here rather than left to /section/… pages. */}
+      {/* أمن ومحاكم / ملف خاص / دليلك الأول — and anything added later.
+          Rendered here rather than left to /section/… pages. */}
       {tail.map(({ section, articles }) => (
         <div key={section.key}>
           <SectionDivider />
@@ -212,6 +255,7 @@ export default async function HomePage() {
             seeAllHref={`/section/${section.key}`}
             cards={articles.map(toSectionCard)}
             initialCount={4}
+            sectionKey={section.key}
           />
         </div>
       ))}
@@ -231,9 +275,9 @@ export default async function HomePage() {
             }))}
           />
           <div className="rounded-card border border-line bg-paper p-5">
-            <div className="border-s-[3px] border-brand ps-3 font-display-ar text-[15px] font-extrabold text-ink">وسوم رائجة</div>
+            <div className="rule-accent ps-3.5 font-display-ar text-[15px] font-extrabold text-ink">وسوم رائجة</div>
             <div className="mt-3.5 flex flex-wrap gap-2">
-              {tags.results.slice(0, 5).map((t) => (
+              {arTags.slice(0, 5).map((t) => (
                 <Link
                   key={t.id}
                   href={`/tag/${t.slug}`}

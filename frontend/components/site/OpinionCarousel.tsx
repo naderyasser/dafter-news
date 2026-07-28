@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Chevron from "@/components/ui/Chevron";
 
 export type OpinionItem = { name: string; quote: string; href: string; initial: string };
 
@@ -64,7 +65,7 @@ export default function OpinionCarousel({
     >
       <div className="mx-auto mb-5 flex max-w-container flex-wrap items-center justify-between gap-4 px-6">
         <div className="flex items-center gap-4">
-          <span className={`${fontDisplay} border-s-[3px] border-brand ps-3 text-h2 font-extrabold text-paper`}>
+          <span className={`${fontDisplay} rule-accent rule-on-dark ps-3.5 text-h2 font-extrabold text-paper`}>
             {isAr ? "بالعقل والمنطق" : "By Reason & Logic"}
           </span>
           <a href={seeAllHref} className="text-[13px] text-header-muted no-underline hover:text-paper">
@@ -74,15 +75,17 @@ export default function OpinionCarousel({
         <div className="flex gap-2">
           <button
             onClick={() => scroll(-1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-navy-2 bg-transparent text-[15px] text-paper transition-colors duration-fast hover:border-brand hover:bg-brand"
+            aria-label={isAr ? "السابق" : "Previous"}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-navy-2 bg-transparent text-paper transition-colors duration-fast hover:border-brand hover:bg-brand"
           >
-            ‹
+            <Chevron lang={lang} dir="back" className="h-4 w-4" />
           </button>
           <button
             onClick={() => scroll(1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-navy-2 bg-transparent text-[15px] text-paper transition-colors duration-fast hover:border-brand hover:bg-brand"
+            aria-label={isAr ? "التالي" : "Next"}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-navy-2 bg-transparent text-paper transition-colors duration-fast hover:border-brand hover:bg-brand"
           >
-            ›
+            <Chevron lang={lang} className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -100,7 +103,7 @@ export default function OpinionCarousel({
                 {op.initial}
               </div>
               <span className="text-[13px] text-header-muted">{op.name}</span>
-              <span className={`ms-auto text-[18px] text-brand ${isAr ? "-scale-x-100" : ""}`}>→</span>
+              <Chevron lang={lang} className="ms-auto h-4 w-4 text-brand" />
             </div>
           </Link>
         ))}

@@ -24,7 +24,7 @@ export default function MostReadPageContent({ rows }: { rows: MostReadRow[] }) {
 
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-s-[3px] border-brand ps-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rule-accent ps-4">
         <h1 className="font-display-ar m-0 text-[clamp(1.5rem,1.2rem+1.2vw,2rem)] font-extrabold text-ink">الأكثر قراءة</h1>
         <div className="flex gap-2">
           {PERIODS.map((p) => (

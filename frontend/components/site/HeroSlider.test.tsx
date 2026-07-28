@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import HeroSlider from "./HeroSlider";
@@ -105,6 +105,32 @@ describe("HeroSlider", () => {
     await act(async () => getByLabelText("التالي").click());
 
     expect(screen.queryByText("عاجل")).not.toBeInTheDocument();
+  });
+
+  it("advances on a swipe toward the inline start", async () => {
+    // In RTL the next slide sits on the inline-end (left) side, so the finger
+    // travels toward +x to fetch it — the mirror of the LTR gesture.
+    const { container } = render(<HeroSlider lang="ar" slides={slides} />);
+    const section = container.querySelector("section")!;
+
+    await act(async () => {
+      fireEvent.touchStart(section, { touches: [{ clientX: 80 }] });
+      fireEvent.touchEnd(section, { changedTouches: [{ clientX: 220 }] });
+    });
+
+    expect(screen.getByText("البنك المركزي يثبّت الفائدة")).toBeInTheDocument();
+  });
+
+  it("ignores a swipe shorter than the threshold", async () => {
+    const { container } = render(<HeroSlider lang="ar" slides={slides} />);
+    const section = container.querySelector("section")!;
+
+    await act(async () => {
+      fireEvent.touchStart(section, { touches: [{ clientX: 80 }] });
+      fireEvent.touchEnd(section, { changedTouches: [{ clientX: 100 }] });
+    });
+
+    expect(screen.getByText("الرئيس يفتتح محور الدلتا")).toBeInTheDocument();
   });
 
   it("sits on the navy field", () => {

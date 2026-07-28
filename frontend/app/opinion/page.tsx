@@ -12,7 +12,7 @@ export default async function OpinionPage() {
   return (
     <SiteShell lang="ar" active="opinion">
       <div className="mx-auto max-w-container px-6 py-8">
-        <div className="mb-6 border-s-[3px] border-brand ps-4">
+        <div className="mb-6 rule-accent ps-4">
           <h1 className="font-display-ar m-0 text-[clamp(1.5rem,1.2rem+1.2vw,2rem)] font-extrabold text-ink">بالعقل والمنطق</h1>
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">

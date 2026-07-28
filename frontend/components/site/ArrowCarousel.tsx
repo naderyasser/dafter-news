@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Chevron from "@/components/ui/Chevron";
 
 /**
  * Horizontal rail with explicit prev/next arrow buttons (the عكاظ pattern).
@@ -62,10 +63,10 @@ export default function ArrowCarousel({
     <div className="relative">
       <div className="mb-3 flex justify-end gap-2">
         <button type="button" aria-label={isAr ? "السابق" : "Previous"} onClick={() => nudge(-1)} disabled={atStart} className={arrowBase}>
-          <span className={isAr ? "" : "-scale-x-100"}>›</span>
+          <Chevron lang={lang} dir="back" className="h-4 w-4" />
         </button>
         <button type="button" aria-label={isAr ? "التالي" : "Next"} onClick={() => nudge(1)} disabled={atEnd} className={arrowBase}>
-          <span className={isAr ? "" : "-scale-x-100"}>‹</span>
+          <Chevron lang={lang} className="h-4 w-4" />
         </button>
       </div>
 

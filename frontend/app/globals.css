@@ -12,12 +12,176 @@
     background: theme("colors.surface.DEFAULT");
     color: theme("colors.ink.DEFAULT");
   }
+
+  /*
+   * Keyboard focus, restored.
+   *
+   * 36 controls carried `outline-none` with nothing put back, which is the
+   * single worst accessibility state a site can ship: a keyboard reader can
+   * still move through the page but can no longer see where they are. Those
+   * were written to kill the browser's default ring next to a custom border
+   * treatment, and then the ring never came back.
+   *
+   * This is a base-layer rule, so any `outline-none` utility on an element
+   * still wins for mouse focus (`:focus`), while `:focus-visible` — which the
+   * browser only matches for keyboard and other non-pointer input — gets the
+   * ring regardless. One rule, no per-component edits, and pointer users see
+   * no change at all.
+   *
+   * The offset keeps the ring clear of the element's own border so it reads
+   * as a ring rather than as a thickened edge.
+   */
+  :focus-visible {
+    outline: 2px solid theme("colors.accent.DEFAULT");
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  /* On the navy chrome the accent blue is nearly the background. */
+  .bg-navy :focus-visible,
+  .bg-navy-strong :focus-visible,
+  .bg-header-bg :focus-visible {
+    outline-color: theme("colors.paper");
+  }
+}
+
+@layer components {
+  /*
+   * The section rule — replaces the plain red `border-s-[3px] border-brand`
+   * that used to sit beside every heading. Two tones stacked in one bar (the
+   * العربية pattern): brand red on the leading third, the logo blue under it.
+   *
+   * Built as a pseudo-element rather than a border because a border can only
+   * hold one colour, and as `inset-inline-start` rather than `left` so it
+   * mirrors in RTL for free. Callers keep their existing `ps-*` utility for
+   * the gap — only the border classes are replaced.
+   *
+   * `--rule-b` is the blue half and is overridden per section (see
+   * lib/sections.ts) so «جوّه الجون» gets its green and «ثقافة وفن» its
+   * purple without another class per section.
+   */
+  .rule-accent {
+    position: relative;
+  }
+  .rule-accent::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 4px;
+    border-radius: 999px;
+    /*
+     * The tones are read as inherited custom properties with fallbacks rather
+     * than declared here. Declaring them on `.rule-accent` itself would shadow
+     * whatever an ancestor set, which is exactly how a section block tints
+     * every rule inside it from one style on the <section>.
+     */
+    background: linear-gradient(
+      to bottom,
+      var(--rule-a, theme("colors.brand.DEFAULT")) 0 38%,
+      var(--rule-b, theme("colors.accent.DEFAULT")) 38% 100%
+    );
+  }
+
+  /*
+   * On a navy surface — the footer, the drawer, the opinion band — the default
+   * blue is within a few points of the background and the rule reads as a red
+   * stub with nothing under it. The lifted blue keeps both halves visible.
+   */
+  .rule-on-dark {
+    --rule-b: theme("colors.accent.soft");
+  }
+
+  /*
+   * Faint subject art behind a section block — a pitch behind الرياضة, a
+   * chart behind حركة السوق. Set via CSS vars so one class covers every
+   * section and an unmapped section simply gets no image.
+   *
+   * `background-attachment: local` is deliberately NOT used: the mark must
+   * stay put while the page scrolls past it, or it reads as a parallax
+   * gimmick instead of a watermark. Opacity lives in the SVG's own stroke so
+   * the block's text keeps full contrast.
+   */
+  .section-watermark {
+    position: relative;
+    isolation: isolate;
+  }
+  .section-watermark::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: var(--wm-image, none);
+    background-repeat: no-repeat;
+    background-position: var(--wm-position, center right);
+    background-size: var(--wm-size, auto 78%);
+    opacity: var(--wm-opacity, 1);
+  }
+  /* The mark is decoration; drop it where it would compete for space. */
+  @media (max-width: 640px) {
+    .section-watermark::before {
+      display: none;
+    }
+  }
+
+  /*
+   * Card headline hover. The colour is per-section and therefore dynamic, so
+   * it cannot be a Tailwind class (the JIT only sees literal strings) — the
+   * card sets `--card-accent` inline and this rule reads it.
+   *
+   * Headlines stay ink at rest: a page of blue headlines reads as a page of
+   * unvisited links, which is why the blue arrives on hover and on the
+   * kicker rather than on the body of every card.
+   */
+  .card-link {
+    --card-accent: theme("colors.accent.DEFAULT");
+  }
+  .card-title {
+    transition: color theme("transitionDuration.fast") ease;
+  }
+  .card-link:hover .card-title,
+  .card-link:focus-visible .card-title {
+    color: var(--card-accent);
+  }
+
+  /*
+   * One hover behaviour for every card on the site, keyboard focus included —
+   * cards were previously inert apart from the headline colour, so a grid of
+   * them gave no feedback about what was under the pointer.
+   *
+   * The photo lifts very slightly and nothing moves position: a card that
+   * translates or scales as a whole shifts the headline out from under the
+   * cursor, and in a dense grid that reads as the page twitching. Held to
+   * 1.03 and gated on the pointer being fine — a touch device has no hover
+   * state to reward, and the transform just costs it a repaint.
+   */
+  @media (hover: hover) and (pointer: fine) {
+    .card-link img {
+      transition: transform theme("transitionDuration.med") ease;
+    }
+    .card-link:hover img {
+      transform: scale(1.03);
+    }
+  }
+  .card-link:hover,
+  .card-link:focus-within {
+    border-color: var(--card-accent);
+  }
 }
 
 @layer utilities {
   /* برief §3: كل الأرقام في سياق بيانات تأخذ tabular-nums عبر كلاس .tnum */
   .tnum {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* الصفوف القابلة للسحب أفقيًا (شريط الأقسام على الموبايل): التمرير يبقى،
+     والشريط الرمادي الذي يرسمه المتصفح تحته يختفي. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }
 

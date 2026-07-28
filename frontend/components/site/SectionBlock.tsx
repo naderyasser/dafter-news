@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 import ArticleCard from "@/components/site/ArticleCard";
+import SectionHeading from "@/components/site/SectionHeading";
+import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { Badge } from "@/lib/types";
 
 export type SectionBlockCard = {
@@ -24,6 +26,7 @@ export default function SectionBlock({
   cardVariant = "standard",
   cards,
   initialCount,
+  sectionKey,
 }: {
   lang: "ar" | "en";
   title: string;
@@ -31,22 +34,27 @@ export default function SectionBlock({
   cardVariant?: "standard" | "compact" | "text" | "hero";
   cards: SectionBlockCard[];
   initialCount?: number;
+  /**
+   * Drives the heading rule's second tone, the kicker colour on every card in
+   * the block, and the subject watermark behind it. Omitted = accent blue and
+   * no watermark, which is what an unmapped section should look like.
+   */
+  sectionKey?: string | null;
 }) {
   const [expanded, setExpanded] = useState(false);
   const isAr = lang === "ar";
-  const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
   const limit = initialCount ?? cards.length;
   const canExpand = cards.length > limit;
   const visible = expanded || !canExpand ? cards : cards.slice(0, limit);
+  const accent = sectionColor(sectionKey);
 
   return (
-    <section className="mx-auto max-w-container px-6 py-8">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-s-[3px] border-brand ps-3.5">
-        <h2 className={`${fontDisplay} m-0 text-[clamp(1.1875rem,1rem+0.8vw,1.375rem)] font-extrabold text-ink`}>{title}</h2>
-        <a href={seeAllHref} className="whitespace-nowrap text-[14px] font-semibold text-brand no-underline hover:text-brand-strong">
-          {isAr ? "عرض الكل ←" : "See all →"}
-        </a>
-      </div>
+    <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle(sectionKey)}>
+      {/* One heading component for every block on the page — this used to be a
+          second, hand-rolled copy with its own type size and its own «عرض
+          الكل ←» wording, so two blocks in the same column disagreed about
+          both. */}
+      <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} />
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5">
         {visible.map((c, i) => (
           <ArticleCard
@@ -62,16 +70,23 @@ export default function SectionBlock({
             isVideo={c.isVideo}
             videoDuration={c.videoDuration}
             comments={c.comments}
+            accent={accent}
           />
         ))}
       </div>
       {canExpand && !expanded && (
         <div className="mt-6 text-center">
+          {/* Stays put and reveals more cards, so it takes a downward chevron
+              rather than the heading's forward one — «عرض الكل» goes to the
+              archive, this does not, and the two must not look alike. */}
           <button
             onClick={() => setExpanded(true)}
-            className="rounded-pill border border-line bg-paper px-7 py-2.5 text-[14px] font-semibold text-ink hover:border-line-strong hover:bg-surface"
+            className="inline-flex items-center gap-2 rounded-pill border border-line bg-paper px-7 py-2.5 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-accent hover:text-accent"
           >
             {isAr ? "عرض المزيد" : "Show more"}
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-3.5 w-3.5">
+              <path d="m5 9 7 7 7-7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         </div>
       )}

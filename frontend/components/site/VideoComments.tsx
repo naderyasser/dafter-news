@@ -28,7 +28,7 @@ export default function VideoComments({ videoId, initial }: { videoId: number; i
 
   return (
     <>
-      <div className="mb-4 border-s-[3px] border-brand ps-3.5">
+      <div className="mb-4 rule-accent ps-3.5">
         <h2 className="font-display-ar m-0 text-h3 font-extrabold text-ink">التعليقات ({comments.length})</h2>
       </div>
       <div className="mb-6 flex gap-2.5">

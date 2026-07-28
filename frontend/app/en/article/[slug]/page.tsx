@@ -7,7 +7,7 @@ import MostReadList from "@/components/site/MostReadList";
 import SectionBlock from "@/components/site/SectionBlock";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticle, getArticles, mediaUrl } from "@/lib/api";
+import { getArticle, getArticles, getRelatedArticles, mediaUrl } from "@/lib/api";
 import { formatDate, relativeTime } from "@/lib/format";
 
 export const revalidate = 30;
@@ -16,8 +16,10 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
   const article = await getArticle(params.slug);
   if (!article || article.language !== "en") notFound();
 
+  // Same automatic related ranking as the Arabic page: shared tags first,
+  // then section recency — /related/ filters by the article's own language.
   const [related, mostRead] = await Promise.all([
-    getArticles(`?language=en&section__key=${article.section?.key ?? ""}&ordering=-published_at&page_size=5`),
+    getRelatedArticles(article.slug),
     getArticles("?language=en&ordering=-views&page_size=5"),
   ]);
   const relatedCards = related.results
@@ -32,7 +34,7 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
         <main className="min-w-0 max-w-reading flex-[2_1_480px]">
           <div className="mb-4 text-[13px] text-ink-3">
-            <Link href="/en" className="text-ink-3 no-underline hover:text-brand">
+            <Link href="/en" className="text-ink-3 no-underline hover:text-accent">
               Home
             </Link>
             <span className="mx-1.5">/</span>
@@ -41,7 +43,7 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
 
           {badgeLabel && <span className="rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">{badgeLabel}</span>}
 
-          <h1 className="font-display-en my-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.3] text-ink">{article.title}</h1>
+          <h1 className="font-display-en my-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.3] text-accent">{article.title}</h1>
           {article.standfirst && <p className="mb-4 text-[clamp(1.0625rem,1rem+0.3vw,1.1875rem)] font-medium leading-[1.6] text-ink-2">{article.standfirst}</p>}
 
           <div className="mb-2 flex flex-wrap items-center gap-2 border-y border-line py-3 text-[14px] text-ink-3">

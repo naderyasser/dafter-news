@@ -19,10 +19,23 @@ class TagSerializer(serializers.ModelSerializer):
 
 class ArticleBlockSerializer(serializers.ModelSerializer):
     related_article_slug = serializers.CharField(source="related_article.slug", read_only=True, default=None)
+    # An image block can point at a library asset instead of uploading a new
+    # file — the client's «إعادة الاستخدام السريع»: the block reuses the
+    # asset's stored file, so nothing is downloaded and re-uploaded and the
+    # library stays the single place where licensing is tracked.
+    asset_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    # _sync_blocks replaces every block on save, so the editor echoes this
+    # back to keep an image it didn't change; without it, saving any edit
+    # would silently strip the article's photos.
+    image_name = serializers.CharField(source="image.name", read_only=True, default="")
+    keep_image = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = ArticleBlock
-        fields = ["id", "order", "type", "text", "image", "caption", "credit", "related_article", "related_article_slug"]
+        fields = [
+            "id", "order", "type", "text", "image", "caption", "credit",
+            "related_article", "related_article_slug", "asset_id", "image_name", "keep_image",
+        ]
 
 
 def section_name_for(article):
@@ -49,6 +62,7 @@ class ArticleCardSerializer(serializers.ModelSerializer):
     href_slug = serializers.CharField(source="slug", read_only=True)
     comment_count = serializers.IntegerField(read_only=True, default=0)
     author_name = serializers.CharField(source="author.display_name", read_only=True, default=None)
+    author_name_en = serializers.CharField(source="author.name_en", read_only=True, default=None)
     author_username = serializers.CharField(source="author.username", read_only=True, default=None)
     author_initial = serializers.CharField(source="author.initial", read_only=True, default=None)
 
@@ -56,7 +70,7 @@ class ArticleCardSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             "id", "title", "slug", "href_slug", "section_name", "subcategory", "badge", "status", "cover_image",
-            "published_at", "views", "kind", "comment_count", "author_name", "author_username", "author_initial",
+            "published_at", "views", "kind", "comment_count", "author_name", "author_name_en", "author_username", "author_initial",
         ]
 
     def get_section_name(self, obj):
@@ -74,7 +88,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             "id", "title", "slug", "kind", "section", "subcategory", "author", "tags", "language", "related_article",
-            "status", "badge", "standfirst", "cover_image", "cover_caption", "cover_credit",
+            "status", "badge", "pinned", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "views", "read_minutes", "tts_status", "tts_audio", "tts_duration_seconds",
             "published_at", "scheduled_for", "created_at", "blocks",
         ]
@@ -88,34 +102,94 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
     # Optional on write — Article.save() derives it from the title (the
     # browser can't slugify Arabic without stripping it away entirely).
     slug = serializers.SlugField(max_length=300, allow_unicode=True, required=False)
+    # Cover from the media library, by asset id — same reuse rule as the
+    # image blocks' asset_id.
+    cover_asset_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
+    # One-click publishing surfaces (the client's «التحكم في أماكن العرض»):
+    # tick a box in the editor and the story lands in the «عاجل» ticker or the
+    # front-page stories rail alongside the article itself. Both act only when
+    # the article is actually published — a draft in the breaking ticker would
+    # link to a 404.
+    push_breaking = serializers.BooleanField(write_only=True, required=False, default=False)
+    push_story = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = Article
         fields = [
             "id", "title", "slug", "kind", "section", "subcategory", "author", "language", "related_article",
             "status", "badge", "standfirst", "cover_image", "cover_caption", "cover_credit",
-            "scheduled_for", "blocks", "tag_names",
+            "scheduled_for", "blocks", "tag_names", "cover_asset_id", "pinned", "push_breaking", "push_story",
         ]
 
     def create(self, validated_data):
         blocks_data = validated_data.pop("blocks", [])
         tag_names = validated_data.pop("tag_names", [])
+        cover_asset_id = validated_data.pop("cover_asset_id", None)
+        push_breaking = validated_data.pop("push_breaking", False)
+        push_story = validated_data.pop("push_story", False)
         article = Article.objects.create(**validated_data)
+        self._apply_cover_asset(article, cover_asset_id)
         self._sync_tags(article, tag_names)
         self._sync_blocks(article, blocks_data)
+        self._push_surfaces(article, push_breaking, push_story)
         return article
 
     def update(self, instance, validated_data):
         blocks_data = validated_data.pop("blocks", None)
         tag_names = validated_data.pop("tag_names", None)
+        cover_asset_id = validated_data.pop("cover_asset_id", None)
+        push_breaking = validated_data.pop("push_breaking", False)
+        push_story = validated_data.pop("push_story", False)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        self._apply_cover_asset(instance, cover_asset_id)
         if tag_names is not None:
             self._sync_tags(instance, tag_names)
         if blocks_data is not None:
             self._sync_blocks(instance, blocks_data)
+        self._push_surfaces(instance, push_breaking, push_story)
         return instance
+
+    @staticmethod
+    def _push_surfaces(article, push_breaking, push_story):
+        """One-click placement in the «عاجل» ticker and the stories rail.
+
+        get_or_create/update_or_create keyed on the exact text, so ticking the
+        box again on a later edit refreshes the entry instead of stacking
+        duplicates of the same headline.
+        """
+        if article.status != Article.Status.PUBLISHED:
+            return
+        if push_breaking:
+            BreakingNewsItem.objects.update_or_create(
+                text=article.title,
+                defaults={"active": True, "order": 0, "href": f"/article/{article.slug}"},
+            )
+        if push_story:
+            first = (Story.objects.order_by("order").values_list("order", flat=True).first() or 1) - 1
+            defaults = dict(section=article.section, href=f"/article/{article.slug}", active=True, order=first)
+            if article.cover_image:
+                defaults["image"] = article.cover_image.name
+            Story.objects.update_or_create(title=article.title, defaults=defaults)
+
+    @staticmethod
+    def _apply_cover_asset(article, asset_id):
+        """Point cover_image at a library asset's file — a reference, not a
+        copy, so the library remains the one place the file (and its license)
+        lives. The asset's credit fills cover_credit only when the editor
+        left it blank."""
+        if not asset_id:
+            return
+        from media_library.models import MediaAsset
+
+        asset = MediaAsset.objects.filter(pk=asset_id).first()
+        if asset is None or not asset.image:
+            return
+        article.cover_image = asset.image.name
+        if not article.cover_credit and asset.credit:
+            article.cover_credit = asset.credit
+        article.save(update_fields=["cover_image", "cover_credit"])
 
     @staticmethod
     def _sync_tags(article, tag_names):
@@ -129,11 +203,26 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _sync_blocks(article, blocks_data):
+        from media_library.models import MediaAsset
+
         article.blocks.all().delete()
+        # Files may only be referenced from the app's own upload directories —
+        # keep_image echoes a stored name back, and this stops it from being
+        # pointed anywhere else under MEDIA_ROOT.
+        allowed_prefixes = ("library/", "article_blocks/", "covers/", "video_covers/")
         for i, block in enumerate(blocks_data):
-            ArticleBlock.objects.create(article=article, order=block.get("order", i), **{
-                k: v for k, v in block.items() if k != "order"
-            })
+            asset_id = block.pop("asset_id", None)
+            keep_image = (block.pop("keep_image", "") or "").strip()
+            kwargs = {k: v for k, v in block.items() if k != "order"}
+            if asset_id:
+                asset = MediaAsset.objects.filter(pk=asset_id).first()
+                if asset is not None and asset.image:
+                    kwargs["image"] = asset.image.name
+                    if not kwargs.get("credit") and asset.credit:
+                        kwargs["credit"] = asset.credit
+            elif keep_image and keep_image.startswith(allowed_prefixes) and ".." not in keep_image:
+                kwargs["image"] = keep_image
+            ArticleBlock.objects.create(article=article, order=block.get("order", i), **kwargs)
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -147,7 +236,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class BreakingNewsItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = BreakingNewsItem
-        fields = ["id", "text", "order", "active", "expires_at", "created_at"]
+        fields = ["id", "text", "href", "order", "active", "expires_at", "created_at"]
 
 
 class StorySerializer(serializers.ModelSerializer):

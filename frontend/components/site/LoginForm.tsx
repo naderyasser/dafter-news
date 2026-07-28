@@ -47,7 +47,7 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={submit} className="w-full max-w-[420px] rounded-card border border-line bg-paper p-10 shadow-2">
-      <div className="mb-2 border-s-[3px] border-brand ps-3.5">
+      <div className="mb-2 rule-accent ps-3.5">
         <h1 className="font-display-ar m-0 text-h2 font-extrabold text-ink">
           {isLogin ? "تسجيل الدخول" : "حساب جديد"}
         </h1>
