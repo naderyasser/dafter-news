@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 
 import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
 import TextColorToolbar from "@/components/dashboard/TextColorToolbar";
-import { dashMutate, mediaUrl } from "@/lib/api";
+import { dashMutate, describeApiError, mediaUrl } from "@/lib/api";
 import type { ArticleBlock, ArticleDetail, Badge, MediaAsset } from "@/lib/types";
 
 type Block = {
@@ -82,6 +82,7 @@ export default function ArticleEditorForm({
   const [pushStory, setPushStory] = useState(false);
   const [ttsStatus, setTtsStatus] = useState<"idle" | "generating" | "done">(initial?.tts_status ?? "idle");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const updateBlock = (id: number, patch: Partial<Block>) => setBlocks((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)));
   const moveBlock = (id: number, dir: -1 | 1) =>
@@ -148,6 +149,11 @@ export default function ArticleEditorForm({
   };
 
   const save = async (status: "draft" | "review" | "published") => {
+    setError("");
+    if (!title.trim()) {
+      setError("لازم تكتب عنوان الخبر أولاً.");
+      return;
+    }
     setSaving(true);
     const sectionId = sections.find((s) => s.key === section)?.id ?? null;
     const payload = {
@@ -183,8 +189,11 @@ export default function ArticleEditorForm({
       }
       router.push("/dashboard/articles");
       router.refresh();
-    } catch {
-      // Demo-safe: even if the API call fails validation, don't strand the editor.
+    } catch (err) {
+      // A save that fails has to say so, and say why — an editor staring at
+      // an unchanged screen with no message can't tell a rejected save from
+      // one that's still in flight, and has no idea what to fix either way.
+      setError(describeApiError(err, "تعذّر حفظ الخبر. حاول مرة أخرى."));
     } finally {
       setSaving(false);
     }
@@ -195,6 +204,11 @@ export default function ArticleEditorForm({
 
   return (
     <div className="grid grid-cols-[2.2fr_320px] items-start gap-5 max-lg:grid-cols-1">
+      {error ? (
+        <div role="alert" className="col-span-2 rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down max-lg:col-span-1">
+          {error}
+        </div>
+      ) : null}
       <div className="flex flex-col gap-4 rounded-card border border-line bg-paper p-6">
         <input
           value={title}

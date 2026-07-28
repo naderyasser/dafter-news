@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import CoverImage from "./CoverImage";
 
 vi.mock("next/image", () => ({
-  default: ({ src, alt }: any) => <img src={src} alt={alt} />,
+  default: ({ src, alt, ...rest }: any) => <img src={src} alt={alt} {...rest} />,
 }));
 
 const props = { alt: "غلاف", placeholder: "أفلت صورة الخبر هنا" };
@@ -34,5 +34,17 @@ describe("CoverImage", () => {
     render(<CoverImage {...props} className="absolute inset-0" />);
 
     expect(screen.getByText("أفلت صورة الخبر هنا")).toBeInTheDocument();
+  });
+
+  it("fades in once the image reports loaded rather than popping in blank", () => {
+    render(<CoverImage {...props} src="/media/covers/a.jpg" />);
+    const img = screen.getByRole("img");
+
+    expect(img).toHaveClass("opacity-0");
+
+    fireEvent.load(img);
+
+    expect(img).toHaveClass("opacity-100");
+    expect(img).not.toHaveClass("opacity-0");
   });
 });
