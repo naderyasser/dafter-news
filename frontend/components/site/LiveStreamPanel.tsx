@@ -79,7 +79,7 @@ export default function LiveStreamPanel({ initial }: { initial: LiveStream | nul
 
       {stream && stream.updates.length > 0 && (
         <>
-          <div className="mb-5 border-s-[3px] border-brand ps-3.5">
+          <div className="mb-5 rule-accent ps-3.5">
             <h2 className="font-display-ar m-0 text-h3 font-extrabold text-ink">التغطية لحظة بلحظة</h2>
           </div>
           <div className="relative ps-6">

@@ -64,15 +64,19 @@ describe("MostReadList", () => {
   });
 
   it("carries the notebook-margin rule on its heading", () => {
-    // Brief §1: the 3px red rule is allowed on sidebar box headings.
+    // Brief §1: the rule is allowed on sidebar box headings. It used to be a
+    // plain red border; it is now the two-tone red/blue `.rule-accent` bar
+    // taken from the brand mark, so the assertion follows the class rather
+    // than the border utilities it replaced.
     render(<MostReadList lang="ar" items={items} />);
 
     const heading = screen.getByText("الأكثر قراءة");
-    expect(heading.className).toContain("border-s-[3px]");
-    expect(heading.className).toContain("border-brand");
+    expect(heading.className).toContain("rule-accent");
   });
 
   it("uses a logical inline-start border, never a physical one", () => {
+    // regression: the rule is drawn with inset-inline-start in globals.css, so
+    // what this now guards is that no physical border crept back in beside it.
     render(<MostReadList lang="ar" items={items} />);
 
     expect(screen.getByText("الأكثر قراءة").className).not.toMatch(/border-l-|border-r-/);

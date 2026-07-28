@@ -18,7 +18,7 @@ export default function MostReadList({
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
   return (
     <aside className="rounded-card border border-line bg-paper p-5">
-      <div className={`${fontDisplay} border-s-[3px] border-brand ps-3 text-[17px] font-extrabold text-ink`}>
+      <div className={`${fontDisplay} rule-accent ps-3.5 text-[17px] font-extrabold text-ink`}>
         {heading ?? (isAr ? "الأكثر قراءة" : "Most read")}
       </div>
       <div className="flex flex-col">

@@ -57,7 +57,7 @@ export default function LiveManager({ stream: initial }: { stream: LiveStream | 
         </button>
       </div>
 
-      <div className="border-s-[3px] border-brand ps-3.5">
+      <div className="rule-accent ps-3.5">
         <h2 className="font-display-ar m-0 text-h3 font-extrabold text-ink">إدارة التغطية اللحظية</h2>
       </div>
       <div className="flex gap-2.5 rounded-card border border-line bg-paper p-4">

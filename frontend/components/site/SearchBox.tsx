@@ -247,7 +247,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
 
       {!open ? null : (
         <div className="fixed inset-0 z-[120]" role="dialog" aria-modal="true" aria-label={t.open}>
-          <div role="presentation" onClick={close} className="animate-fade-in absolute inset-0 bg-[rgba(10,18,36,.62)]" />
+          <div role="presentation" onClick={close} className="animate-fade-in absolute inset-0 bg-[rgba(6,38,57,.62)]" />
 
           <div
             dir={isAr ? "rtl" : "ltr"}

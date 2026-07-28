@@ -39,7 +39,7 @@ export default async function VideoPage({ params }: { params: { slug: string } }
           <VideoComments videoId={video.id} initial={video.comments} />
         </main>
         <aside className="min-w-[260px] max-w-[340px] flex-[1_1_280px]">
-          <div className="font-display-ar mb-3.5 border-s-[3px] border-brand ps-3 text-[16px] font-extrabold text-ink">فيديوهات مقترحة</div>
+          <div className="font-display-ar mb-3.5 rule-accent ps-3.5 text-[16px] font-extrabold text-ink">فيديوهات مقترحة</div>
           <div className="flex flex-col">
             {suggested.map((s) => (
               <div key={s.id} className="border-b border-line py-3">

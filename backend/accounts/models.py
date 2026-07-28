@@ -24,6 +24,10 @@ class User(AbstractUser):
     bio = models.CharField(max_length=280, blank=True, help_text="نبذة قصيرة تظهر في صفحة الكاتب")
     avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
     title = models.CharField(max_length=120, blank=True, help_text="مثال: كاتبة اقتصادية")
+    # The byline on the English side. first/last name are single columns
+    # holding Arabic, so an English article carried an Arabic byline under an
+    # English headline — same pattern Section solves with name_ar/name_en.
+    name_en = models.CharField(max_length=120, blank=True, help_text="الاسم كما يظهر في النسخة الإنجليزية")
     # Takes the byline off the public «كتّاب الدفتر» and «بالعقل والمنطق»
     # surfaces without deleting the account or unpublishing what they wrote —
     # a columnist on hiatus keeps their archive reachable by direct link.

@@ -89,7 +89,7 @@ export default function SearchPageContent({
 
   return (
     <>
-      <h1 className="font-display-ar mb-5 border-s-[3px] border-brand ps-4 text-[clamp(1.5rem,1.2rem+1.2vw,2rem)] font-extrabold text-ink">
+      <h1 className="font-display-ar mb-5 rule-accent ps-4 text-[clamp(1.5rem,1.2rem+1.2vw,2rem)] font-extrabold text-ink">
         البحث
       </h1>
 

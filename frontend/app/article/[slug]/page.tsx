@@ -7,7 +7,7 @@ import AudioPlayer from "@/components/site/AudioPlayer";
 import SectionBlock from "@/components/site/SectionBlock";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticle, getArticles, getSections, mediaUrl } from "@/lib/api";
+import { getArticle, getRelatedArticles, getSections, mediaUrl } from "@/lib/api";
 import { formatDate, relativeTime } from "@/lib/format";
 
 export const revalidate = 30;
@@ -16,10 +16,9 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   const article = await getArticle(params.slug);
   if (!article || article.kind !== "news") notFound();
 
-  const [related, sections] = await Promise.all([
-    getArticles(`?language=ar&section__key=${article.section?.key ?? ""}&ordering=-published_at&page_size=5`),
-    getSections(),
-  ]);
+  // Related by shared tags (people/topics) first, section recency as the
+  // fallback — computed by /related/ so every surface ranks the same way.
+  const [related, sections] = await Promise.all([getRelatedArticles(article.slug), getSections()]);
   // Sections appended below the article; skip the one we're already in.
   const feedSections = sections.results.filter((s) => s.key !== article.section?.key && s.key !== "opinion");
   const relatedCards = related.results
@@ -36,12 +35,12 @@ export default async function ArticlePage({ params }: { params: { slug: string }
       <div className="mx-auto w-full max-w-reading px-6 py-8">
         <main className="min-w-0">
           <div className="mb-4 text-[13px] text-ink-3">
-            <Link href="/" className="text-ink-3 no-underline hover:text-brand">
+            <Link href="/" className="text-ink-3 no-underline hover:text-accent">
               الرئيسية
             </Link>
             <span className="mx-1.5">/</span>
             {article.section && (
-              <Link href={`/section/${article.section.key}`} className="text-ink-3 no-underline hover:text-brand">
+              <Link href={`/section/${article.section.key}`} className="text-ink-3 no-underline hover:text-accent">
                 {article.section.name_ar}
               </Link>
             )}
@@ -49,7 +48,11 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
           {badgeLabel && <span className="rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">{badgeLabel}</span>}
 
-          <h1 className="font-display-ar my-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.5] text-ink">
+          {/* The headline is the one place the secondary blue is unconditional:
+              «كسر حدة اللون الأحمر» starts with the largest type on the page.
+              Section colours stay on section chrome — a «ملف خاص» headline in
+              brand red would put the loudest colour on the loudest element. */}
+          <h1 className="font-display-ar my-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.5] text-accent">
             {article.title}
           </h1>
           {article.standfirst && (

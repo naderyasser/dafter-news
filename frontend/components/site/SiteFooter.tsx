@@ -23,12 +23,14 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
         { label: "بالعقل والمنطق", href: "/opinion" },
         { label: "لقطة وتعليق", href: "/video" },
       ]
-    : [
-        { label: "Egypt", href: "#" },
-        { label: "Economy", href: "#" },
-        { label: "Sports", href: "#" },
-        { label: "Opinion", href: "#" },
-        { label: "Watch", href: "#" },
+    : // These pointed at "#" while their Arabic counterparts were real routes,
+      // so the English footer was eight dead links.
+      [
+        { label: "Egypt", href: "/en/section/egypt" },
+        { label: "Markets", href: "/en/section/economy" },
+        { label: "Sports", href: "/en/section/sports" },
+        { label: "Opinion", href: "/en/section/opinion" },
+        { label: "Watch", href: "/video" },
       ];
 
   const companyLinks = isAr
@@ -38,9 +40,9 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
         { label: "الأكثر قراءة", href: "/most-read" },
       ]
     : [
-        { label: "About", href: "#" },
-        { label: "Contact", href: "#" },
-        { label: "Privacy", href: "#" },
+        { label: "About", href: "/about" },
+        { label: "Our writers", href: "/authors" },
+        { label: "Most read", href: "/most-read" },
       ];
 
   // These four used to be hardcoded glyphs pointing at "#". They now come from
@@ -55,7 +57,7 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
     <footer className={`${fontBody} bg-header-bg pb-[52px]`} dir={isAr ? "rtl" : "ltr"}>
       <div className="mx-auto flex max-w-container flex-wrap gap-10 px-6 pb-6 pt-12">
         <div className="min-w-[220px] flex-[2_1_260px]">
-          <div className={`${fontDisplay} inline-flex items-center border-s-[3px] border-brand ps-3 text-[20px] font-extrabold text-header-ink`}>
+          <div className={`${fontDisplay} inline-flex items-center rule-accent rule-on-dark ps-3.5 text-[20px] font-extrabold text-header-ink`}>
             {isAr ? "الدفتر نيوز" : "Al Daftar News"}
           </div>
           <p className="my-4 max-w-[320px] text-[14px] leading-[1.7] text-header-muted">
@@ -80,7 +82,7 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
           )}
         </div>
         <div className="min-w-[160px] flex-1">
-          <div className={`${fontDisplay} mb-4 border-s-[3px] border-brand ps-2.5 text-[15px] font-bold text-header-ink`}>
+          <div className={`${fontDisplay} mb-4 rule-accent rule-on-dark ps-2.5 text-[15px] font-bold text-header-ink`}>
             {isAr ? "الأقسام" : "Sections"}
           </div>
           <div className="flex flex-col gap-2.5">
@@ -92,7 +94,7 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
           </div>
         </div>
         <div className="min-w-[160px] flex-1">
-          <div className={`${fontDisplay} mb-4 border-s-[3px] border-brand ps-2.5 text-[15px] font-bold text-header-ink`}>
+          <div className={`${fontDisplay} mb-4 rule-accent rule-on-dark ps-2.5 text-[15px] font-bold text-header-ink`}>
             {isAr ? "الشركة" : "Company"}
           </div>
           <div className="flex flex-col gap-2.5">

@@ -27,7 +27,7 @@ export default function LatestNewsTabs({
 
   return (
     <div className="flex-[2_1_480px]">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-4 border-s-[3px] border-brand ps-3.5">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-4 rule-accent ps-3.5">
         <h2 className={`${fontDisplay} m-0 text-[clamp(1.1875rem,1rem+0.8vw,1.375rem)] font-extrabold text-ink`}>
           {isAr ? "أحدث الأخبار" : "Latest News"}
         </h2>

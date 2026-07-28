@@ -1,12 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { dashMutate } from "@/lib/api";
-import type { ArticleBlock, ArticleDetail, Badge } from "@/lib/types";
+import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
+import TextColorToolbar from "@/components/dashboard/TextColorToolbar";
+import { dashMutate, mediaUrl } from "@/lib/api";
+import type { ArticleBlock, ArticleDetail, Badge, MediaAsset } from "@/lib/types";
 
-type Block = { id: number; type: ArticleBlock["type"]; text: string; caption: string; credit: string };
+type Block = {
+  id: number;
+  type: ArticleBlock["type"];
+  text: string;
+  caption: string;
+  credit: string;
+  /** Library asset chosen in this session — sent as asset_id. */
+  assetId: number | null;
+  /** Stored file name of an image the block already had — echoed as keep_image. */
+  imageName: string;
+  /** Preview URL for whichever of the two above is set. */
+  imageUrl: string | null;
+};
 export type EditorSection = { id: number; key: string; label: string };
 
 const BADGES: { key: Badge; label: string }[] = [
@@ -34,17 +48,38 @@ export default function ArticleEditorForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [standfirst, setStandfirst] = useState(initial?.standfirst ?? "");
   const [blocks, setBlocks] = useState<Block[]>(
-    initial?.blocks.map((b) => ({ id: b.id, type: b.type, text: b.text, caption: b.caption, credit: b.credit })) ?? [
-      { id: 1, type: "paragraph", text: "", caption: "", credit: "" },
-    ],
+    initial?.blocks.map((b) => ({
+      id: b.id,
+      type: b.type,
+      text: b.text,
+      caption: b.caption,
+      credit: b.credit,
+      assetId: null,
+      imageName: b.image_name ?? "",
+      imageUrl: mediaUrl(b.image) ?? null,
+    })) ?? [{ id: 1, type: "paragraph", text: "", caption: "", credit: "", assetId: null, imageName: "", imageUrl: null }],
   );
   const [nextId, setNextId] = useState((blocks.at(-1)?.id ?? 0) + 1);
+  // Keyed by block id, not index, so reordering a block keeps its textarea.
+  const bodyRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
   const [section, setSection] = useState(initial?.section?.key ?? sections[0]?.key ?? "egypt");
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
   const [badge, setBadge] = useState<Badge>(initial?.badge ?? "none");
   const [lang, setLang] = useState<"ar" | "en">(initial?.language ?? "ar");
   const [tags, setTags] = useState<string[]>(initial?.tags.map((t) => t.name) ?? []);
   const [tagDraft, setTagDraft] = useState("");
+  // Permalink. Blank on a new article means "derive from the title" (the
+  // server slugifies Arabic correctly; the browser can't).
+  const [slug, setSlug] = useState(initial?.slug ?? "");
+  const [coverUrl, setCoverUrl] = useState<string | null>(mediaUrl(initial?.cover_image ?? null) ?? null);
+  const [coverAssetId, setCoverAssetId] = useState<number | null>(null);
+  // Which spot the library picker is choosing for: a block id, or the cover.
+  const [pickerFor, setPickerFor] = useState<number | "cover" | null>(null);
+  // Publishing surfaces: pinning is a stored article field; the two pushes
+  // are one-shot actions the server performs on this save (published only).
+  const [pinned, setPinned] = useState(initial?.pinned ?? false);
+  const [pushBreaking, setPushBreaking] = useState(false);
+  const [pushStory, setPushStory] = useState(false);
   const [ttsStatus, setTtsStatus] = useState<"idle" | "generating" | "done">(initial?.tts_status ?? "idle");
   const [saving, setSaving] = useState(false);
 
@@ -59,10 +94,50 @@ export default function ArticleEditorForm({
       return arr;
     });
   const addBlock = (type: Block["type"]) => {
-    setBlocks((bs) => [...bs, { id: nextId, type, text: "", caption: "", credit: "" }]);
+    setBlocks((bs) => [...bs, { id: nextId, type, text: "", caption: "", credit: "", assetId: null, imageName: "", imageUrl: null }]);
     setNextId((n) => n + 1);
   };
   const removeBlock = (id: number) => setBlocks((bs) => bs.filter((b) => b.id !== id));
+
+  /**
+   * «ضبط المسافات»: split the paragraph at the cursor into two blocks. Long
+   * walls of text become separately movable paragraphs with the standard
+   * spacing between them, instead of the editor faking distance with blank
+   * lines that render inconsistently.
+   */
+  const splitBlock = (id: number) => {
+    const el = bodyRefs.current[id];
+    setBlocks((bs) => {
+      const i = bs.findIndex((b) => b.id === id);
+      if (i === -1) return bs;
+      const at = el ? el.selectionStart : Math.floor(bs[i].text.length / 2);
+      const before = bs[i].text.slice(0, at).trim();
+      const after = bs[i].text.slice(at).trim();
+      if (!before || !after) return bs;
+      const arr = [...bs];
+      arr[i] = { ...arr[i], text: before };
+      arr.splice(i + 1, 0, { id: nextId, type: "paragraph", text: after, caption: "", credit: "", assetId: null, imageName: "", imageUrl: null });
+      return arr;
+    });
+    setNextId((n) => n + 1);
+  };
+
+  const pickAsset = (asset: MediaAsset) => {
+    const url = mediaUrl(asset.image) ?? null;
+    if (pickerFor === "cover") {
+      setCoverAssetId(asset.id);
+      setCoverUrl(url);
+    } else if (pickerFor !== null) {
+      setBlocks((bs) =>
+        bs.map((b) =>
+          b.id === pickerFor
+            ? { ...b, assetId: asset.id, imageName: "", imageUrl: url, credit: b.credit || asset.credit }
+            : b,
+        ),
+      );
+    }
+    setPickerFor(null);
+  };
 
   const words = wordCount(standfirst) + blocks.filter((b) => b.type === "paragraph").reduce((sum, b) => sum + wordCount(b.text), 0);
   const readMinutes = Math.max(1, Math.ceil(words / 200));
@@ -83,15 +158,27 @@ export default function ArticleEditorForm({
       language: lang,
       section: sectionId,
       subcategory: subcategory.trim(),
-      blocks: blocks.map((b, i) => ({ order: i, type: b.type, text: b.text, caption: b.caption, credit: b.credit })),
+      blocks: blocks.map((b, i) => ({
+        order: i,
+        type: b.type,
+        text: b.text,
+        caption: b.caption,
+        credit: b.credit,
+        ...(b.assetId ? { asset_id: b.assetId } : b.imageName ? { keep_image: b.imageName } : {}),
+      })),
       tag_names: tags,
+      pinned,
+      ...(pushBreaking ? { push_breaking: true } : {}),
+      ...(pushStory ? { push_story: true } : {}),
+      // Blank slug is omitted so Article.save() derives one from the title —
+      // the browser can't slugify Arabic without stripping it to nothing.
+      ...(slug.trim() ? { slug: slug.trim() } : {}),
+      ...(coverAssetId ? { cover_asset_id: coverAssetId } : {}),
     };
     try {
       if (articleId) {
         await dashMutate(`/articles/${articleId}/`, "PATCH", payload);
       } else {
-        // No slug sent on purpose: the browser can't slugify an Arabic
-        // headline (it strips to empty), so Article.save() derives it.
         await dashMutate("/articles/", "POST", payload);
       }
       router.push("/dashboard/articles");
@@ -126,7 +213,12 @@ export default function ArticleEditorForm({
           <div key={b.id} className="rounded-card border border-line p-3.5">
             <div className="mb-2.5 flex items-center justify-between">
               <span className="text-[11px] font-extrabold text-brand">{BLOCK_LABELS[b.type]}</span>
-              <div className="flex gap-2.5 text-xs text-header-muted">
+              <div className="flex items-center gap-2.5 text-xs text-header-muted">
+                {b.type === "paragraph" && b.text.trim() ? (
+                  <span onClick={() => splitBlock(b.id)} title="تقسيم الفقرة عند المؤشر" className="cursor-pointer font-semibold hover:text-accent">
+                    ✂ تقسيم
+                  </span>
+                ) : null}
                 <span onClick={() => moveBlock(b.id, -1)} className="cursor-pointer">
                   ▲
                 </span>
@@ -139,12 +231,22 @@ export default function ArticleEditorForm({
               </div>
             </div>
             {(b.type === "paragraph" || b.type === "quote") && (
-              <textarea
-                value={b.text}
-                onChange={(e) => updateBlock(b.id, { text: e.target.value })}
-                placeholder={b.type === "paragraph" ? "نص الفقرة" : "نص الاقتباس"}
-                className="min-h-[70px] w-full resize-y rounded-lg border border-line p-2.5 text-[14px] outline-none focus:border-brand"
-              />
+              <>
+                <textarea
+                  ref={(el) => {
+                    bodyRefs.current[b.id] = el;
+                  }}
+                  value={b.text}
+                  onChange={(e) => updateBlock(b.id, { text: e.target.value })}
+                  placeholder={b.type === "paragraph" ? "نص الفقرة" : "نص الاقتباس"}
+                  className="min-h-[70px] w-full resize-y rounded-lg border border-line p-2.5 text-[14px] outline-none focus:border-brand"
+                />
+                <TextColorToolbar
+                  value={b.text}
+                  onChange={(text: string) => updateBlock(b.id, { text })}
+                  textareaRef={{ current: bodyRefs.current[b.id] ?? null }}
+                />
+              </>
             )}
             {b.type === "heading" && (
               <input
@@ -156,7 +258,24 @@ export default function ArticleEditorForm({
             )}
             {b.type === "image" && (
               <div className="flex flex-wrap gap-3">
-                <div className="flex h-[100px] w-[140px] flex-shrink-0 items-center justify-center rounded-lg bg-surface text-xs text-header-muted">صورة</div>
+                <button
+                  type="button"
+                  onClick={() => setPickerFor(b.id)}
+                  title="اختيار من مكتبة الصور"
+                  className="group relative flex h-[100px] w-[140px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-surface text-xs text-header-muted hover:border-accent hover:text-accent"
+                >
+                  {b.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={b.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  ) : (
+                    <span>🖼 من المكتبة</span>
+                  )}
+                  {b.imageUrl ? (
+                    <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1 text-center text-[10.5px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+                      تغيير الصورة
+                    </span>
+                  ) : null}
+                </button>
                 <div className="flex min-w-[180px] flex-1 flex-col gap-2">
                   <input
                     value={b.caption}
@@ -204,6 +323,47 @@ export default function ArticleEditorForm({
             ))}
           </div>
         </div>
+        <div className="rounded-card border border-line bg-paper p-4">
+          <div className="mb-2.5 text-[13px] font-bold">صورة الغلاف</div>
+          <button
+            type="button"
+            onClick={() => setPickerFor("cover")}
+            className="group relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-surface text-xs text-header-muted hover:border-accent hover:text-accent"
+          >
+            {coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <span>🖼 اختيار من مكتبة الصور</span>
+            )}
+            {coverUrl ? (
+              <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1.5 text-center text-[11px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+                تغيير الغلاف
+              </span>
+            ) : null}
+          </button>
+          <div className="mt-2 text-[11px] leading-relaxed text-ink-3">
+            ابحث باسم الصورة أو الشخصية — الصور المرفوعة سابقاً تُعاد بلا رفع جديد وبحقوقها المسجلة.
+          </div>
+        </div>
+        <div className="rounded-card border border-line bg-paper p-4">
+          <div className="mb-2.5 text-[13px] font-bold">الرابط الدائم (Permalink)</div>
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            dir="ltr"
+            placeholder="يتولّد تلقائياً من العنوان"
+            className="w-full rounded-lg border border-line px-2.5 py-2 text-left text-xs outline-none focus:border-brand"
+          />
+          <div dir="ltr" className="mt-2 truncate text-left text-[11px] text-ink-3">
+            /article/{slug.trim() || "…"}
+          </div>
+          {articleId && initial?.slug && slug.trim() !== initial.slug ? (
+            <div className="mt-1.5 text-[11px] font-semibold leading-relaxed text-down">
+              تغيير الرابط بعد النشر يكسر أي رابط قديم متداول للخبر.
+            </div>
+          ) : null}
+        </div>
         {/* The red tag on the card grids. Optional — a card with no
             subcategory just falls back to its section name. */}
         <div className="rounded-card border border-line bg-paper p-4">
@@ -242,6 +402,30 @@ export default function ArticleEditorForm({
             placeholder="أضف وسماً واضغط Enter"
             className="w-full rounded-lg border border-line px-2.5 py-2 text-xs outline-none focus:border-brand"
           />
+        </div>
+        <div className="rounded-card border border-line bg-paper p-4">
+          <div className="mb-2.5 text-[13px] font-bold">النشر والإبراز</div>
+          <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+            <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
+            <span>
+              <span className="block text-[13px] font-semibold text-ink">تثبيت في الرئيسية</span>
+              <span className="block text-[11px] leading-relaxed text-ink-3">يتصدّر الخبر واجهة الموقع حتى تلغي التثبيت.</span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+            <input type="checkbox" checked={pushBreaking} onChange={(e) => setPushBreaking(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
+            <span>
+              <span className="block text-[13px] font-semibold text-ink">إرسال إلى شريط «عاجل»</span>
+              <span className="block text-[11px] leading-relaxed text-ink-3">يظهر العنوان في الشريط الأحمر فور الحفظ والنشر.</span>
+            </span>
+          </label>
+          <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+            <input type="checkbox" checked={pushStory} onChange={(e) => setPushStory(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
+            <span>
+              <span className="block text-[13px] font-semibold text-ink">إضافة إلى «قصص اليوم»</span>
+              <span className="block text-[11px] leading-relaxed text-ink-3">ينضم لشريط القصص أعلى الرئيسية بصورة غلافه.</span>
+            </span>
+          </label>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">الشارة</div>
@@ -294,6 +478,8 @@ export default function ArticleEditorForm({
           </button>
         </div>
       </div>
+
+      {pickerFor !== null ? <MediaLibraryPicker onPick={pickAsset} onClose={() => setPickerFor(null)} /> : null}
     </div>
   );
 }

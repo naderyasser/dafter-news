@@ -118,6 +118,10 @@ class Article(models.Model):
 
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.DRAFT)
     badge = models.CharField(max_length=12, choices=Badge.choices, default=Badge.NONE)
+    # «تثبيت في الرئيسية» — pinned articles lead the home hero regardless of
+    # publish time, so editorial can hold a big story at the top with one
+    # click instead of re-dating it.
+    pinned = models.BooleanField(default=False)
 
     standfirst = models.TextField(blank=True)
     cover_image = models.ImageField(upload_to="covers/", blank=True, null=True)
@@ -225,6 +229,10 @@ class BreakingNewsItem(models.Model):
     """Rows for شريط «عاجل» (DashBreaking.dc.html)."""
 
     text = models.CharField(max_length=280)
+    # Where the ticker entry leads when clicked — the client asked for the
+    # «عاجل» strip to open the full story, not to be decoration. Blank means
+    # the item renders as plain text (a flash with no article yet).
+    href = models.CharField(max_length=300, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
     active = models.BooleanField(default=True)
     expires_at = models.DateTimeField(default=timezone.now)

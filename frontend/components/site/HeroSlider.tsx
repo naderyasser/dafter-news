@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Chevron from "@/components/ui/Chevron";
 
 type Slide = {
   href: string;
@@ -14,19 +15,30 @@ type Slide = {
 };
 
 const AUTOPLAY_MS = 6000;
+const SWIPE_PX = 44;
 
 /**
- * Auto-advancing hero carousel on a navy field.
+ * Auto-advancing hero in the الشرق live-coverage style the client pointed at:
+ * a full-bleed photograph fading into the navy field, a red-dot kicker over a
+ * white pill, one large white headline, and red dots underneath.
  *
- * Autoplay pauses on hover/focus and while the tab is hidden, and is skipped
- * entirely under prefers-reduced-motion — a carousel that keeps moving under
- * the pointer is the fastest way to make a headline unclickable.
+ * The text sits in normal flow over the photo rather than being absolutely
+ * positioned against its bottom edge. The old overlay was anchored to a fixed
+ * 16:9 frame, so any headline that wrapped past two lines grew taller than
+ * the frame itself — spilling over the arrows on phones and clipping
+ * mid-glyph on desktop. In-flow content can only ever make the frame taller.
+ *
+ * Autoplay pauses on hover/focus and is skipped under prefers-reduced-motion —
+ * a carousel that keeps moving under the pointer is the fastest way to make a
+ * headline unclickable. On touch, where there is nothing to hover, the slides
+ * answer to a horizontal swipe and the arrows stay hidden.
  */
 export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides: Slide[] }) {
   const isAr = lang === "ar";
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useRef(false);
+  const touchX = useRef<number | null>(null);
 
   useEffect(() => {
     reducedMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -53,77 +65,123 @@ export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
+      onTouchStart={(e) => {
+        touchX.current = e.touches[0]?.clientX ?? null;
+      }}
+      onTouchEnd={(e) => {
+        if (touchX.current === null) return;
+        const dx = (e.changedTouches[0]?.clientX ?? touchX.current) - touchX.current;
+        touchX.current = null;
+        if (Math.abs(dx) < SWIPE_PX) return;
+        // Mirrored per direction: the "next" slide lives on the inline-end
+        // side, so the finger drags toward the start edge to fetch it.
+        go((isAr ? dx > 0 : dx < 0) ? 1 : -1);
+      }}
       aria-roledescription="carousel"
       aria-label={isAr ? "أهم الأخبار" : "Top stories"}
     >
-      <div className="relative aspect-[16/9] w-full sm:aspect-[2/1]">
-        {slide.imageSrc ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={slide.imageSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 bg-navy-2" />
+      {/* Every photo stays mounted so the change is a crossfade rather than a
+          hard swap; only the active one is visible. */}
+      <div className="absolute inset-0" aria-hidden>
+        {slides.map((s, i) =>
+          s.imageSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={s.href + i}
+              src={s.imageSrc}
+              alt=""
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
+                i === index ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ) : (
+            <div
+              key={s.href + i}
+              className={`absolute inset-0 bg-navy-2 transition-opacity duration-700 ${
+                i === index ? "opacity-100" : "opacity-0"
+              }`}
+            />
+          ),
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-navy via-[rgba(16,27,51,.72)] to-transparent" />
+        {/* Solid navy at the base so the headline never competes with the
+            photo, near-clear at the top so the photo stays a photo. */}
+        <div className="absolute inset-0 bg-gradient-to-t from-navy via-[rgba(11,52,84,.62)] to-[rgba(11,52,84,.06)]" />
+      </div>
 
-        <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-6 sm:p-9">
-          <div className="flex items-center gap-3">
-            {slide.badge === "breaking" ? (
-              <span className="rounded-badge bg-badge-breaking px-2.5 py-1 text-[12px] font-bold text-paper">
-                {isAr ? "عاجل" : "Breaking"}
-              </span>
-            ) : null}
-            {slide.section ? (
-              <span className="rounded-badge bg-brand px-2.5 py-1 text-[12px] font-bold text-paper">{slide.section}</span>
-            ) : null}
-            {slide.time ? <span className="text-[12.5px] text-header-muted">{slide.time}</span> : null}
+      {/* In flow: the frame is as tall as the text needs, never shorter. */}
+      {/* sm:px-16 clears the arrow buttons (they end 56px in): the kicker
+          pill sits at the arrows' height on desktop, and 36px of padding put
+          it underneath them. */}
+      <div className="relative z-[1] flex min-h-[440px] flex-col justify-end px-5 pb-4 pt-28 sm:min-h-[430px] sm:px-16 sm:pb-5 lg:min-h-[490px]">
+        {/* Keyed by slide so the text arrives with a soft fade in step with
+            the photo behind it. */}
+        <div key={slide.href + index} className="flex animate-fade-in flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="flex items-center gap-2 rounded-pill bg-paper px-3 py-1">
+              <span className="h-2 w-2 animate-pulse-dot rounded-full bg-badge-breaking" aria-hidden />
+              {/* One label, not two: «عاجل» outranks the section name. */}
+              {slide.badge === "breaking" ? (
+                <span className="text-[12.5px] font-extrabold text-brand">{isAr ? "عاجل" : "Breaking"}</span>
+              ) : slide.section ? (
+                <span className="text-[12.5px] font-extrabold text-brand">{slide.section}</span>
+              ) : null}
+              <Chevron lang={lang} className="h-3 w-3 text-brand" />
+            </span>
+            {slide.time ? <span className="text-[12.5px] font-semibold text-header-muted">{slide.time}</span> : null}
           </div>
 
           <Link
             href={slide.href}
-            className={`${isAr ? "font-display-ar" : "font-display-en"} max-w-[820px] text-[22px] font-extrabold leading-[1.45] text-paper no-underline sm:text-[34px]`}
+            className={`${isAr ? "font-display-ar" : "font-display-en"} max-w-[820px] text-[clamp(1.5rem,1.15rem+1.8vw,2.375rem)] font-extrabold leading-[1.5] text-paper no-underline`}
           >
             {slide.title}
           </Link>
 
           {slide.standfirst ? (
-            <p className="line-clamp-2 max-w-[720px] text-[14px] leading-relaxed text-header-muted sm:text-[16px]">
+            <p className="line-clamp-2 hidden max-w-[720px] text-[14px] leading-relaxed text-header-muted sm:block sm:text-[16px]">
               {slide.standfirst}
             </p>
           ) : null}
         </div>
 
-        <button
-          type="button"
-          aria-label={isAr ? "السابق" : "Previous"}
-          onClick={() => go(-1)}
-          className="absolute top-1/2 start-4 z-[2] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(255,255,255,.35)] bg-[rgba(16,27,51,.55)] text-paper transition-colors duration-fast hover:bg-brand"
-        >
-          <span className={isAr ? "" : "-scale-x-100"}>›</span>
-        </button>
-        <button
-          type="button"
-          aria-label={isAr ? "التالي" : "Next"}
-          onClick={() => go(1)}
-          className="absolute top-1/2 end-4 z-[2] flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(255,255,255,.35)] bg-[rgba(16,27,51,.55)] text-paper transition-colors duration-fast hover:bg-brand"
-        >
-          <span className={isAr ? "" : "-scale-x-100"}>‹</span>
-        </button>
-
-        <div className="absolute bottom-3 start-1/2 z-[2] flex -translate-x-1/2 gap-2">
-          {slides.map((s, i) => (
-            <button
-              key={s.href + i}
-              type="button"
-              aria-label={`${isAr ? "شريحة" : "Slide"} ${i + 1}`}
-              aria-current={i === index}
-              onClick={() => setIndex(i)}
-              className={`h-1.5 rounded-pill transition-all duration-med ${
-                i === index ? "w-7 bg-brand" : "w-2.5 bg-[rgba(255,255,255,.45)]"
-              }`}
-            />
-          ))}
-        </div>
+        {slides.length > 1 ? (
+          <div className="mt-4 flex justify-center gap-2 sm:mt-5">
+            {slides.map((s, i) => (
+              <button
+                key={s.href + i}
+                type="button"
+                aria-label={`${isAr ? "شريحة" : "Slide"} ${i + 1}`}
+                aria-current={i === index}
+                onClick={() => setIndex(i)}
+                className={`h-1.5 rounded-pill transition-all duration-med ${
+                  i === index ? "w-7 bg-brand" : "w-2.5 bg-[rgba(255,255,255,.45)] hover:bg-paper"
+                }`}
+              />
+            ))}
+          </div>
+        ) : null}
       </div>
+
+      {slides.length > 1 ? (
+        <>
+          <button
+            type="button"
+            aria-label={isAr ? "السابق" : "Previous"}
+            onClick={() => go(-1)}
+            className="absolute top-1/2 z-[2] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(255,255,255,.35)] bg-[rgba(11,52,84,.55)] text-paper transition-colors duration-fast hover:bg-brand sm:start-4 sm:flex"
+          >
+            <Chevron lang={lang} dir="back" className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label={isAr ? "التالي" : "Next"}
+            onClick={() => go(1)}
+            className="absolute top-1/2 z-[2] hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-[rgba(255,255,255,.35)] bg-[rgba(11,52,84,.55)] text-paper transition-colors duration-fast hover:bg-brand sm:end-4 sm:flex"
+          >
+            <Chevron lang={lang} className="h-4 w-4" />
+          </button>
+        </>
+      ) : null}
     </section>
   );
 }

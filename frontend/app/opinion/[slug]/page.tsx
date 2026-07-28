@@ -44,7 +44,7 @@ export default async function ArticleOpinionPage({ params }: { params: { slug: s
             </div>
           )}
 
-          <h1 className="font-display-ar mb-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.5] text-ink">
+          <h1 className="font-display-ar mb-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.5] text-accent">
             {article.title}
           </h1>
           <div className="mb-6 flex items-center gap-2 border-y border-line py-3 text-[14px] text-ink-3">

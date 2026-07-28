@@ -42,6 +42,13 @@ type CardProps = {
   isVideo?: boolean;
   videoDuration?: string;
   comments?: number;
+  /**
+   * The owning section's colour. Paints the kicker and the headline hover;
+   * defaults to the accent blue. The kicker used to be brand red on every
+   * card on the page, which made the red the loudest thing in a grid of
+   * photographs and left nothing for «عاجل» to escalate to.
+   */
+  accent?: string;
 };
 
 export default function ArticleCard({
@@ -57,9 +64,11 @@ export default function ArticleCard({
   isVideo,
   videoDuration,
   comments,
+  accent,
 }: CardProps) {
   const t = T[lang];
   const fontDisplay = lang === "ar" ? "font-display-ar" : "font-display-en";
+  const accentVar = accent ? ({ "--card-accent": accent } as React.CSSProperties) : undefined;
 
   if (variant === "hero") {
     return (
@@ -70,7 +79,7 @@ export default function ArticleCard({
         </div>
         <BadgeChip badge={badge} lang={lang} />
         <div className="absolute inset-x-0 bottom-0 p-5">
-          {section && <span className="text-xs font-bold text-brand-tint">{section}</span>}
+          {section && <span className="text-xs font-bold text-navy-tint">{section}</span>}
           <div className={`${fontDisplay} mt-1.5 text-[clamp(1.25rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.4] text-paper`}>
             {title}
           </div>
@@ -81,7 +90,7 @@ export default function ArticleCard({
 
   if (variant === "compact") {
     return (
-      <Link href={href} className="flex gap-3 py-2.5 no-underline">
+      <Link href={href} className="card-link flex gap-3 py-2.5 no-underline" style={accentVar}>
         <div className="relative w-[120px] flex-shrink-0 overflow-hidden rounded-card">
           <div className="relative aspect-[4/3]">
             <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
@@ -89,7 +98,7 @@ export default function ArticleCard({
           <BadgeChip badge={badge} lang={lang} size="sm" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className={`${fontDisplay} text-[15px] font-bold leading-[1.45] text-ink`}>{title}</div>
+          <div className={`${fontDisplay} card-title text-[15px] font-bold leading-[1.45] text-ink`}>{title}</div>
           {time && <div className="mt-1.5 text-xs text-ink-3">{time}</div>}
         </div>
       </Link>
@@ -98,8 +107,8 @@ export default function ArticleCard({
 
   if (variant === "text") {
     return (
-      <Link href={href} className="block border-b border-line py-3.5 no-underline">
-        <div className={`${fontDisplay} text-h3 font-bold leading-[1.5] text-ink`}>{title}</div>
+      <Link href={href} className="card-link block border-b border-line py-3.5 no-underline" style={accentVar}>
+        <div className={`${fontDisplay} card-title text-h3 font-bold leading-[1.5] text-ink`}>{title}</div>
         {excerpt && <div className="mt-1.5 text-[14px] leading-[1.6] text-ink-2">{excerpt}</div>}
         {time && <div className="mt-2 text-caption text-ink-3">{time}</div>}
       </Link>
@@ -108,7 +117,7 @@ export default function ArticleCard({
 
   // standard
   return (
-    <Link href={href} className="block overflow-hidden rounded-card border border-line bg-paper no-underline">
+    <Link href={href} className="card-link block overflow-hidden rounded-card border border-line bg-paper no-underline" style={accentVar}>
       <div className="relative aspect-video">
         <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
         <BadgeChip badge={badge} lang={lang} />
@@ -128,8 +137,15 @@ export default function ArticleCard({
         )}
       </div>
       <div className="px-0.5 pb-1 pt-3.5">
-        {section && <span className="text-xs font-bold text-brand">{section}</span>}
-        <div className={`${fontDisplay} mt-2 text-h3 font-bold leading-[1.5] text-ink`}>{title}</div>
+        {/* The kicker is where the section's own colour lands — green over a
+            «جوّه الجون» card, purple over «ثقافة وفن» — so a card carries its
+            section even when it is lifted out of the block. */}
+        {section && (
+          <span className="text-xs font-bold text-accent" style={accent ? { color: accent } : undefined}>
+            {section}
+          </span>
+        )}
+        <div className={`${fontDisplay} card-title mt-2 text-h3 font-bold leading-[1.5] text-ink`}>{title}</div>
         {time && <div className="mt-1.5 text-caption text-ink-3">{time}</div>}
         {isVideo && (
           <div className="mt-2 flex gap-3.5 text-caption text-ink-3">

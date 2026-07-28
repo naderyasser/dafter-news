@@ -1,23 +1,19 @@
 import Link from "next/link";
 
+import BetaBadge from "@/components/site/BetaBadge";
 import NavDrawer from "@/components/site/NavDrawer";
 import PrayerStrip from "@/components/site/PrayerStrip";
 import BreakingAlertsToggle from "@/components/site/BreakingAlertsToggle";
 import SearchBox from "@/components/site/SearchBox";
 import { getBreakingNews, getPrayerTimes, getSections, getSiteSettings, mediaUrl } from "@/lib/api";
+import { sectionColor } from "@/lib/sections";
 
 type NavItem = { key: string; label: string; href: string };
 
-const NAV_EN: NavItem[] = [
-  { key: "home", label: "Home", href: "/en" },
-  { key: "egypt", label: "Egypt", href: "#" },
-  { key: "economy", label: "Economy", href: "#" },
-  { key: "sports", label: "Sports", href: "#" },
-  { key: "opinion", label: "Opinion", href: "#" },
-  { key: "video", label: "Watch", href: "#" },
-  { key: "live", label: "Live", href: "/live" },
-  { key: "markets", label: "Markets", href: "#" },
-];
+// The English nav was a hardcoded list of six labels pointing at "#", while
+// the Arabic one listed every section from the API. Both are built the same
+// way now, so switching language changes the words and the direction — not
+// what the site is.
 
 export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "en"; active?: string }) {
   const isAr = lang === "ar";
@@ -38,9 +34,14 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
 
   // The nav bar shows the sections themselves; «لقطة وتعليق» was dropped from
   // the masthead buttons on request, so it lives here with the rest.
-  const nav: NavItem[] = isAr
-    ? [{ key: "home", label: "الرئيسية", href: "/" }, ...sections.map((s) => ({ key: s.key, label: s.name_ar, href: `/section/${s.key}` }))]
-    : NAV_EN;
+  const nav: NavItem[] = [
+    { key: "home", label: isAr ? "الرئيسية" : "Home", href: homeHref },
+    ...sections.map((s) => ({
+      key: s.key,
+      label: isAr ? s.name_ar : s.name_en || s.name_ar,
+      href: isAr ? `/section/${s.key}` : `/en/section/${s.key}`,
+    })),
+  ];
 
   const drawerExtras = isAr
     ? [
@@ -57,17 +58,21 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
       ];
   // BreakingNewsItem.text is a single column and every row in it is Arabic,
   // so the English masthead was running an Arabic marquee. Take only the rows
-  // written in this page's script; when none match, the existing per-language
-  // default below still gives the bar something to say.
-  const breakingItems = breaking.results
-    .map((b) => b.text)
-    .filter((text) => /[؀-ۿ]/.test(text) === isAr);
-
-  const breakingText = breakingItems.length
-    ? breakingItems.join("   •   ")
+  // written in this page's script; when none match, the per-language default
+  // below still gives the bar something to say. Each row keeps its href so
+  // the strip is a set of links to the stories, not decoration.
+  const matching = breaking.results.filter((b) => /[؀-ۿ]/.test(b.text) === isAr);
+  const tickerItems: { text: string; href: string }[] = matching.length
+    ? matching.map((b) => ({ text: b.text, href: b.href || "" }))
     : isAr
-      ? "الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد   •   البنك المركزي يثبّت أسعار الفائدة"
-      : "President opens second phase of new Delta corridor   •   Central bank holds interest rates steady";
+      ? [
+          { text: "الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد", href: "" },
+          { text: "البنك المركزي يثبّت أسعار الفائدة", href: "" },
+        ]
+      : [
+          { text: "President opens second phase of new Delta corridor", href: "" },
+          { text: "Central bank holds interest rates steady", href: "" },
+        ];
 
   const today = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", {
     weekday: "long",
@@ -76,8 +81,13 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
     day: "numeric",
   }).format(new Date());
 
+  // Three siblings rather than one sticky block: on phones the full stack
+  // (topbar + masthead + five wrapped nav rows + marquee) was pinned to the
+  // top and left the reader a letterbox of actual page. Only the masthead and
+  // nav stay sticky now; the date bar and the «عاجل» marquee scroll away with
+  // the page like any other content.
   return (
-    <div dir={isAr ? "rtl" : "ltr"} lang={lang} className={`${fontBody} sticky top-0 z-50`}>
+    <div dir={isAr ? "rtl" : "ltr"} lang={lang} className={`${fontBody} contents`}>
       {/* topbar */}
       <div className="bg-header-bg text-[13px] text-header-muted">
         <div className="mx-auto flex max-w-container flex-wrap items-center justify-between gap-4 px-6 py-1.5">
@@ -101,10 +111,11 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
         </div>
       </div>
 
+      <div className="sticky top-0 z-50">
       {/* masthead — hamburger at the inline start, search at the inline end */}
       <div className="border-b border-line bg-paper">
         <div className="mx-auto flex max-w-container items-center gap-4 px-6 py-4">
-          <NavDrawer lang={lang} sections={sections} extraLinks={drawerExtras} />
+          <NavDrawer lang={lang} sections={sections} extraLinks={drawerExtras} active={active} logoSrc={logoSrc} />
 
           {/* The masthead shows the uploaded brand mark when Settings has one,
               and falls back to the typographic wordmark the design shipped
@@ -122,7 +133,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
                 className="h-[52px] w-auto object-contain sm:h-[64px] lg:h-[72px]"
               />
             ) : (
-              <span className={`${fontDisplay} flex flex-col border-s-[3px] border-brand ps-3`}>
+              <span className={`${fontDisplay} rule-accent flex flex-col ps-3.5`}>
                 <span className="text-[22px] font-extrabold leading-tight tracking-[-0.3px] text-ink">
                   {isAr ? "الدفتر نيوز" : "Al Daftar News"}
                 </span>
@@ -138,13 +149,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
               Sits beside the mark rather than in the topbar so it can't be
               mistaken for one of the utility links. Remove this block when the
               site goes fully live. */}
-          <span
-            className="flex flex-shrink-0 items-center gap-1.5 rounded-pill border border-gold/40 bg-gold/10 px-2.5 py-1 text-[11px] font-bold text-gold sm:text-xs"
-            title="الموقع قيد التشغيل التجريبي"
-          >
-            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-gold" aria-hidden />
-            {isAr ? "بث تجريبي" : "Beta"}
-          </span>
+          <BetaBadge lang={lang} />
 
           {/* The «بث مباشر» pill that used to sit here was removed on request;
               /live stays reachable from the nav row and the drawer. */}
@@ -155,18 +160,29 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
         </div>
       </div>
 
-      {/* nav */}
+      {/* nav — the active item is underlined in its own section's colour, so
+          the bar reads as part of the section you are standing in rather than
+          as one more red element competing with «عاجل» below it. */}
       <nav className="border-b border-line bg-paper shadow-1">
-        <div className="mx-auto flex h-11 max-w-container items-stretch gap-7 overflow-x-auto px-6">
+        {/* Wraps on wide screens: thirteen Arabic section names do not fit
+            1200px on one line, and `overflow-x-auto` was silently pushing the
+            tail of the list — «الخليج» among them — off the end of a bar with
+            no affordance to scroll it. On phones the same wrap produced five
+            stacked rows, so there the bar is a single swipeable row instead —
+            a reader with a touchscreen has the affordance built in, and the
+            drawer still lists every section. */}
+        <div className="scrollbar-none mx-auto flex max-w-container items-stretch gap-x-5 overflow-x-auto px-6 py-0.5 sm:flex-wrap sm:gap-x-6 sm:gap-y-0 sm:overflow-x-visible">
           {nav.map((item) => {
             const isActive = item.key === active;
+            const color = sectionColor(item.key === "home" ? undefined : item.key);
             return (
               <Link
                 key={item.key}
                 href={item.href}
-                className={`flex flex-shrink-0 items-center whitespace-nowrap border-b-[3px] px-1 text-[14px] no-underline ${
-                  isActive ? "border-brand font-bold text-brand" : "border-transparent font-semibold text-ink"
+                className={`flex h-10 flex-shrink-0 items-center whitespace-nowrap border-b-[3px] px-1 text-[14px] no-underline ${
+                  isActive ? "font-bold" : "border-transparent font-semibold text-ink hover:text-accent"
                 }`}
+                style={isActive ? { borderColor: color, color } : undefined}
               >
                 {item.label}
               </Link>
@@ -174,6 +190,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
           })}
         </div>
       </nav>
+      </div>
 
       {/* breaking marquee */}
       <div className="relative flex h-9 items-stretch overflow-hidden bg-badge-breaking">
@@ -186,8 +203,27 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
               isAr ? "animate-marquee-rtl" : "animate-marquee-ltr"
             } hover:[animation-play-state:paused]`}
           >
-            <span className="pe-12 whitespace-nowrap">{breakingText}</span>
-            <span className="pe-12 whitespace-nowrap">{breakingText}</span>
+            {/* Two copies keep the loop seamless; the second is hidden from
+                assistive tech so nothing is announced twice. Items with an
+                href are links straight to the story — the client's ask. */}
+            {[0, 1].map((copy) => (
+              <span key={copy} aria-hidden={copy === 1} className="inline-flex whitespace-nowrap">
+                {tickerItems.map((item, i) => (
+                  <span key={i} className="inline-flex items-center whitespace-nowrap">
+                    {item.href ? (
+                      <Link href={item.href} className="whitespace-nowrap text-paper no-underline hover:underline">
+                        {item.text}
+                      </Link>
+                    ) : (
+                      <span className="whitespace-nowrap">{item.text}</span>
+                    )}
+                    <span aria-hidden className="px-5 text-paper/60">
+                      •
+                    </span>
+                  </span>
+                ))}
+              </span>
+            ))}
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import MarketsTicker from "@/components/site/MarketsTicker";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
-import WelcomeModal from "@/components/site/WelcomeModal";
+import WelcomeToast from "@/components/site/WelcomeToast";
 import { getTicker, getWelcomeAlert } from "@/lib/api";
 
 /**
@@ -30,7 +30,7 @@ export default async function SiteShell({
       {children}
       <SiteFooter lang={lang} />
       <MarketsTicker lang={lang} data={ticker} />
-      <WelcomeModal alert={welcome} />
+      <WelcomeToast alert={welcome} lang={lang} />
     </div>
   );
 }

@@ -78,7 +78,7 @@ export default function AdminSidebar({ active }: { active: string }) {
       {mobileOpen && <div onClick={() => setMobileOpen(false)} className="fixed inset-0 z-[94] bg-[rgba(10,11,13,.5)]" />}
       <aside className={asideClass}>
         <Link href="/dashboard" className="block border-b border-[#2A2F37] px-4 py-5 no-underline">
-          <div className="border-s-[3px] border-brand ps-3 font-display-ar text-[17px] font-extrabold text-header-ink">
+          <div className="rule-accent rule-on-dark ps-3.5 font-display-ar text-[17px] font-extrabold text-header-ink">
             الدفتر نيوز
           </div>
           <div className="mt-1 ps-[15px] text-[11px] text-header-muted">لوحة التحكم</div>

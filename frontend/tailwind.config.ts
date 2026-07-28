@@ -14,15 +14,27 @@ const config: Config = {
     extend: {
       colors: {
         brand: { DEFAULT: "#B01F2E", strong: "#8E1624", tint: "#FBEEEF" },
+        // The blue half of the identity, sampled straight out of the brand
+        // mark (media/branding/aldaftar-masr.png): the wordmark is #073252 and
+        // the pen nib is #C4202B, so the site was carrying only half its own
+        // logo. `strong` IS the logo blue; DEFAULT is one step up so a headline
+        // still reads as blue rather than as near-black, and `soft` is the
+        // on-dark variant. Red is now reserved for urgency (عاجل / مباشر /
+        // alerts) and blue carries the everyday accents.
+        accent: { DEFAULT: "#0E4B7B", strong: "#073252", soft: "#2A6BA8", tint: "#EAF1F8" },
         // Navy carries the dark surfaces (header, hero, footer, dark section
         // bands) while the brand red stays the accent — the client asked for
         // navy "كخلفية أو عنصر بارز" while preserving the visual identity.
-        navy: { DEFAULT: "#101B33", strong: "#0A1224", 2: "#1B2A47", tint: "#E8ECF4" },
+        // Retuned onto the mark's hue: the old #101B33 was a violet-leaning
+        // navy that sat visibly beside the logo's #073252 rather than under it.
+        navy: { DEFAULT: "#0B3454", strong: "#062639", 2: "#164A70", tint: "#E7EFF6" },
         ink: { DEFAULT: "#171A1F", 2: "#3C434C", 3: "#6A727C" },
         paper: "#FFFFFF",
         surface: { DEFAULT: "#F4F5F7", 2: "#EBEDF0" },
         line: { DEFAULT: "#E2E5E9", strong: "#C9CED4" },
-        header: { bg: "#14171C", ink: "#F5F6F7", muted: "#9AA1AA" },
+        // bg was a neutral near-black; it is the logo blue now so the topbar
+        // and footer read as the same object as the mark between them.
+        header: { bg: "#072D4A", ink: "#F5F6F7", muted: "#9FB3C6" },
         badge: { breaking: "#D71F30", live: "#D71F30", exclusive: "#A97E14", video: "#171A1F" },
         up: { DEFAULT: "#0E8A4C", tint: "#E7F4ED" },
         down: { DEFAULT: "#C93030", tint: "#FBEDED" },
@@ -98,6 +110,37 @@ const config: Config = {
           from: { opacity: "0", transform: "translateY(12px) scale(.98)" },
           to: { opacity: "1", transform: "translateY(0) scale(1)" },
         },
+        // The corner alert slides up from below its resting place and fades,
+        // so it reads as arriving rather than as having been there all along.
+        // translateY only — a slide along the inline axis would need two
+        // keyframe sets to mirror in RTL.
+        // The drawer opens from the inline-start edge, which is the right in
+        // RTL and the left in LTR — two keyframes rather than one, because a
+        // single translateX cannot express "from whichever edge this is".
+        "drawer-in-rtl": {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "drawer-in-ltr": {
+          from: { transform: "translateX(-100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "toast-in": {
+          from: { opacity: "0", transform: "translateY(16px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "toast-out": {
+          from: { opacity: "1", transform: "translateY(0)" },
+          to: { opacity: "0", transform: "translateY(16px)" },
+        },
+        // Story timer. Animated rather than driven by a React state tick so
+        // the bar stays smooth without re-rendering the card every frame, and
+        // so pausing is a single [animation-play-state] toggle. It fills from
+        // the inline start, which reverses for free in RTL.
+        "story-fill": {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
       },
       animation: {
         "pulse-dot": "pulse-dot 1.4s ease-in-out infinite",
@@ -108,6 +151,16 @@ const config: Config = {
         skeleton: "skeleton 1.4s ease-in-out infinite",
         "fade-in": "fade-in 220ms ease both",
         "modal-in": "modal-in 220ms ease both",
+        "drawer-in-rtl": "drawer-in-rtl 240ms cubic-bezier(.16,1,.3,1) both",
+        "drawer-in-ltr": "drawer-in-ltr 240ms cubic-bezier(.16,1,.3,1) both",
+        "toast-in": "toast-in 260ms cubic-bezier(.16,1,.3,1) both",
+        "toast-out": "toast-out 200ms ease both",
+        // Duration is overridden per-instance so one constant in the story
+        // components controls both the timer and the advance interval.
+        // `both`, not `forwards`: the empty `from` state has to apply before
+        // the first frame too, or a freshly-mounted bar flashes full for a
+        // frame and the timer looks like it ran backwards.
+        "story-fill": "story-fill 5s linear both",
       },
     },
   },

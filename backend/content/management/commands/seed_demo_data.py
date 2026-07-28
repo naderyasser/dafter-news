@@ -8,8 +8,10 @@ Idempotent: safe to re-run, existing rows are matched by natural keys
 (slug / username / code / key) and updated in place.
 """
 import datetime
+import os
 import random
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -46,6 +48,7 @@ class Command(BaseCommand):
         tags = self.seed_tags()
         self.seed_articles(sections, tags, users)
         self.seed_english_articles(sections, users)
+        self.attach_covers()
         self.seed_comments()
         self.seed_breaking()
         self.seed_videos(sections)
@@ -60,21 +63,23 @@ class Command(BaseCommand):
 
     # ------------------------------------------------------------------ users
     def seed_users(self):
+        # name_en is the byline on the English side — without it an English
+        # article carried an Arabic byline under an English headline.
         people = [
-            ("m.eladawy", "محمد", "العدوي", User.Role.EDITOR, "محرر الشؤون المصرية"),
-            ("s.farouk", "سامية", "فاروق", User.Role.AUTHOR, "كاتبة اقتصادية، الدفتر نيوز"),
-            ("k.abdelwahab", "كريم", "عبد الوهاب", User.Role.AUTHOR, "محلل رياضي"),
-            ("m.elsherbiny", "منى", "الشربيني", User.Role.AUTHOR, "محررة ثقافية"),
-            ("a.labib", "أحمد", "لبيب", User.Role.AUTHOR, "كاتب تقنية وذكاء اصطناعي"),
-            ("y.tawfik", "ياسمين", "توفيق", User.Role.MODERATOR, "مراسلة ميدانية"),
-            ("admin", "أدمن", "النظام", User.Role.ADMIN, "مدير النظام"),
+            ("m.eladawy", "محمد", "العدوي", "Mohamed El-Adawy", User.Role.EDITOR, "محرر الشؤون المصرية"),
+            ("s.farouk", "سامية", "فاروق", "Samia Farouk", User.Role.AUTHOR, "كاتبة اقتصادية، الدفتر نيوز"),
+            ("k.abdelwahab", "كريم", "عبد الوهاب", "Karim Abdelwahab", User.Role.AUTHOR, "محلل رياضي"),
+            ("m.elsherbiny", "منى", "الشربيني", "Mona El-Sherbiny", User.Role.AUTHOR, "محررة ثقافية"),
+            ("a.labib", "أحمد", "لبيب", "Ahmed Labib", User.Role.AUTHOR, "كاتب تقنية وذكاء اصطناعي"),
+            ("y.tawfik", "ياسمين", "توفيق", "Yasmine Tawfik", User.Role.MODERATOR, "مراسلة ميدانية"),
+            ("admin", "أدمن", "النظام", "System Admin", User.Role.ADMIN, "مدير النظام"),
         ]
         created = {}
-        for username, first, last, role, title in people:
+        for username, first, last, name_en, role, title in people:
             user, _ = User.objects.update_or_create(
                 username=username,
                 defaults=dict(
-                    first_name=first, last_name=last, role=role, title=title,
+                    first_name=first, last_name=last, name_en=name_en, role=role, title=title,
                     bio=title, email=f"{username}@aldaftarnews.com", is_staff=role in (User.Role.ADMIN, User.Role.EDITOR),
                     is_superuser=(role == User.Role.ADMIN),
                 ),
@@ -97,7 +102,6 @@ class Command(BaseCommand):
             ("world", "عرب وعالم", "Arab & World", 3),
             ("economy", "حركة السوق", "Markets", 4),
             ("sports", "جوّه الجون", "Sports", 5),
-            ("style", "ستايل ونجوم", "Style & Stars", 6),
             ("security", "أمن ومحاكم", "Security & Courts", 7),
             ("tech", "علوم وتكنولوجيا", "Science & Tech", 8),
             ("art", "ثقافة وفن", "Culture & Art", 9),
@@ -236,7 +240,7 @@ class Command(BaseCommand):
             ("red-carpet-highlights", "أبرز إطلالات السجادة الحمراء في مهرجان الجونة", "none", 33, 1520),
         ]
         for slug, title, badge, hrs, views in style_rows:
-            mk_article(slug, title, "style", "a.labib", title, badge, "published", views, hrs, tag_names=["التعليم"])
+            mk_article(slug, title, "art", "a.labib", title, badge, "published", views, hrs, tag_names=["التعليم"])
 
         security_rows = [
             ("interior-ministry-network-bust", "الداخلية تضبط شبكة للاتجار غير المشروع في القاهرة", "none", 5, 5210),
@@ -314,18 +318,106 @@ class Command(BaseCommand):
         for slug, title, author_key, status, hrs in opinion_rows:
             mk_article(slug, title, "opinion", author_key, title, "none", status, 0, hrs, kind="opinion")
 
+    # ---------------------------------------------------------------- covers
+    def attach_covers(self):
+        """
+        Point every seeded article at a photo in media/covers/.
+
+        The original demo articles were given covers by hand, one file per
+        slug. The sections added later had none, so their home-page blocks
+        rendered grey placeholders and the «الأكثر قراءة» rail showed empty
+        thumbnails for whichever of them was trending.
+
+        There is no stock library here, so photos are shared: each is used at
+        most twice and matched to the nearest subject (a desalination plant for
+        the water file, a signing ceremony for a summit). Sharing is safe —
+        replacing one article's cover from the dashboard writes a new file
+        rather than overwriting this one.
+
+        Only fills blanks; an editor's own upload is never overwritten.
+        """
+        pairs = {
+            # مصر — the flagship's photo was on disk but never linked.
+            "president-opens-delta-corridor": "president-opens-delta-corridor.jpg",
+            # الخليج العربي
+            "gcc-summit-riyadh": "cairo-nairobi-protocol.jpg",
+            "uae-egypt-investment-fund": "imf-praises-reform-en.jpg",
+            "kuwait-budget-surplus": "exchange-closes-higher-en.jpg",
+            "saudi-neom-phase": "desalination-plant-en.jpg",
+            "qatar-gas-expansion": "solar-energy-projects.jpg",
+            "bahrain-digital-economy": "ai-threat-or-tool.jpg",
+            # عرب وعالم
+            "un-assembly-climate-vote": "weather-warning-en.jpg",
+            "eu-migration-pact": "president-opens-delta-corridor-en.jpg",
+            "venice-biennale-arab-pavilion": "handicrafts-initiative-saeed.jpg",
+            "africa-trade-corridor": "metro-helwan-line-en.jpg",
+            "asia-summit-supply-chains": "textile-exports-rise.jpg",
+            "world-heritage-new-sites": "saeed-is-not-the-margin.jpg",
+            "latin-america-elections": "cabinet-approves-incentives-en.jpg",
+            # ستايل ونجوم
+            "cairo-fashion-week": "new-generation-of-readers.jpg",
+            "actor-returns-to-theatre": "technical-education-future.jpg",
+            "summer-style-guide": "weather-warning-north-coast.jpg",
+            "red-carpet-highlights": "player-of-the-year.jpg",
+            # أمن ومحاكم
+            "interior-ministry-network-bust": "cairo-governor-ramses-square.jpg",
+            "court-verdict-corruption-case": "property-registry-platform.jpg",
+            "traffic-crackdown-campaign": "car-import-duties.jpg",
+            "cybercrime-unit-report": "ai-in-newsrooms.jpg",
+            # علوم وتكنولوجيا
+            "egypt-ai-strategy": "ai-threat-or-tool.jpg",
+            "undersea-cable-landing": "desalination-plant-opens.jpg",
+            "space-agency-satellite": "solar-energy-rejected.jpg",
+            "startups-funding-round": "cabinet-incentives-small-factories.jpg",
+            "solar-storage-breakthrough": "solar-energy-projects.jpg",
+            # ثقافة وفن
+            "cairo-book-fair-record": "new-generation-of-readers.jpg",
+            "national-theatre-season": "saeed-is-not-the-margin.jpg",
+            "museum-restoration-project": "handicrafts-initiative-saeed.jpg",
+            # ملف خاص
+            "file-water-security": "desalination-plant-north-coast.jpg",
+            "file-informal-economy": "economic-reform-is-not-a-number.jpg",
+            "file-new-delta": "president-opens-delta-corridor.jpg",
+            # دليلك الأول
+            "guide-school-registration": "technical-education-future.jpg",
+            "guide-property-registration": "property-registry-platform.jpg",
+            "guide-driving-licence": "car-import-duties.jpg",
+            "guide-health-insurance": "health-ministry-early-detection.jpg",
+        }
+        covers_dir = os.path.join(settings.MEDIA_ROOT, "covers")
+        filled = 0
+        for slug, filename in pairs.items():
+            if not os.path.exists(os.path.join(covers_dir, filename)):
+                continue
+            filled += Article.objects.filter(slug=slug, cover_image="").update(
+                cover_image=f"covers/{filename}"
+            )
+
+        # Anything still bare — an article added to the seed without a mapping —
+        # falls back to a cover already in use, cycling so one photo doesn't
+        # carry the whole page.
+        spare = sorted(set(pairs.values()))
+        if spare:
+            bare = list(Article.objects.filter(cover_image="").order_by("id"))
+            for i, article in enumerate(bare):
+                article.cover_image = f"covers/{spare[i % len(spare)]}"
+                article.save(update_fields=["cover_image"])
+            filled += len(bare)
+        self.stdout.write(f"  covers attached: {filled}")
+
     # ------------------------------------------------------------- en articles
     def seed_english_articles(self, sections, users):
         """Home-EN.dc.html / Article-EN.dc.html demo content — brief §4/§12:
         'نسخة إنجليزية للرئيسية والمقال على الأقل'."""
         now = timezone.now()
 
-        def mk_en(slug, title, section_key, author_key, standfirst, badge, hrs, views, blocks=None):
+        def mk_en(slug, title, section_key, author_key, standfirst, badge, hrs, views, blocks=None, kind="news", subcategory=""):
             article, _ = Article.objects.update_or_create(
                 slug=slug,
                 defaults=dict(
-                    title=title, kind="news", section=sections.get(section_key), author=users.get(author_key),
+                    title=title, kind=kind, section=sections.get(section_key), author=users.get(author_key),
                     language=Article.Language.EN, status="published", badge=badge, standfirst=standfirst,
+                    subcategory=subcategory,
                     views=views, published_at=now - datetime.timedelta(hours=hrs),
                 ),
             )
@@ -369,6 +461,92 @@ class Command(BaseCommand):
         for slug, title, section_key, badge, hrs, views in rows:
             mk_en(slug, title, section_key, "m.eladawy", title, badge, hrs, views)
 
+        # The English home page mirrors the Arabic one block for block, so it
+        # needs content in the same sections — with only مصر/اقتصاد/رياضة filled
+        # it rendered three blocks against the Arabic side's twelve and read as
+        # a different site rather than the same one in another language.
+        more = [
+            ("gcc-summit-riyadh-en", "Gulf summit in Riyadh takes up energy and regional security", "gulf", "none", 3, 4210, ""),
+            ("uae-egypt-fund-en", "UAE and Egypt sign deal to launch joint investment fund", "gulf", "exclusive", 6, 3180, ""),
+            ("kuwait-budget-surplus-en", "Kuwait posts budget surplus for the current fiscal year", "gulf", "none", 12, 1460, ""),
+            ("saudi-neom-phase-en", "Saudi Arabia opens a new phase of the NEOM project", "gulf", "none", 20, 2740, ""),
+            ("qatar-gas-expansion-en", "Qatar expands its liquefied natural gas capacity", "gulf", "none", 28, 1190, ""),
+            ("bahrain-digital-economy-en", "Bahrain launches its Digital Economy 2030 strategy", "gulf", "none", 34, 830, ""),
+
+            ("un-climate-vote-en", "UN General Assembly votes on the new climate resolution", "world", "breaking", 1, 7620, "Politics"),
+            ("eu-migration-pact-en", "European Union approves a package of migration reforms", "world", "none", 4, 3410, "Politics"),
+            ("venice-biennale-en", "Arab pavilion draws the crowds at the Venice Biennale", "world", "none", 9, 2180, "Culture & Arts"),
+            ("africa-trade-corridor-en", "New trade corridor links East Africa to the Mediterranean", "world", "exclusive", 15, 1970, "Economy"),
+            ("asia-supply-chains-en", "Asian summit weighs a redrawing of global supply chains", "world", "none", 21, 1520, "Economy"),
+            ("world-heritage-sites-en", "UNESCO adds new Arab sites to the World Heritage list", "world", "none", 30, 2640, "Culture & Arts"),
+            ("latin-america-elections-en", "Decisive elections in Latin America reshape the landscape", "world", "none", 38, 1130, "Politics"),
+
+            ("cairo-fashion-week-en", "Cairo Fashion Week returns with Arab designers on the bill", "art", "none", 7, 2310, ""),
+            ("actor-returns-theatre-en", "Egyptian star returns to the stage after years away", "art", "none", 16, 1840, ""),
+            ("summer-style-guide-en", "Summer looks: earth tones lead the season", "art", "none", 26, 960, ""),
+            ("red-carpet-gouna-en", "The red carpet highlights from the El Gouna festival", "art", "none", 33, 1520, ""),
+
+            ("interior-network-bust-en", "Interior ministry breaks up a trafficking network in Cairo", "security", "none", 5, 5210, ""),
+            ("court-corruption-verdict-en", "Criminal court issues its verdict in a major corruption case", "security", "none", 13, 3870, ""),
+            ("traffic-crackdown-en", "Expanded traffic enforcement campaign on the highways", "security", "none", 23, 1240, ""),
+            ("cybercrime-report-en", "Cybercrime unit details the online fraud complaints it handled", "security", "exclusive", 31, 2090, ""),
+
+            ("egypt-ai-strategy-en", "Egypt launches a national artificial intelligence strategy", "tech", "none", 10, 3960, ""),
+            ("undersea-cable-en", "New undersea cable goes live, raising Egypt's internet capacity", "tech", "none", 17, 2150, ""),
+            ("space-agency-satellite-en", "Egyptian Space Agency prepares to launch a new satellite", "tech", "exclusive", 24, 2830, ""),
+            ("startups-funding-en", "Egyptian startups close record funding rounds", "tech", "none", 32, 1420, ""),
+            ("solar-storage-en", "Research breakthrough in solar storage at Egyptian universities", "tech", "none", 39, 1080, ""),
+
+            ("cairo-book-fair-en", "Cairo Book Fair sets a record for visitor numbers", "art", "none", 14, 4270, ""),
+            ("national-theatre-season-en", "The National Theatre opens its season with an all-Egyptian production", "art", "none", 25, 1930, ""),
+            ("museum-restoration-en", "Restoration completed on a main hall at the Egyptian Museum", "art", "none", 35, 2560, ""),
+
+            ("file-water-security-en", "File: water security in Egypt — the numbers and the challenges", "special", "exclusive", 8, 6410, ""),
+            ("file-informal-economy-en", "File: the informal economy — how do you bring it in?", "special", "none", 18, 3120, ""),
+            ("file-new-delta-en", "File: the New Delta, three years on from launch", "special", "none", 29, 2480, ""),
+
+            ("guide-school-registration-en", "Your guide: registering your children for school online", "guide", "none", 11, 4830, ""),
+            ("guide-property-registry-en", "Your guide: property registry paperwork and filing dates", "guide", "none", 19, 2910, ""),
+            ("guide-driving-licence-en", "Your guide: renewing your driving licence step by step", "guide", "none", 27, 3540, ""),
+            ("guide-health-insurance-en", "Your guide: making use of comprehensive health insurance", "guide", "none", 36, 1770, ""),
+        ]
+        for slug, title, section_key, badge, hrs, views, sub in more:
+            mk_en(slug, title, section_key, "m.elsherbiny", title, badge, hrs, views, subcategory=sub)
+
+        # Opinion needs English pieces too, or the carousel is hidden on /en.
+        opinion_en = [
+            ("economic-reform-not-a-number-en", "Economic reform is not a line in a budget — it is a whole society's decision", "s.farouk", 6),
+            ("new-generation-readers-en", "A new generation of readers, and a press that hasn't changed with them", "m.elsherbiny", 30),
+            ("ai-threat-or-tool-en", "Artificial intelligence: a threat to the newsroom, or its sharpest tool?", "a.labib", 54),
+        ]
+        for slug, title, author_key, hrs in opinion_en:
+            mk_en(slug, title, "opinion", author_key, title, "none", hrs, 0, kind="opinion")
+
+        # Latin-script tags so the EN sidebar's «Trending tags» box renders —
+        # it filters Tag.name by script, and every seeded tag was Arabic, so
+        # the box existed on one edition and not the other.
+        en_tags = {}
+        for name in ["New Delta", "Interest rates", "Energy", "AI", "Football"]:
+            tag, _ = Tag.objects.update_or_create(
+                name=name, defaults=dict(slug=ar_slugify(name, name.lower().replace(" ", "-")))
+            )
+            en_tags[name] = tag
+        tag_map = {
+            "president-opens-delta-corridor-en": ["New Delta"],
+            "central-bank-holds-rates-en": ["Interest rates"],
+            "egypt-ai-strategy-en": ["AI"],
+            "solar-storage-en": ["Energy"],
+            "gcc-summit-riyadh-en": ["Energy"],
+            "file-new-delta-en": ["New Delta"],
+        }
+        for slug, names in tag_map.items():
+            article = Article.objects.filter(slug=slug).first()
+            if article:
+                article.tags.add(*[en_tags[n] for n in names])
+        # Football lands on the sports pieces that exist in this seed run.
+        for article in Article.objects.filter(language="en", section__key="sports"):
+            article.tags.add(en_tags["Football"])
+
     # -------------------------------------------------------------- comments
     def seed_comments(self):
         by_slug = {
@@ -403,15 +581,18 @@ class Command(BaseCommand):
 
     # --------------------------------------------------------------- breaking
     def seed_breaking(self):
+        # href points each strip entry at its full story — the ticker is a row
+        # of links, not decoration. Blank href = a flash with no article yet.
         rows = [
-            ("الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد", 1, True, 4),
-            ("البنك المركزي يثبّت أسعار الفائدة في اجتماعه الدوري", 2, True, 6),
-            ("المنتخب يتأهل لنهائي البطولة الأفريقية بعد فوز مثير", 3, False, 12),
-            ("ارتفاع طفيف في أسعار الذهب مع تراجع الدولار عالمياً", 4, True, 24),
+            ("الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد", "/article/president-opens-delta-corridor", 1, True, 4),
+            ("البنك المركزي يثبّت أسعار الفائدة في اجتماعه الدوري", "/article/central-bank-holds-rate", 2, True, 6),
+            ("المنتخب يتأهل لنهائي البطولة الأفريقية بعد فوز مثير", "", 3, False, 12),
+            ("ارتفاع طفيف في أسعار الذهب مع تراجع الدولار عالمياً", "/article/gold-prices-rise-globally", 4, True, 24),
         ]
-        for text, order, active, hrs in rows:
+        for text, href, order, active, hrs in rows:
             BreakingNewsItem.objects.update_or_create(
-                text=text, defaults=dict(order=order, active=active, expires_at=timezone.now() + datetime.timedelta(hours=hrs))
+                text=text,
+                defaults=dict(href=href, order=order, active=active, expires_at=timezone.now() + datetime.timedelta(hours=hrs)),
             )
 
     # ----------------------------------------------------------------- videos
@@ -425,7 +606,22 @@ class Command(BaseCommand):
             ("central-bank-conference-live", "تغطية حية لمؤتمر البنك المركزي", None, 0, True, False, 800),
             ("ahly-terji-highlights", "ملخص مباراة الأهلي والترجي في أفريقيا", "sports", 250, False, False, 20500),
             ("new-delta-corridor-tour", "جولة ميدانية داخل محور الدلتا الجديد", "egypt", 362, False, False, 5100),
+            # English-titled rows feed the EN home's «Watch» block, which
+            # filters by script the same way the stories rail does.
+            ("electric-car-plant-tour-en", "Inside Egypt's largest electric-car plant", "economy", 440, False, False, 3120),
+            ("new-delta-corridor-tour-en", "A field tour of the New Delta corridor", "egypt", 362, False, False, 2040),
+            ("coach-reacts-performance-en", "The coach on the squad's latest performance", "sports", 344, False, True, 4460),
+            ("cairo-book-fair-tour-en", "Walking the halls of the Cairo Book Fair", "art", 205, False, False, 1500),
         ]
+        # The EN rows are the same footage as their AR twins, so they share the
+        # cover file; only blanks are filled, an editor's upload is kept.
+        covers = {
+            "electric-car-plant-tour": "video_covers/video-3.jpg",
+            "electric-car-plant-tour-en": "video_covers/video-3.jpg",
+            "new-delta-corridor-tour-en": "video_covers/video-6.jpg",
+            "coach-reacts-performance-en": "video_covers/video-2.jpg",
+            "cairo-book-fair-tour-en": "video_covers/video-1.jpg",
+        }
         for slug, title, section_key, dur, is_live, is_exclusive, views, *rest in rows:
             video, _ = Video.objects.update_or_create(
                 slug=slug,
@@ -434,6 +630,9 @@ class Command(BaseCommand):
                     duration_seconds=dur, is_live=is_live, is_exclusive=is_exclusive, views=views,
                 ),
             )
+            if not video.cover_image and slug in covers:
+                video.cover_image = covers[slug]
+                video.save(update_fields=["cover_image"])
             if rest:
                 video.comments.all().delete()
                 for name, text in rest[0]:
@@ -541,10 +740,24 @@ class Command(BaseCommand):
             ("محور الدلتا.. الصورة الكاملة", "egypt", "/section/egypt", 1),
             ("قرار الفائدة في دقيقة", "economy", "/section/economy", 2),
             ("جوّه الجون: ملخص الجولة", "sports", "/section/sports", 3),
-            ("ستايل ونجوم هذا الأسبوع", "style", "/section/style", 4),
+            ("ثقافة وفن هذا الأسبوع", "art", "/section/art", 4),
             ("علوم وتكنولوجيا: أهم ما فاتك", "tech", "/section/tech", 5),
             ("ملف خاص: الطاقة الشمسية", "special", "/section/special", 6),
             ("دليلك الأول للمدارس", "guide", "/section/guide", 7),
+        ]
+        # The English edition renders the same rail but takes only Latin-script
+        # titles (and the Arabic page only Arabic ones) — Story.title is a
+        # single column, so each edition's rail is fed by rows written in its
+        # own script. Without these the EN home dropped the strip entirely and
+        # the two editions stopped looking like the same site.
+        rows += [
+            ("The Delta corridor, in full", "egypt", "/en/section/egypt", 8),
+            ("The rate decision in one minute", "economy", "/en/section/economy", 9),
+            ("Matchday in review", "sports", "/en/section/sports", 10),
+            ("Science & tech: what you missed", "tech", "/en/section/tech", 11),
+            ("Special file: solar energy", "special", "/en/section/special", 12),
+            ("Your first guide to schools", "guide", "/en/section/guide", 13),
+            ("Culture & art this week", "art", "/en/section/art", 14),
         ]
         for title, key, href, order in rows:
             Story.objects.update_or_create(
@@ -556,11 +769,15 @@ class Command(BaseCommand):
     def seed_welcome_alert(self):
         from siteconfig.models import WelcomeAlert
 
+        # A welcome, not a live-coverage teaser — the client asked for the
+        # «تغطية لحظية» copy to go and for the box to greet the reader
+        # instead. Editorial can still repoint it at breaking coverage from
+        # the dashboard when something is actually happening.
         alert = WelcomeAlert.load()
         alert.active = True
-        alert.kicker = "يحدث الآن"
-        alert.title = "تغطية لحظية: مؤتمر البنك المركزي"
-        alert.text = "محافظ البنك المركزي يعلن قرار الفائدة خلال دقائق — تابع التغطية لحظة بلحظة."
-        alert.cta_label = "تابع البث المباشر"
-        alert.cta_href = "/live"
+        alert.kicker = "أهلاً بك"
+        alert.title = "أهلاً بك في الدفتر نيوز"
+        alert.text = "سِجلّ اليوم.. خبراً خبراً — أحدث الأخبار والتحليلات من مصر والخليج والعالم."
+        alert.cta_label = "الأكثر قراءة"
+        alert.cta_href = "/most-read"
         alert.save()

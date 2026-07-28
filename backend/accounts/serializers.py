@@ -25,7 +25,7 @@ class AuthorSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id", "username", "name", "first_name", "last_name", "initial", "bio", "title",
+            "id", "username", "name", "name_en", "first_name", "last_name", "initial", "bio", "title",
             "avatar", "is_hidden", "article_count", "opinion_count", "date_joined",
         ]
 

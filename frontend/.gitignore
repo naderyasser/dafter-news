@@ -4,3 +4,12 @@ out
 .env.local
 *.log
 tsconfig.tsbuildinfo
+
+# Throwaway build dir used to typecheck/compile without touching the
+# deployed .next that the running service is serving.
+.next-verify/
+
+# Build swaps for zero-downtime deploys (npm run build lands in .next-new,
+# the previous build is parked as .next-old)
+.next-new/
+.next-old/

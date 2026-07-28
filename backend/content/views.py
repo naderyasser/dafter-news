@@ -1,6 +1,7 @@
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -62,7 +63,7 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
         .order_by("-published_at", "-created_at", "-pk")
     )
     permission_classes = [ReadOnlyOrStaff]
-    filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug"]
+    filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug", "pinned"]
     search_fields = ["title", "standfirst"]
     ordering_fields = ["published_at", "views", "created_at", "comment_count"]
     lookup_field = "slug"
@@ -79,6 +80,44 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
         if self.action == "list" and "status" not in self.request.query_params:
             qs = qs.filter(status=Article.Status.PUBLISHED)
         return qs
+
+    @action(detail=True, methods=["get"])
+    def related(self, request, slug=None):
+        """
+        /api/articles/<slug>/related/ — the stories most related to this one,
+        by shared tags first (the tags carry the people and topics, so «السيسي»
+        or «أسعار الفائدة» pulls that person's or subject's earlier coverage),
+        topped up with the section's latest so the box is never empty.
+        """
+        article = self.get_object()
+        limit = 6
+        base = (
+            Article.objects.filter(
+                status=Article.Status.PUBLISHED, kind=article.kind, language=article.language
+            )
+            .exclude(pk=article.pk)
+            .select_related("section", "author")
+        )
+
+        tag_ids = list(article.tags.values_list("id", flat=True))
+        picked = []
+        if tag_ids:
+            picked = list(
+                base.filter(tags__in=tag_ids)
+                .annotate(shared=Count("tags", filter=Q(tags__in=tag_ids), distinct=True))
+                .order_by("-shared", "-published_at", "-pk")
+                .distinct()[:limit]
+            )
+        if len(picked) < limit and article.section_id:
+            extra = (
+                base.filter(section_id=article.section_id)
+                .exclude(pk__in=[a.pk for a in picked])
+                .order_by("-published_at", "-pk")[: limit - len(picked)]
+            )
+            picked += list(extra)
+
+        data = ArticleCardSerializer(picked, many=True, context=self.get_serializer_context()).data
+        return Response({"count": len(data), "results": data})
 
 
 class CommentViewSet(viewsets.ModelViewSet):

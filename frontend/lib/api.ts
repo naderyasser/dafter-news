@@ -109,6 +109,11 @@ const encodeSlug = (slug: string) => encodeURIComponent(decodeParam(slug));
 export const getArticle = (slug: string) =>
   safeGet<ArticleDetail | null>(`/articles/${encodeSlug(slug)}/`, null, { revalidate: 30 });
 
+/** Automatic «أخبار ذات صلة»: ranked by shared tags (people/topics), topped
+ * up by the section's latest — computed server-side by /related/. */
+export const getRelatedArticles = (slug: string) =>
+  safeGet<{ count: number; results: ArticleCard[] }>(`/articles/${encodeSlug(slug)}/related/`, { count: 0, results: [] }, { revalidate: 60 });
+
 export const getSections = (opts?: FetchOptions) => safeGet<Paginated<Section>>(`/sections/`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 export const getSection = (key: string) => safeGet<Section | null>(`/sections/${encodeSlug(key)}/`, null);
