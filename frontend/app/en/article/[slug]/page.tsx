@@ -14,7 +14,9 @@ export const revalidate = 30;
 
 export default async function ArticleEnPage({ params }: { params: { slug: string } }) {
   const article = await getArticle(params.slug);
-  if (!article || article.language !== "en") notFound();
+  // See app/article/[slug]/page.tsx for why status is re-checked on the
+  // frontend as well as the API.
+  if (!article || article.language !== "en" || article.status !== "published") notFound();
 
   // Same automatic related ranking as the Arabic page: shared tags first,
   // then section recency — /related/ filters by the article's own language.

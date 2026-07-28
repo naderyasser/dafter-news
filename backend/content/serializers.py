@@ -1,3 +1,4 @@
+from django.utils.text import slugify
 from rest_framework import serializers
 
 from accounts.serializers import AuthorSerializer
@@ -155,23 +156,28 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
     def _push_surfaces(article, push_breaking, push_story):
         """One-click placement in the «عاجل» ticker and the stories rail.
 
-        get_or_create/update_or_create keyed on the exact text, so ticking the
-        box again on a later edit refreshes the entry instead of stacking
-        duplicates of the same headline.
+        update_or_create is keyed on `href` (which embeds the article's slug),
+        not on the article's title text, so ticking the box again on a later
+        edit — even one that renames the article — refreshes the same entry
+        instead of either colliding with an unrelated article that happens to
+        share a title, or leaving a stale copy of the old title live forever.
+        Article.slug is unique and never changes on its own once set, so href
+        is a stable per-article key that plain title text isn't.
         """
         if article.status != Article.Status.PUBLISHED:
             return
+        href = f"/article/{article.slug}"
         if push_breaking:
             BreakingNewsItem.objects.update_or_create(
-                text=article.title,
-                defaults={"active": True, "order": 0, "href": f"/article/{article.slug}"},
+                href=href,
+                defaults={"text": article.title, "active": True, "order": 0},
             )
         if push_story:
             first = (Story.objects.order_by("order").values_list("order", flat=True).first() or 1) - 1
-            defaults = dict(section=article.section, href=f"/article/{article.slug}", active=True, order=first)
+            defaults = dict(title=article.title, section=article.section, active=True, order=first)
             if article.cover_image:
                 defaults["image"] = article.cover_image.name
-            Story.objects.update_or_create(title=article.title, defaults=defaults)
+            Story.objects.update_or_create(href=href, defaults=defaults)
 
     @staticmethod
     def _apply_cover_asset(article, asset_id):
@@ -197,7 +203,11 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
             return
         tags = []
         for name in tag_names:
-            tag, _ = Tag.objects.get_or_create(name=name, defaults={"slug": name.replace(" ", "-")})
+            # Same slugify(allow_unicode=True) Article.save() uses — plain
+            # `.replace(" ", "-")` leaves punctuation like "/" untouched,
+            # which the router then reads as a path separator and the tag
+            # can never be looked up again by slug.
+            tag, _ = Tag.objects.get_or_create(name=name, defaults={"slug": slugify(name, allow_unicode=True) or "tag"})
             tags.append(tag)
         article.tags.set(tags)
 

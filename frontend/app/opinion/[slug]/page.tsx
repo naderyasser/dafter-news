@@ -11,7 +11,9 @@ export const revalidate = 30;
 
 export default async function ArticleOpinionPage({ params }: { params: { slug: string } }) {
   const [article, mostRead] = await Promise.all([getArticle(params.slug), getArticles("?language=ar&ordering=-views&page_size=5")]);
-  if (!article || article.kind !== "opinion") notFound();
+  // See app/article/[slug]/page.tsx for why status is re-checked on the
+  // frontend as well as the API.
+  if (!article || article.kind !== "opinion" || article.status !== "published") notFound();
 
   return (
     <SiteShell lang="ar" active="opinion">

@@ -139,7 +139,7 @@ export default async function HomeEnPage() {
   const videoCards = videos.results
     .filter((v) => isLatin(v.title))
     .map((v) => ({
-      href: `/video/${v.slug}`,
+      href: `/en/video/${v.slug}`,
       title: v.title,
       section: T.video,
       time: relativeTime(v.created_at, "en"),
@@ -298,7 +298,7 @@ export default async function HomeEnPage() {
                 {enTags.slice(0, 5).map((t) => (
                   <Link
                     key={t.id}
-                    href={`/tag/${encodeURIComponent(t.slug)}`}
+                    href={`/en/tag/${encodeURIComponent(t.slug)}`}
                     className="rounded-pill bg-brand-tint px-3.5 py-1.5 text-[13px] font-semibold text-brand no-underline hover:bg-brand hover:text-paper"
                   >
                     {t.name}

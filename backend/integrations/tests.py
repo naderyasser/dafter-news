@@ -13,6 +13,7 @@ from datetime import date
 from unittest.mock import patch
 
 import requests
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.utils import timezone
@@ -22,6 +23,8 @@ from integrations.client import ProviderError, fetch_json, pct_change, push_seri
 from integrations.models import Match, PrayerTimes, SyncLog, WireArticle
 from integrations.providers import currency, football, gold, newswire, prayer, weather
 from market.models import Currency, GoldKarat, WeatherCity
+
+User = get_user_model()
 
 
 class FakeResponse:
@@ -630,12 +633,18 @@ class IntegrationsAPITests(APITestCase):
         self.assertEqual(res.json()["results"][0]["score_label"], "2 - 1")
 
     def test_wire_endpoint_is_read_only(self):
-        """Wire copy is mirrored, not authored — POST must not be allowed."""
+        """Wire copy is mirrored, not authored — POST must not be allowed.
+        WireArticleViewSet is StaffOnly (no public read at all), so the
+        caller has to actually clear the permission gate to reach DRF's own
+        405 for a ReadOnlyModelViewSet with no create action."""
+        self.client.force_authenticate(User.objects.create(username="wire-staff", is_staff=True))
+
         res = self.client.post("/api/wire/", {"title": "x", "url": "https://e.test"}, format="json")
 
         self.assertEqual(res.status_code, 405)
 
     def test_sync_logs_expose_staleness_to_the_dashboard(self):
+        self.client.force_authenticate(User.objects.create(username="sync-staff", is_staff=True))
         SyncLog.record_success("currency", "العملات", records=6)
 
         res = self.client.get("/api/sync-logs/")

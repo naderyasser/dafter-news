@@ -134,6 +134,7 @@ export default function TaxonomyManager({
   };
 
   const removeTag = async (tag: Tag) => {
+    if (!confirm(`حذف الوسم «${tag.name}»؟ سيختفي فوراً من صفحات الأرشيف والبحث.`)) return;
     setError("");
     const before = tags;
     setTags((ts) => ts.filter((t) => t.id !== tag.id));

@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APITestCase
 
-from content.models import Article, ArticleBlock, BreakingNewsItem, Section, Story, Tag
+from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 from media_library.models import MediaAsset
 
 User = get_user_model()
@@ -64,6 +64,20 @@ class RelatedEndpointTests(APITestCase):
         self.assertNotIn("مسودة موسومة", titles)
         self.assertNotIn("English tagged", titles)
         self.assertNotIn(self.article.title, titles)
+
+    def test_comment_count_is_annotated_like_the_main_list(self):
+        """regression: the /related/ action's base queryset never annotated
+        comment_count (unlike ArticleViewSet.queryset), so
+        ArticleCardSerializer.comment_count silently fell back to its
+        default of 0 for every related card regardless of real engagement."""
+        neighbour = publish(title="خبر من نفس القسم", section=self.section)
+        neighbour.tags.set([self.person])
+        Comment.objects.create(article=neighbour, user_name="قارئ 1", text="تعليق")
+        Comment.objects.create(article=neighbour, user_name="قارئ 2", text="تعليق آخر")
+
+        res = self.related()
+        row = next(a for a in res.data["results"] if a["title"] == neighbour.title)
+        self.assertEqual(row["comment_count"], 2)
 
 
 class MediaAssetReuseTests(APITestCase):
@@ -146,6 +160,61 @@ class MediaAssetReuseTests(APITestCase):
         self.assertEqual(resave.status_code, 200, resave.data)
         self.assertEqual(BreakingNewsItem.objects.filter(text="خبر عاجل مهم").count(), 1)
         self.assertEqual(Story.objects.filter(title="خبر عاجل مهم").count(), 1)
+
+    def test_push_surfaces_keyed_on_article_not_title_text(self):
+        """regression: _push_surfaces used to key update_or_create on the
+        article's free-text title (BreakingNewsItem.text / Story.title)
+        instead of the article itself. Two unrelated articles that happen to
+        share an identical headline must each keep their own ticker/story
+        entry pointing at their own slug — not clobber each other's href."""
+        first = self.client.post(
+            "/api/articles/",
+            {"title": "عنوان مشترك", "section": self.section.id, "status": "published", "push_breaking": True, "push_story": True},
+            format="json",
+        )
+        self.assertEqual(first.status_code, 201, first.data)
+
+        second = self.client.post(
+            "/api/articles/",
+            {"title": "عنوان مشترك", "section": self.section.id, "status": "published", "push_breaking": True, "push_story": True},
+            format="json",
+        )
+        self.assertEqual(second.status_code, 201, second.data)
+        self.assertNotEqual(first.data["slug"], second.data["slug"])
+
+        # Both articles keep their own live ticker/story entry, each linking
+        # to its own slug — the first one's href must not have been
+        # overwritten by the second article's publish.
+        self.assertEqual(BreakingNewsItem.objects.count(), 2)
+        self.assertEqual(Story.objects.count(), 2)
+        hrefs = set(BreakingNewsItem.objects.values_list("href", flat=True))
+        self.assertEqual(hrefs, {f"/article/{first.data['slug']}", f"/article/{second.data['slug']}"})
+
+    def test_renaming_a_pushed_article_updates_its_existing_entry(self):
+        """regression: renaming an already-pushed article (push_breaking
+        still ticked) used to create a brand-new BreakingNewsItem/Story
+        because the lookup was keyed on the current title text, which no
+        longer matched the old row. Keying on href (the article's slug)
+        instead means a rename updates the same row in place."""
+        created = self.client.post(
+            "/api/articles/",
+            {"title": "خبر اول", "section": self.section.id, "status": "published", "push_breaking": True, "push_story": True},
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.data)
+        slug = created.data["slug"]
+
+        renamed = self.client.patch(
+            f"/api/articles/{slug}/",
+            {"title": "خبر بعد التعديل", "status": "published", "push_breaking": True, "push_story": True},
+            format="json",
+        )
+        self.assertEqual(renamed.status_code, 200, renamed.data)
+
+        self.assertEqual(BreakingNewsItem.objects.count(), 1)
+        self.assertEqual(Story.objects.count(), 1)
+        self.assertEqual(BreakingNewsItem.objects.get().text, "خبر بعد التعديل")
+        self.assertEqual(Story.objects.get().title, "خبر بعد التعديل")
 
     def test_pinned_round_trips_and_filters(self):
         res = self.client.post(

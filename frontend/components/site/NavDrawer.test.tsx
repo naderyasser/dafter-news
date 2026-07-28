@@ -109,4 +109,37 @@ describe("NavDrawer", () => {
     expect(screen.getByText("روابط سريعة")).toBeInTheDocument();
     expect(screen.getByText("الأسواق")).toBeInTheDocument();
   });
+
+  it("traps Tab within the drawer instead of leaking focus into the page behind it", () => {
+    render(
+      <>
+        <a href="/before" data-testid="page-link">
+          page link before the drawer
+        </a>
+        <NavDrawer lang="ar" sections={sections} extraLinks={extras} />
+      </>,
+    );
+    openDrawer();
+
+    const dialog = screen.getByRole("dialog");
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ),
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    // Tab forward from the last focusable row must wrap back to the first,
+    // never fall through to page content sitting behind the overlay.
+    last.focus();
+    fireEvent.keyDown(document, { key: "Tab" });
+    expect(document.activeElement).toBe(first);
+
+    // Shift+Tab back from the first row must wrap to the last, not escape.
+    fireEvent.keyDown(document, { key: "Tab", shiftKey: true });
+    expect(document.activeElement).toBe(last);
+
+    expect(document.activeElement).not.toBe(screen.getByTestId("page-link"));
+  });
 });

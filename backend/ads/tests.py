@@ -1,8 +1,11 @@
 """Tests for ad placements — mainly the derived CTR the dashboard renders."""
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from ads.models import AdPlacement
+
+User = get_user_model()
 
 
 class AdPlacementModelTests(TestCase):
@@ -30,6 +33,13 @@ class AdPlacementModelTests(TestCase):
 
 
 class AdPlacementAPITests(APITestCase):
+    def setUp(self):
+        # Ad performance figures are internal monetization data with no
+        # public consumer (see ads/views.py) — the whole endpoint is
+        # staff-only now, GET included.
+        self.staff = User.objects.create(username="ads-staff", is_staff=True)
+        self.client.force_authenticate(self.staff)
+
     def test_list_exposes_ctr(self):
         AdPlacement.objects.create(name="داخل المتن", size="336×280", impressions=84210, clicks=940)
 
@@ -45,3 +55,14 @@ class AdPlacementAPITests(APITestCase):
         self.assertEqual(res.status_code, 200)
         placement.refresh_from_db()
         self.assertFalse(placement.active)
+
+    def test_anonymous_read_is_forbidden(self):
+        """regression: impressions/clicks/CTR are internal monetization
+        figures with no public page rendering them — unlike currencies or
+        weather, even GET must not be world-readable."""
+        AdPlacement.objects.create(name="داخل المتن", size="336×280", impressions=84210, clicks=940)
+        self.client.force_authenticate(user=None)
+
+        res = self.client.get("/api/ads/")
+
+        self.assertEqual(res.status_code, 403)

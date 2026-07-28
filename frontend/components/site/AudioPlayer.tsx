@@ -21,7 +21,16 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
   const [speed, setSpeed] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // The simulated-progress interval below is created once per play() and its
+  // callback closes over whatever `speed` was at that moment. Without this
+  // ref, cycling the speed while already playing would keep advancing
+  // progress at the old rate until the reader paused and resumed.
+  const speedRef = useRef(speed);
   const total = audioSrc ? (audioRef.current?.duration || durationSeconds) : durationSeconds;
+
+  useEffect(() => {
+    speedRef.current = speed;
+  }, [speed]);
 
   useEffect(() => () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -40,7 +49,7 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
     }
     timerRef.current = setInterval(() => {
       setProgress((p) => {
-        const next = Math.min(100, p + (100 / durationSeconds) * 0.25 * speed);
+        const next = Math.min(100, p + (100 / durationSeconds) * 0.25 * speedRef.current);
         if (next >= 100 && timerRef.current) clearInterval(timerRef.current);
         return next;
       });

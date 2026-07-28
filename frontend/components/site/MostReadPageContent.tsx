@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { toEasternNumerals } from "@/lib/format";
 
@@ -16,11 +16,13 @@ const PERIODS = [
 export default function MostReadPageContent({ rows }: { rows: MostReadRow[] }) {
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["key"]>("day");
 
-  const ordered = useMemo(() => {
-    if (period === "week") return [...rows].reverse();
-    if (period === "month") return [...rows.slice(5), ...rows.slice(0, 5)];
-    return rows;
-  }, [period, rows]);
+  // The API only tracks a single lifetime view counter per article — there is
+  // no per-day/week/month breakdown to rank against. Reshuffling `rows`
+  // locally (reversing it for "week", rotating it for "month") would present
+  // a fabricated ranking under a period label that implies real data, so
+  // every period shows the same real ranking until the backend can serve
+  // period-scoped counts.
+  const ordered = rows;
 
   return (
     <>

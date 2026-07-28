@@ -4,7 +4,15 @@ import { getArticles, getSections } from "@/lib/api";
 
 export const revalidate = 60;
 
-export default async function SearchPage({
+/**
+ * English counterpart of /search.
+ *
+ * NavDrawer and SearchBox both already route an English-mode search here
+ * (`/en/search?q=…`); without this page that navigation 404ed, and the
+ * "See all results" footer link fell back to the Arabic-only /search page,
+ * which forces language=ar and renders RTL chrome regardless of the query.
+ */
+export default async function SearchEnPage({
   searchParams,
 }: {
   searchParams: { q?: string; section?: string };
@@ -12,19 +20,19 @@ export default async function SearchPage({
   const q = (searchParams.q || "").trim();
   const section = searchParams.section || "all";
 
-  // Render the first page of results on the server so a shared /search?q=…
-  // link arrives with its answer already on screen.
-  const params = new URLSearchParams({ language: "ar", ordering: "-published_at", page_size: "20" });
+  // Render the first page of results on the server so a shared
+  // /en/search?q=… link arrives with its answer already on screen.
+  const params = new URLSearchParams({ language: "en", ordering: "-published_at", page_size: "20" });
   if (q) params.set("search", q);
   if (section !== "all") params.set("section__key", section);
 
   const [initial, sections] = await Promise.all([getArticles(`?${params}`), getSections()]);
 
   return (
-    <SiteShell lang="ar" active="search">
+    <SiteShell lang="en" active="search">
       <div className="mx-auto max-w-[860px] px-6 pb-4 pt-9">
         <SearchPageContent
-          lang="ar"
+          lang="en"
           initial={initial.results}
           initialTotal={initial.count}
           initialQuery={q}

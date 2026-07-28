@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { paginateBlocks, parseInline, splitLongParagraph, stripInline } from "./richtext";
+import { mergeColorWrap, paginateBlocks, parseInline, splitLongParagraph, stripInline } from "./richtext";
 
 const sentence = (n: number) => `هذه الجملة رقم ${n} وفيها عدد من الكلمات المتوسطة الطول لاختبار التقسيم الصحيح.`;
 const para = (count: number) =>
@@ -48,11 +48,67 @@ describe("parseInline", () => {
   it("survives an unclosed token", () => {
     expect(parseInline("{c:#B01F2E|بلا إغلاق")).toEqual([{ text: "{c:#B01F2E|بلا إغلاق" }]);
   });
+
+  it("reads a colour and a highlight stacked on the same run", () => {
+    expect(parseInline("{c:#0E4B7B|h:#FFF3B0|كلمة}")).toEqual([
+      { text: "كلمة", color: "#0E4B7B", background: "#FFF3B0" },
+    ]);
+  });
+
+  it("regression: recovers a nested token instead of leaking the wrapper as text", () => {
+    // The exact shape a stale textarea selection used to produce: apply a
+    // colour, then — without re-selecting — a highlight on the same word.
+    const nested = "hello {c:#0E4B7B|{h:#FFF3B0|world}} foo";
+    expect(parseInline(nested)).toEqual([
+      { text: "hello " },
+      { text: "world", color: "#0E4B7B", background: "#FFF3B0" },
+      { text: " foo" },
+    ]);
+  });
+});
+
+describe("mergeColorWrap", () => {
+  it("returns null when the selection isn't inside an existing token", () => {
+    expect(mergeColorWrap("hello world", 0, 5, "c", "#0E4B7B")).toBeNull();
+  });
+
+  it("folds a second colour into the token a previous apply() left selected, instead of nesting", () => {
+    // "word" is already wrapped, and start/end sit exactly on its inner text —
+    // the reselect apply() leaves behind after wrapping it once.
+    const value = "hi {c:#0E4B7B|word} bye";
+    const start = value.indexOf("word");
+    const end = start + "word".length;
+
+    const merged = mergeColorWrap(value, start, end, "h", "#FFF3B0");
+    expect(merged).not.toBeNull();
+    expect(merged!.next).toBe("hi {c:#0E4B7B|h:#FFF3B0|word} bye");
+    expect(merged!.next.slice(merged!.selStart, merged!.selEnd)).toBe("word");
+    // And the merged token parses as both a colour and a highlight, with no
+    // leaked braces anywhere in the output.
+    expect(parseInline(merged!.next)).toEqual([
+      { text: "hi " },
+      { text: "word", color: "#0E4B7B", background: "#FFF3B0" },
+      { text: " bye" },
+    ]);
+  });
+
+  it("replaces the colour rather than stacking when the same kind is re-applied", () => {
+    const value = "hi {c:#0E4B7B|word} bye";
+    const start = value.indexOf("word");
+    const end = start + "word".length;
+
+    const merged = mergeColorWrap(value, start, end, "c", "#B01F2E");
+    expect(merged!.next).toBe("hi {c:#B01F2E|word} bye");
+  });
 });
 
 describe("stripInline", () => {
   it("leaves the words and drops the tokens", () => {
     expect(stripInline("قبل {c:#B01F2E|ملوّن} بعد")).toBe("قبل ملوّن بعد");
+  });
+
+  it("drops a stacked colour+highlight token cleanly", () => {
+    expect(stripInline("قبل {c:#0E4B7B|h:#FFF3B0|ملوّن} بعد")).toBe("قبل ملوّن بعد");
   });
 });
 

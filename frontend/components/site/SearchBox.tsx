@@ -77,6 +77,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
   const isAr = lang === "ar";
   const t = T[isAr ? "ar" : "en"];
   const articleBase = isAr ? "/article" : "/en/article";
+  const searchBase = isAr ? "/search" : "/en/search";
 
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -86,6 +87,10 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [cursor, setCursor] = useState(0);
   const [recent, setRecent] = useState<string[]>([]);
+  // Bumped by the error screen's "try again" button so the load effect below
+  // reruns even when the query text itself hasn't changed — setQuery(q => q)
+  // is an Object.is no-op that React bails out of without a re-render.
+  const [retryTick, setRetryTick] = useState(0);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -183,7 +188,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
       window.clearTimeout(id);
       controller.abort();
     };
-  }, [open, query, section, load]);
+  }, [open, query, section, load, retryTick]);
 
   const close = () => {
     setOpen(false);
@@ -199,7 +204,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
     if (term.trim()) params.set("q", term.trim());
     if (section !== "all") params.set("section", section);
     close();
-    router.push(`/search${params.toString() ? `?${params}` : ""}`);
+    router.push(`${searchBase}${params.toString() ? `?${params}` : ""}`);
   };
 
   const goTo = (row: ArticleCard) => {
@@ -301,7 +306,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
                   <div className="mt-1.5 text-[13px] text-header-muted">{t.failedHint}</div>
                   <button
                     type="button"
-                    onClick={() => setQuery((q) => q)}
+                    onClick={() => setRetryTick((n) => n + 1)}
                     className="mt-4 rounded-pill bg-brand px-4 py-2 text-[13px] font-bold text-paper"
                   >
                     {t.retry}
@@ -411,7 +416,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
                 <Key>esc</Key>
                 {t.hintClose}
               </span>
-              <Link href="/search" onClick={close} className="ms-auto font-bold text-brand no-underline hover:underline">
+              <Link href={searchBase} onClick={close} className="ms-auto font-bold text-brand no-underline hover:underline">
                 {t.seeAll}
               </Link>
             </div>

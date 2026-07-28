@@ -11,9 +11,15 @@ export default async function AuthorPage({ params }: { params: { username: strin
   const author = await getAuthor(params.username);
   if (!author) notFound();
 
-  const articles = await getArticles(`?language=ar&page_size=12&ordering=-published_at`);
-  const byAuthor = articles.results.filter((a) => a.author_username === author.username);
-  const cards = byAuthor.map((a) => ({
+  // Filtered server-side by author__username (see ArticleViewSet.filterset_fields):
+  // this used to fetch the site's 12 most recent Arabic articles overall and
+  // filter them client-side by author_username, so any author whose latest
+  // piece wasn't among that global top-12 got an empty block here despite
+  // author.article_count showing they'd published plenty.
+  const articles = await getArticles(
+    `?language=ar&author__username=${encodeURIComponent(author.username)}&page_size=12&ordering=-published_at`,
+  );
+  const cards = articles.results.map((a) => ({
     href: `/article/${a.slug}`,
     title: a.title,
     section: a.section_name,

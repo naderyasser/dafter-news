@@ -49,19 +49,31 @@ export default function MediaManager({
   const upload = async (files: FileList) => {
     setError("");
     setUploading(true);
+    const before = assets;
+    const total = files.length;
+    // Declared outside the try block so the catch clause below can still see
+    // how many files made it through before the failure.
+    const created: MediaAsset[] = [];
     try {
       // Sequential rather than parallel: a bulk drop of 30 photos would
       // otherwise open 30 concurrent multipart uploads and stall them all.
-      const created: MediaAsset[] = [];
       for (const file of Array.from(files)) {
         const form = new FormData();
         form.append("image", file);
         form.append("title", file.name.replace(/\.[^.]+$/, ""));
         created.push(await dashUpload<MediaAsset>("/media/", "POST", form));
+        // Commit after every file, not just at the end of the loop: each of
+        // these has already been persisted server-side, so if a later file in
+        // the same drop is rejected, the ones that succeeded must still show
+        // up instead of being silently dropped from the grid.
+        setAssets([...created, ...before]);
       }
-      setAssets((prev) => [...created, ...prev]);
     } catch {
-      setError("تعذّر رفع الصور. تأكد من نوع الملف وحاول مرة أخرى.");
+      setError(
+        created.length
+          ? `رُفعت ${created.length} من ${total} صورة، وتعذّر رفع الباقي. تحقق من نوع الملفات المتبقية قبل إعادة رفعها فقط.`
+          : "تعذّر رفع الصور. تأكد من نوع الملف وحاول مرة أخرى.",
+      );
     } finally {
       setUploading(false);
     }
