@@ -268,6 +268,14 @@ export type SiteSettings = {
 };
 
 export type DashboardOverview = {
+  /** Sources that have been failing ≥3 runs — the overview's warning banner. */
+  feed_alerts: {
+    source: string;
+    label: string;
+    consecutive_failures: number;
+    last_success_at: string | null;
+    message: string;
+  }[];
   stats: {
     visits_today: number;
     visits_change_pct: number;

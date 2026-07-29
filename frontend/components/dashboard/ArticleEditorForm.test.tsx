@@ -73,3 +73,71 @@ describe("ArticleEditorForm save feedback", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+describe("ArticleEditorForm scheduling", () => {
+  afterEach(() => {
+    push.mockClear();
+    refresh.mockClear();
+    dashMutate.mockReset();
+  });
+
+  const fillTitle = () =>
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر مجدول" } });
+
+  const setTime = (value: string) =>
+    fireEvent.change(screen.getByLabelText(/جدولة النشر/), { target: { value } });
+
+  it("keeps the schedule button hidden until a time is picked", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    expect(screen.queryByText("⏰ جدولة النشر")).not.toBeInTheDocument();
+
+    setTime("2030-01-01T09:00");
+
+    expect(screen.getByText("⏰ جدولة النشر")).toBeInTheDocument();
+  });
+
+  it("saves as scheduled with the chosen moment in ISO", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "sched" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fillTitle();
+    setTime("2030-01-01T09:00");
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("⏰ جدولة النشر"));
+    });
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
+    expect(payload.status).toBe("scheduled");
+    expect(payload.scheduled_for).toBe(new Date("2030-01-01T09:00").toISOString());
+  });
+
+  it("refuses a moment in the past, with the reason named", async () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fillTitle();
+    setTime("2020-01-01T09:00");
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("⏰ جدولة النشر"));
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("وقت الجدولة لازم يكون في المستقبل");
+    expect(dashMutate).not.toHaveBeenCalled();
+  });
+
+  it("publishing normally clears any lingering schedule", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fillTitle();
+    setTime("2030-01-01T09:00");
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("حفظ ونشر"));
+    });
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
+    expect(payload.status).toBe("published");
+    // «مجدول ٩:٠٠» must not linger on a story someone published by hand.
+    expect(payload.scheduled_for).toBeNull();
+  });
+});

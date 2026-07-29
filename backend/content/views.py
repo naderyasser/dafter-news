@@ -190,6 +190,9 @@ class DashboardOverviewView(APIView):
     permission_classes = [StaffOnly]
 
     def get(self, request):
+        import datetime
+
+        from integrations.models import SyncLog
         from siteconfig.models import DailyVisit
         from video.models import Video
 
@@ -198,6 +201,34 @@ class DashboardOverviewView(APIView):
         published_count = Article.objects.filter(status=Article.Status.PUBLISHED).count()
         pending_comments = Comment.objects.filter(status=Comment.Status.PENDING).count()
         video_views = Video.objects.aggregate(total=Sum("views"))["total"] or 0
+
+        # Now that VisitTrackView makes the counter real, the day-over-day
+        # change is computed from the two rows rather than trusted from the
+        # stored column — the seed wrote 4.2 there once and nothing updates
+        # it. The stored value stays as the fallback for day one, when there
+        # is no yesterday to compare against.
+        yesterday = DailyVisit.objects.filter(date=today - datetime.timedelta(days=1)).first()
+        if visits_today and yesterday and yesterday.visits:
+            change_pct = round((visits_today.visits - yesterday.visits) / yesterday.visits * 100, 1)
+        else:
+            change_pct = visits_today.change_pct if visits_today else 0
+
+        # Feeds that have been failing long enough to matter. Three misses is
+        # past a blip: the minutely cron means three is three minutes for the
+        # fast sources, and the two rows that shipped broken (newswire /
+        # weather pre-key) sat at four thousand with nobody told.
+        feed_alerts = [
+            {
+                "source": log.source,
+                "label": log.label,
+                "consecutive_failures": log.consecutive_failures,
+                "last_success_at": log.last_success_at,
+                "message": log.message,
+            }
+            for log in SyncLog.objects.filter(
+                status=SyncLog.Status.FAILED, consecutive_failures__gte=3
+            ).order_by("-consecutive_failures")
+        ]
 
         last_7 = DailyVisit.objects.order_by("-date")[:7][::-1]
         max_visits = max((d.visits for d in last_7), default=1) or 1
@@ -214,9 +245,10 @@ class DashboardOverviewView(APIView):
         queue = Article.objects.filter(status=Article.Status.REVIEW).select_related("author")[:4]
 
         return Response({
+            "feed_alerts": feed_alerts,
             "stats": {
                 "visits_today": visits_today.visits if visits_today else 0,
-                "visits_change_pct": visits_today.change_pct if visits_today else 0,
+                "visits_change_pct": change_pct,
                 "published_articles": published_count,
                 "pending_comments": pending_comments,
                 "video_views": video_views,

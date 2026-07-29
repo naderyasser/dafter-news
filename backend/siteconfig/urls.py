@@ -4,7 +4,7 @@ from django.urls import path
 
 from . import push
 
-from .views import DailyVisitViewSet, SiteSettingsView, SocialLinkViewSet, WelcomeAlertView
+from .views import DailyVisitViewSet, SiteSettingsView, SocialLinkViewSet, VisitTrackView, WelcomeAlertView
 
 router = DefaultRouter()
 router.register("social-links", SocialLinkViewSet, basename="social-link")
@@ -13,6 +13,7 @@ router.register("daily-visits", DailyVisitViewSet, basename="daily-visit")
 urlpatterns = router.urls + [
     path("settings/", SiteSettingsView.as_view(), name="site-settings"),
     path("welcome-alert/", WelcomeAlertView.as_view(), name="welcome-alert"),
+    path("visits/track/", VisitTrackView.as_view(), name="visit-track"),
 ]
 urlpatterns += [
     path("push/key/", push.vapid_public_key, name="push-key"),
