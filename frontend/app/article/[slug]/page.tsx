@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ArticleBlocks from "@/components/site/ArticleBlocks";
+import ArticleComments from "@/components/site/ArticleComments";
 import InfiniteSections from "@/components/site/InfiniteSections";
 import AudioPlayer from "@/components/site/AudioPlayer";
 import SectionBlock from "@/components/site/SectionBlock";
@@ -109,6 +110,8 @@ export default async function ArticlePage({ params }: { params: { slug: string }
               ))}
             </div>
           )}
+
+          <ArticleComments lang="ar" articleId={article.id} initial={article.comments} />
         </main>
       </div>
 

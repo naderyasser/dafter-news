@@ -84,6 +84,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     blocks = ArticleBlockSerializer(many=True, read_only=True)
     read_minutes = serializers.IntegerField(read_only=True)
+    comments = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
@@ -91,7 +92,25 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
             "id", "title", "slug", "kind", "section", "subcategory", "author", "tags", "language", "related_article",
             "status", "badge", "pinned", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "views", "read_minutes", "tts_status", "tts_audio", "tts_duration_seconds",
-            "published_at", "scheduled_for", "created_at", "blocks",
+            "published_at", "scheduled_for", "created_at", "blocks", "comments",
+        ]
+
+    def get_comments(self, obj):
+        """
+        The article's public conversation, embedded the way VideoDetail embeds
+        its comments — because there is no other door: /api/comments/ is
+        PublicSubmission (anonymous POST only, staff GET), so a reader has no
+        endpoint to list from, and opening one would mean a second place that
+        has to remember to hide the moderation queue. Approved rows only, and
+        only the reader-safe columns — status and article_title are queue
+        furniture, and a pending or banned row must never travel here no
+        matter who is asking, staff included: this payload is cached by the
+        public article page for every visitor for the whole revalidate window.
+        """
+        rows = obj.comments.filter(status=Comment.Status.APPROVED).order_by("-created_at")[:50]
+        return [
+            {"id": c.id, "user_name": c.user_name, "text": c.text, "created_at": c.created_at.isoformat()}
+            for c in rows
         ]
 
 
