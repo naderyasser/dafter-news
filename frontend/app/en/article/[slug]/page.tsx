@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -60,9 +61,15 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
 
           {article.cover_image && (
             <figure className="mb-1 mt-4">
-              <div className="aspect-video overflow-hidden rounded-card bg-surface-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={mediaUrl(article.cover_image)} alt={article.cover_caption || article.title} className="h-full w-full object-cover" />
+              <div className="relative aspect-video overflow-hidden rounded-card bg-surface-2">
+                <Image
+                  src={mediaUrl(article.cover_image)!}
+                  alt={article.cover_caption || article.title}
+                  fill
+                  priority
+                  sizes="(min-width: 768px) 680px, 100vw"
+                  className="object-cover"
+                />
               </div>
               {article.cover_caption && (
                 <figcaption className="mt-2 border-b border-line pb-3 text-caption text-ink-3">

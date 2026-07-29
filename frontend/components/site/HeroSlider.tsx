@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Chevron from "@/components/ui/Chevron";
@@ -81,16 +82,22 @@ export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides
       aria-label={isAr ? "أهم الأخبار" : "Top stories"}
     >
       {/* Every photo stays mounted so the change is a crossfade rather than a
-          hard swap; only the active one is visible. */}
+          hard swap; only the active one is visible. Through next/image, not a
+          raw <img>: these are the five heaviest photos on the site, and the
+          raw originals put ~2MB above the fold — the optimizer serves the
+          same frames as ~70KB webp. The first slide is priority (it IS the
+          LCP); the rest keep default loading so they fetch after paint. */}
       <div className="absolute inset-0" aria-hidden>
         {slides.map((s, i) =>
           s.imageSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               key={s.href + i}
               src={s.imageSrc}
               alt=""
-              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out ${
+              fill
+              priority={i === 0}
+              sizes="(min-width: 1024px) 66vw, 100vw"
+              className={`object-cover transition-opacity duration-700 ease-out ${
                 i === index ? "opacity-100" : "opacity-0"
               }`}
             />

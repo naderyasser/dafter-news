@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import BetaBadge from "@/components/site/BetaBadge";
@@ -126,10 +127,12 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
               // Sized by height so any future mark keeps its own proportions;
               // the supplied file is trimmed to the ink, so this is all logo
               // rather than the white field the original JPEG carried.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={logoSrc}
                 alt={isAr ? "الدفتر مصر" : "Al Daftar Masr"}
+                width={240}
+                height={72}
+                priority
                 className="h-[52px] w-auto object-contain sm:h-[64px] lg:h-[72px]"
               />
             ) : (

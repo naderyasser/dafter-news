@@ -5,6 +5,12 @@ import StoriesRail from "./StoriesRail";
 import { STORY_MS } from "./StoryViewer";
 import type { Story } from "@/lib/types";
 
+vi.mock("next/image", () => ({
+  // The real component rewrites src through /_next/image; these tests assert
+  // on the upstream path, so render a bare img with the same props.
+  default: ({ src, alt, fill, priority, sizes, ...rest }: any) => <img src={typeof src === "string" ? src : ""} alt={alt} {...rest} />,
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: any) => (
     <a href={href} {...rest}>

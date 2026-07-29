@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const EASTERN = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
@@ -38,10 +39,14 @@ export default function MostReadList({
             {/* Thumbnail sits at the inline end so the rank column stays the
                 reading anchor and the numbers line up down the list. */}
             {it.imageSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              // 68×52 slot: the raw cover behind it is up to 470KB, and five
+              // of them made this sidebar the heaviest thing on the page.
+              <Image
                 src={it.imageSrc}
                 alt=""
+                width={68}
+                height={52}
+                sizes="68px"
                 className="h-[52px] w-[68px] flex-shrink-0 rounded object-cover"
               />
             ) : (

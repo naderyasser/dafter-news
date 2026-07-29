@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -76,10 +77,12 @@ export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blo
       const src = mediaUrl(b.image);
       return (
         <figure key={b.id} className="my-6">
-          <div className="aspect-video overflow-hidden rounded-card bg-surface-2">
+          <div className="relative aspect-video overflow-hidden rounded-card bg-surface-2">
             {src ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={src} alt={b.caption || ""} className="h-full w-full object-cover" />
+              // Through the optimizer: in-body photos are uploaded at camera
+              // size (the seed carries a 640KB one), and the reading column
+              // is 680px wide — no reader needs the original.
+              <Image src={src} alt={b.caption || ""} fill sizes="(min-width: 768px) 680px, 100vw" className="object-cover" />
             ) : (
               <div className="flex h-full items-center justify-center text-caption font-semibold text-header-muted">
                 {isAr ? "صورة داخل الخبر" : "Drop image here"}

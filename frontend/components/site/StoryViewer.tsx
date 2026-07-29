@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -176,8 +177,7 @@ export default function StoryViewer({
           onPointerLeave={() => setHeld(false)}
         >
           {img ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={story.id} src={img} alt="" className="animate-fade-in absolute inset-0 h-full w-full object-cover" />
+            <Image key={story.id} src={img} alt="" fill sizes="100vw" className="animate-fade-in object-cover" />
           ) : (
             <div className="absolute inset-0 bg-navy-2" />
           )}
