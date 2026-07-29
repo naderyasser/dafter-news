@@ -8,10 +8,32 @@ import { login, register } from "@/lib/api";
 
 type Mode = "login" | "register";
 
+/**
+ * `?next=` decides where a successful sign-in lands, and it arrives in the
+ * query string of a link anyone can send. Handed to router.push() unchecked,
+ * it turns the genuine sign-in page into the first hop of a phishing chain:
+ * the reader types their password on the real site, watches it succeed, and
+ * arrives at a lookalike asking them to "confirm" it. Only a path on this
+ * site is honoured; anything else falls back to the front page.
+ *
+ * The normalisation before the test matters as much as the test. Browsers
+ * strip tab/LF/CR from a URL and read a backslash as a slash, so `/\evil.example`
+ * and `/⇥/evil.example` reach the network as `//evil.example` — a host, not a
+ * path — while a naive startsWith("/") waves both through.
+ */
+export function safeNext(raw: string | null | undefined): string {
+  if (!raw) return "/";
+  const value = raw.replace(/[\t\n\r]/g, "").trim();
+  if (!value.startsWith("/")) return "/"; // absolute URL, or any scheme
+  // "//host" and "/\host" are both authority-relative, not paths.
+  if (/^\/[/\\]/.test(value) || value.slice(0, 4).toLowerCase() === "/%5c") return "/";
+  return value;
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/";
+  const next = safeNext(params.get("next"));
 
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
@@ -31,8 +53,12 @@ export default function LoginForm() {
       router.push(next !== "/" ? next : account.is_staff_member ? "/dashboard" : "/");
       router.refresh();
     } catch (err) {
+      // ApiError.status, not a substring of its message: `includes("401")`
+      // also matched a 401 sitting in the request path or an echoed field, so
+      // a server that had fallen over told the reader their password was
+      // wrong — and they retyped a password that was never the problem.
       setError(
-        (err as Error).message.includes("401")
+        (err as { status?: number })?.status === 401
           ? "البريد الإلكتروني أو كلمة المرور غير صحيحة."
           : mode === "register"
             ? "تعذّر إنشاء الحساب. راجع البيانات وحاول مرة أخرى."

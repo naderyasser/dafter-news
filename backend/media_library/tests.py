@@ -1,4 +1,5 @@
 """Tests for the media library grid (DashMedia)."""
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
@@ -24,6 +25,17 @@ class MediaAssetTests(TestCase):
 
 
 class MediaAssetAPITests(APITestCase):
+    """
+    The library is newsroom-only (see tests_permissions.py for why), so these
+    sign in first — they are about what the grid renders, not about who may
+    see it.
+    """
+
+    def setUp(self):
+        self.client.force_authenticate(
+            get_user_model().objects.create_user(username="editor", password="pw", is_staff=True)
+        )
+
     def test_empty_library_returns_an_empty_page_not_an_error(self):
         """The dashboard renders an empty state — it must not 500."""
         res = self.client.get("/api/media/")
