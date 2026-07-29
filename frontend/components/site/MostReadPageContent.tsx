@@ -1,11 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
 import { toEasternNumerals } from "@/lib/format";
 
-export type MostReadRow = { title: string; section: string; href: string };
+export type MostReadRow = { title: string; section: string; href: string; imageSrc?: string };
 
 const PERIODS = [
   { key: "day", label: "اليوم" },
@@ -48,10 +49,27 @@ export default function MostReadPageContent({ rows }: { rows: MostReadRow[] }) {
             <span className="tnum min-w-[34px] flex-shrink-0 text-[30px] font-extrabold leading-none text-brand">
               {toEasternNumerals(i + 1)}
             </span>
-            <span className="flex flex-col gap-1">
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="text-[15px] font-semibold leading-[1.5] text-ink">{it.title}</span>
               <span className="text-xs text-ink-3">{it.section}</span>
             </span>
+            {/* The homepage widget carries these thumbs, and this page —
+                the widget's own «عرض الكل» destination — showed bare text,
+                which read as the images failing rather than as a design.
+                Same placement rule as the widget: rank at the start is the
+                reading anchor, photo at the inline end. */}
+            {it.imageSrc ? (
+              <Image
+                src={it.imageSrc}
+                alt=""
+                width={96}
+                height={72}
+                sizes="96px"
+                className="h-[72px] w-[96px] flex-shrink-0 rounded object-cover"
+              />
+            ) : (
+              <span className="h-[72px] w-[96px] flex-shrink-0 rounded bg-surface-2" aria-hidden />
+            )}
           </Link>
         ))}
       </div>
