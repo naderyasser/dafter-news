@@ -80,6 +80,15 @@ export default function ArticleEditorForm({
   const [pinned, setPinned] = useState(initial?.pinned ?? false);
   const [pushBreaking, setPushBreaking] = useState(false);
   const [pushStory, setPushStory] = useState(false);
+  // Publish-later. datetime-local wants "YYYY-MM-DDTHH:mm" in the editor's
+  // own zone; the API stores ISO with offset. Prefilled when editing an
+  // already-scheduled story so its time is visible and adjustable.
+  const [scheduledFor, setScheduledFor] = useState(() => {
+    if (!initial?.scheduled_for || initial.status !== "scheduled") return "";
+    const d = new Date(initial.scheduled_for);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
   const [ttsStatus, setTtsStatus] = useState<"idle" | "generating" | "done">(initial?.tts_status ?? "idle");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -148,11 +157,23 @@ export default function ArticleEditorForm({
     setTimeout(() => setTtsStatus("done"), 1400);
   };
 
-  const save = async (status: "draft" | "review" | "published") => {
+  const save = async (status: "draft" | "review" | "published" | "scheduled") => {
     setError("");
     if (!title.trim()) {
       setError("لازم تكتب عنوان الخبر أولاً.");
       return;
+    }
+    if (status === "scheduled") {
+      // Guard here, not just in the disabled state: the invalid cases must
+      // name themselves, and a silently disabled button names nothing.
+      if (!scheduledFor) {
+        setError("اختر وقت النشر أولاً.");
+        return;
+      }
+      if (new Date(scheduledFor) <= new Date()) {
+        setError("وقت الجدولة لازم يكون في المستقبل — للنشر الفوري استخدم «حفظ ونشر».");
+        return;
+      }
     }
     setSaving(true);
     const sectionId = sections.find((s) => s.key === section)?.id ?? null;
@@ -180,6 +201,10 @@ export default function ArticleEditorForm({
       // the browser can't slugify Arabic without stripping it to nothing.
       ...(slug.trim() ? { slug: slug.trim() } : {}),
       ...(coverAssetId ? { cover_asset_id: coverAssetId } : {}),
+      // ISO with the editor's real offset; null clears a previous schedule
+      // when the story is saved any other way, so «مجدول ٩:٠٠» can't linger
+      // on an article someone since published by hand.
+      scheduled_for: status === "scheduled" ? new Date(scheduledFor).toISOString() : null,
     };
     try {
       if (articleId) {
@@ -483,6 +508,32 @@ export default function ArticleEditorForm({
             <div className="text-[11px] text-brand-strong">يُحسب تلقائياً (كلمات ÷ 200)</div>
           </div>
         </div>
+        <div className="rounded-card border border-line bg-paper p-4">
+          <label htmlFor="schedule-at" className="mb-1.5 block text-[12px] font-bold text-ink-3">
+            جدولة النشر (اختياري)
+          </label>
+          <input
+            id="schedule-at"
+            type="datetime-local"
+            value={scheduledFor}
+            onChange={(e) => setScheduledFor(e.target.value)}
+            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-brand"
+          />
+          {scheduledFor ? (
+            <button
+              onClick={() => save("scheduled")}
+              disabled={saving}
+              className="mt-2.5 w-full rounded-lg bg-accent py-2.5 text-[13px] font-bold text-paper hover:bg-accent-strong disabled:opacity-60"
+            >
+              ⏰ جدولة النشر
+            </button>
+          ) : (
+            <p className="m-0 mt-1.5 text-[11px] leading-relaxed text-ink-3">
+              اختر وقتاً وسيُنشر الخبر تلقائياً في موعده — تتحقق اللوحة من المواعيد كل دقيقة.
+            </p>
+          )}
+        </div>
+
         <div className="flex gap-2.5">
           <button onClick={() => save("draft")} disabled={saving} className="flex-1 rounded-lg border border-line-strong bg-paper py-2.5 text-[13px] font-bold text-ink disabled:opacity-60">
             حفظ كمسودة

@@ -230,7 +230,14 @@ OWM_OK = {
 
 class WeatherProviderTests(TestCase):
     def setUp(self):
-        self.env = patch.dict("os.environ", {"OPENWEATHER_API_KEY": "test-key"})
+        # Pin the provider as well as the key: these tests mock OWM-shaped
+        # responses, and the host's .env selects open-meteo since the site
+        # went keyless — load_dotenv injects that into os.environ, which
+        # would route sync() down the other backend against the wrong
+        # fixture. WeatherBackendSelectionTests owns the open-meteo path.
+        self.env = patch.dict(
+            "os.environ", {"OPENWEATHER_API_KEY": "test-key", "WEATHER_PROVIDER": "openweathermap"}
+        )
         self.env.start()
         self.addCleanup(self.env.stop)
 
@@ -707,6 +714,18 @@ class WeatherBackendSelectionTests(TestCase):
         self.assertEqual(weather._icon_for_wmo(61), "🌧️")
         self.assertEqual(weather._icon_for_wmo(73), "❄️")
         self.assertEqual(weather._icon_for_wmo(95), "⛈️")
+
+    def test_open_meteo_partial_failure_keeps_the_other_cities(self):
+        """Same degradation rule as the OWM path: one malformed city must
+        not discard the other three."""
+        with patch.dict("os.environ", {"WEATHER_PROVIDER": "open-meteo"}, clear=True):
+            with patch(
+                "integrations.providers.weather.fetch_json",
+                side_effect=[OPEN_METEO_OK, {}, OPEN_METEO_OK, OPEN_METEO_OK],
+            ):
+                updated = weather.sync()
+
+        self.assertEqual(updated, 3)
 
     def test_open_meteo_survives_a_missing_daily_block(self):
         """Without the daily forecast, hi/lo fall back to the current temp

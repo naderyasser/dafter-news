@@ -137,6 +137,10 @@ REST_FRAMEWORK = {
         # Password guessing and sign-up spam are the two anonymous bursts that
         # are never legitimate. Reads stay unthrottled: this is a news site.
         "login": "10/min",
+        # One beacon per browser session is the honest rate; 30/min per IP
+        # absorbs a newsroom behind one NAT while keeping a curl loop from
+        # minting a million-visit day.
+        "visits": "30/min",
     },
 }
 

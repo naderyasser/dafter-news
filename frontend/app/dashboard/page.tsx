@@ -13,10 +13,39 @@ export default async function DashOverviewPage() {
   const chart = data?.chart ?? [];
   const maxBar = Math.max(...chart.map((c) => c.bar_pct), 1);
 
+  const alerts = data?.feed_alerts ?? [];
+
   return (
     <DashboardShell active="overview" breadcrumb="لوحة التحكم" title="نظرة عامة">
+      {/* A dead feed announces itself on the screen every session opens on —
+          newswire sat broken for 4,000+ runs with the record buried in a
+          table nobody watches. */}
+      {alerts.length > 0 && (
+        <div role="alert" className="rounded-card border border-gold bg-[#FDF6E3] px-4.5 py-3.5">
+          <div className="mb-1 text-[13.5px] font-extrabold text-gold">⚠ تغذيات متوقفة تحتاج انتباهك</div>
+          <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[13px] text-ink-2">
+            {alerts.map((a) => (
+              <li key={a.source}>
+                <span className="font-bold">{a.label}</span> — فشل {a.consecutive_failures.toLocaleString("en-US")} محاولة متتالية
+                {a.message ? <span className="text-ink-3"> ({a.message})</span> : null}
+              </li>
+            ))}
+          </ul>
+          <Link href="/dashboard/feeds" className="mt-1.5 inline-block text-[12.5px] font-bold text-accent no-underline hover:underline">
+            راجع شاشة التغذيات ←
+          </Link>
+        </div>
+      )}
+
       <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-4">
-        <StatCard label="زيارات اليوم" value={(stats?.visits_today ?? 0).toLocaleString("en-US")} changeLabel={`▲ ${stats?.visits_change_pct ?? 0}%`} up />
+        {/* change_pct is computed from real counts now, so a down day must
+            read as one — a red ▼, not a green ▲ with a minus sign inside. */}
+        <StatCard
+          label="زيارات اليوم"
+          value={(stats?.visits_today ?? 0).toLocaleString("en-US")}
+          changeLabel={`${(stats?.visits_change_pct ?? 0) < 0 ? "▼" : "▲"} ${Math.abs(stats?.visits_change_pct ?? 0)}%`}
+          up={(stats?.visits_change_pct ?? 0) >= 0}
+        />
         <StatCard label="مقالات منشورة" value={(stats?.published_articles ?? 0).toLocaleString("en-US")} changeLabel="▲ —" up />
         <StatCard label="تعليقات معلقة" value={(stats?.pending_comments ?? 0).toLocaleString("en-US")} changeLabel="▼ —" up={false} />
         <StatCard label="مشاهدات فيديو" value={(stats?.video_views ?? 0).toLocaleString("en-US")} changeLabel="▲ —" up />
