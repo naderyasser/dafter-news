@@ -1,6 +1,12 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+vi.mock("next/image", () => ({
+  // The real component rewrites src through /_next/image; these tests assert
+  // on the upstream path, so render a bare img with the same props.
+  default: ({ src, alt, fill, priority, sizes, ...rest }: any) => <img src={typeof src === "string" ? src : ""} alt={alt} {...rest} />,
+}));
+
 import VideoPlayer from "./VideoPlayer";
 
 /**

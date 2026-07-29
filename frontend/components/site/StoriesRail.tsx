@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -142,11 +143,12 @@ export default function StoriesRail({ lang, stories }: { lang: "ar" | "en"; stor
                 }`}
               >
                 {img ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={img}
                     alt=""
-                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-med group-hover:scale-105"
+                    fill
+                    sizes="132px"
+                    className="object-cover transition-transform duration-med group-hover:scale-105"
                   />
                 ) : null}
                 <div className="absolute inset-0 bg-gradient-to-t from-navy via-[rgba(11,52,84,.35)] to-transparent" />

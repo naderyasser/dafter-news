@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 /**
@@ -97,8 +98,7 @@ export default function VideoPlayer({
   return (
     <div className="relative aspect-video overflow-hidden rounded-card bg-header-bg">
       {poster ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={poster} alt={title} className="h-full w-full object-cover" />
+        <Image src={poster} alt={title} fill sizes="(min-width: 1024px) 60vw, 100vw" className="object-cover" />
       ) : null}
 
       {playable ? (

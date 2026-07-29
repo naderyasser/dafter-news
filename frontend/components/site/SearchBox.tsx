@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -386,8 +387,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
                     >
                       <span className="h-[42px] w-[58px] flex-shrink-0 overflow-hidden rounded bg-navy-2">
                         {r.cover_image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={mediaUrl(r.cover_image)} alt="" className="h-full w-full object-cover" />
+                          <Image src={mediaUrl(r.cover_image)!} alt="" fill sizes="96px" className="object-cover" />
                         ) : null}
                       </span>
                       <span className="min-w-0 flex-1">

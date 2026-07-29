@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -267,8 +268,7 @@ export default function VideoShowcase({
                     style={v.poster ? undefined : { backgroundImage: fallbackArt ?? undefined }}
                   >
                     {v.poster ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={v.poster} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      <Image src={v.poster} alt="" fill sizes="168px" className="object-cover" />
                     ) : null}
                     {v.durationLabel && v.durationLabel !== "—" && !v.isLive ? (
                       <span className="tnum absolute bottom-1 end-1 rounded-badge bg-[rgba(6,38,57,.8)] px-1.5 py-0.5 text-[11px] text-paper">
