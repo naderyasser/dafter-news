@@ -12,12 +12,13 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
+import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import { getLiveStreams, getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
-import type { ArticleCard as ArticleCardType, Badge } from "@/lib/types";
+import type { ArticleCard as ArticleCardType } from "@/lib/types";
 
 export const revalidate = 60;
 
@@ -82,7 +83,9 @@ export default async function HomeEnPage() {
       sectionFeed("sports"),
       sectionFeed("art", 7),
       sectionFeed("tech"),
-      getVideos("?page_size=4"),
+      // Deep enough for the showcase strip to read as a playlist; the English
+      // edition also filters this list down to Latin-script titles.
+      getVideos("?page_size=12"),
       getArticles("?language=en&kind=opinion&page_size=6"),
       getArticles("?language=en&ordering=-views&page_size=5"),
       getTags(),
@@ -136,18 +139,23 @@ export default async function HomeEnPage() {
   const heroIds = new Set(heroPool.map((a) => a.id));
   const heroSide = recent.results.filter((a) => !heroIds.has(a.id)).slice(0, 4);
 
-  const videoCards = videos.results
+  const showcaseVideos = videos.results
     .filter((v) => isLatin(v.title))
+    .slice(0, 8)
     .map((v) => ({
+      id: v.id,
       href: `/en/video/${v.slug}`,
       title: v.title,
-      section: T.video,
-      time: relativeTime(v.created_at, "en"),
-      badge: (v.is_exclusive ? "exclusive" : "none") as Badge,
-      imageSrc: mediaUrl(v.cover_image),
-      isVideo: true,
-      videoDuration: v.duration_label,
+      description: v.description,
+      poster: mediaUrl(v.cover_image),
+      src: mediaUrl(v.file),
+      externalUrl: v.external_url,
+      durationLabel: v.duration_label,
+      isExclusive: v.is_exclusive,
+      isLive: v.is_live,
+      views: v.views,
       comments: v.comment_count,
+      time: relativeTime(v.created_at, "en"),
     }));
 
   const opinionItems = opinion.results.map((a) => ({
@@ -212,15 +220,10 @@ export default async function HomeEnPage() {
         </>
       ) : null}
 
-      {/* Video desk third in the page order, mirroring the Arabic home.
-          Hidden until there are English video headlines — a heading with no
-          cards under it reads as a broken block. */}
-      {videoCards.length ? (
-        <>
-          <SectionBlock lang="en" title={T.video} seeAllHref="/video" cards={videoCards} initialCount={4} sectionKey="video" />
-          <SectionDivider />
-        </>
-      ) : null}
+      {/* Video desk third in the page order, mirroring the Arabic home block
+          for block. Hidden until there are English video headlines — a heading
+          with no player under it reads as a broken block. */}
+      {showcaseVideos.length ? <VideoShowcase lang="en" title={T.video} href="/video" videos={showcaseVideos} /> : null}
 
       <WorldNewsBlock lang="en" title={T.world} href="/en/section/world" cards={world.results.map(toWorldCard)} sectionKey="world" />
       {world.results.length ? <SectionDivider /> : null}
