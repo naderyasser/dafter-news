@@ -21,6 +21,13 @@ const nextConfig = {
       { protocol: "http", hostname: "127.0.0.1" },
       { protocol: "https", hostname: "**" },
     ],
+    // A month, not the 60-second default. The default made the optimizer
+    // re-validate every variant against /media/ once a minute per reader —
+    // and uploaded news photos never change under the same filename (Django
+    // suffixes re-uploads). Combined with scripts/deploy-frontend.sh carrying
+    // .next/cache/images across deploys, this is what keeps a thumbnail from
+    // ever being re-encoded in front of a reader.
+    minimumCacheTTL: 2678400,
   },
 };
 
