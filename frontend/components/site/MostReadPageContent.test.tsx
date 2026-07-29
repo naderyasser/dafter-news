@@ -11,6 +11,10 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/image", () => ({
+  default: ({ src, alt, fill, priority, sizes, ...rest }: any) => <img src={typeof src === "string" ? src : ""} alt={alt} {...rest} />,
+}));
+
 const rows = Array.from({ length: 10 }, (_, i) => ({
   title: `خبر رقم ${i + 1}`,
   section: "قسم",
@@ -18,6 +22,20 @@ const rows = Array.from({ length: 10 }, (_, i) => ({
 }));
 
 describe("MostReadPageContent", () => {
+  it("shows each story's cover, and a quiet placeholder when there is none", () => {
+    const withImages = [
+      { ...rows[0], imageSrc: "/media/covers/top.jpg" },
+      rows[1], // no cover
+    ];
+    const { container } = render(<MostReadPageContent rows={withImages} />);
+
+    // The homepage widget carries thumbs; this page is its «عرض الكل»
+    // destination — bare text here read as the images failing to load.
+    expect(container.querySelector('img[src="/media/covers/top.jpg"]')).toBeInTheDocument();
+    expect(container.querySelectorAll("img")).toHaveLength(1);
+    expect(container.querySelectorAll(".bg-surface-2")).toHaveLength(1);
+  });
+
   it("keeps the real ranking order when switching to Week or Month", () => {
     render(<MostReadPageContent rows={rows} />);
 

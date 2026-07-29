@@ -97,7 +97,17 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
           <ArticleComments lang="en" articleId={article.id} initial={article.comments} />
         </main>
         <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
-          <MostReadList lang="en" items={mostRead.results.map((a) => ({ title: a.title, href: `/en/article/${a.slug}`, section: a.section_name }))} />
+          <MostReadList
+            lang="en"
+            items={mostRead.results.map((a) => ({
+              title: a.title,
+              href: `/en/article/${a.slug}`,
+              section: a.section_name,
+              // The Arabic home passes thumbs; leaving them off here made the
+              // same widget look broken on the English edition.
+              imageSrc: mediaUrl(a.cover_image),
+            }))}
+          />
         </aside>
       </div>
 
