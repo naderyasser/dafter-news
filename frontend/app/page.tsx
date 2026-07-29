@@ -12,12 +12,13 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
+import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import { getLiveStreams, getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
-import type { ArticleCard as ArticleCardType, Badge } from "@/lib/types";
+import type { ArticleCard as ArticleCardType } from "@/lib/types";
 
 export const revalidate = 60;
 
@@ -67,7 +68,10 @@ export default async function HomePage() {
       sectionFeed("sports"),
       sectionFeed("art", 7),
       sectionFeed("tech"),
-      getVideos("?page_size=4"),
+      // Deeper than the four a grid needed: the showcase's thumbnail strip is
+      // the section's navigation, and it only reads as a playlist with a
+      // playlist's worth of tiles in it.
+      getVideos("?page_size=12"),
       getArticles("?language=ar&kind=opinion&page_size=6"),
       getArticles("?language=ar&ordering=-views&page_size=5"),
       getTags(),
@@ -127,16 +131,20 @@ export default async function HomePage() {
   const heroIds = new Set(heroPool.map((a) => a.id));
   const heroSide = recent.results.filter((a) => !heroIds.has(a.id)).slice(0, 4);
 
-  const videoCards = arVideos.map((v) => ({
+  const showcaseVideos = arVideos.slice(0, 8).map((v) => ({
+    id: v.id,
     href: `/video/${v.slug}`,
     title: v.title,
-    section: "لقطة وتعليق",
-    time: relativeTime(v.created_at, "ar"),
-    badge: (v.is_exclusive ? "exclusive" : "none") as Badge,
-    imageSrc: mediaUrl(v.cover_image),
-    isVideo: true,
-    videoDuration: v.duration_label,
+    description: v.description,
+    poster: mediaUrl(v.cover_image),
+    src: mediaUrl(v.file),
+    externalUrl: v.external_url,
+    durationLabel: v.duration_label,
+    isExclusive: v.is_exclusive,
+    isLive: v.is_live,
+    views: v.views,
     comments: v.comment_count,
+    time: relativeTime(v.created_at, "ar"),
   }));
 
   const opinionItems = opinion.results.map((a) => ({
@@ -198,9 +206,10 @@ export default async function HomePage() {
 
       {/* لقطة وتعليق — third in the page order on the client's request: the
           video desk is a flagship, so it sits with the lead sections rather
-          than below the fold. */}
-      <SectionBlock lang="ar" title="لقطة وتعليق" seeAllHref="/video" cards={videoCards} initialCount={4} sectionKey="video" />
-      <SectionDivider />
+          than below the fold. It gets the player treatment rather than a grid
+          of cards, and no divider after it: the navy band's own bottom edge
+          already separates it from what follows. */}
+      <VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={showcaseVideos} />
 
       {/* عرب وعالم — its own front-page treatment (lead + rail + tiles, red
           category chips on the photos), deliberately not a grid shared with
