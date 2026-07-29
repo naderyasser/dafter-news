@@ -42,7 +42,7 @@ export default function MostReadPageContent({ rows }: { rows: MostReadRow[] }) {
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(380px,1fr))] gap-x-8 gap-y-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(380px,100%),1fr))] gap-x-8 gap-y-2">
         {ordered.map((it, i) => (
           <Link key={it.href + i} href={it.href} className="flex items-start gap-3.5 border-b border-line py-4 no-underline">
             <span className="tnum min-w-[34px] flex-shrink-0 text-[30px] font-extrabold leading-none text-brand">

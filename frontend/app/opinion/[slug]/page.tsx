@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import ArticleBlocks from "@/components/site/ArticleBlocks";
+import ArticleComments from "@/components/site/ArticleComments";
 import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getArticles, mediaUrl } from "@/lib/api";
@@ -70,6 +71,8 @@ export default async function ArticleOpinionPage({ params }: { params: { slug: s
               ))}
             </div>
           )}
+
+          <ArticleComments lang="ar" articleId={article.id} initial={article.comments} />
         </main>
         <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
           <MostReadList lang="ar" items={mostRead.results.map((a) => ({ title: a.title, href: `/article/${a.slug}`, section: a.section_name }))} />

@@ -34,7 +34,7 @@ export default function MarketsPageContent({
   const weather = cities.find((c) => c.key === cityKey) ?? cities[0];
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(340px,1fr))] items-start gap-5">
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(min(340px,100%),1fr))] items-start gap-5">
       <div className="rounded-card border border-line bg-paper p-5">
         <div className="mb-3.5 text-[16px] font-extrabold text-ink">أسعار العملات</div>
         <div className="flex flex-col">

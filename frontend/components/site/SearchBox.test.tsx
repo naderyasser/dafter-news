@@ -98,3 +98,80 @@ describe("SearchBox routing", () => {
     expect(screen.getByText("عرض كل النتائج").closest("a")).toHaveAttribute("href", "/search");
   });
 });
+
+describe("SearchBox — Enter means search unless a row was deliberately picked", () => {
+  beforeEach(() => {
+    // jsdom stops at layout; the highlight-follows-cursor effect calls this.
+    Element.prototype.scrollIntoView = () => {};
+  });
+
+  const rows = [
+    { id: 1, slug: "first-hit", title: "أول نتيجة", section_name: "شؤون مصر", published_at: null, badge: "none", cover_image: null },
+    { id: 2, slug: "second-hit", title: "ثاني نتيجة", section_name: "شؤون مصر", published_at: null, badge: "none", cover_image: null },
+  ];
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ count: 2, next: null, previous: null, results: rows }) }),
+    );
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    push.mockClear();
+  });
+
+  const field = () => screen.getByPlaceholderText("ابحث عن خبر، كاتب، أو قسم");
+  const openAndType = async (q: string) => {
+    render(<SearchBox lang="ar" />);
+    fireEvent.click(screen.getByLabelText("بحث"));
+    fireEvent.change(field(), { target: { value: q } });
+    await settle(250);
+  };
+
+  it("goes to the results page on plain type-and-Enter, even with suggestions showing", async () => {
+    // The cursor rests on the first suggestion by default. Enter used to
+    // open it — typing «مصر» ⏎ landed inside whatever article ranked first
+    // instead of the results page the reader asked for.
+    await openAndType("مصر");
+
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    expect(push).toHaveBeenCalledWith(`/search?q=${encodeURIComponent("مصر")}`);
+  });
+
+  it("opens the highlighted article when the reader arrowed onto it", async () => {
+    await openAndType("مصر");
+
+    fireEvent.keyDown(field(), { key: "ArrowDown" });
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    expect(push).toHaveBeenCalledWith("/article/second-hit");
+  });
+
+  it("arrowing down then back up still counts as a deliberate pick of the first row", async () => {
+    await openAndType("مصر");
+
+    fireEvent.keyDown(field(), { key: "ArrowDown" });
+    fireEvent.keyDown(field(), { key: "ArrowUp" });
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    expect(push).toHaveBeenCalledWith("/article/first-hit");
+  });
+
+  it("a refined query resets the pick — Enter searches again", async () => {
+    await openAndType("مصر");
+    fireEvent.keyDown(field(), { key: "ArrowDown" });
+
+    // New keystrokes → new results → the old highlight no longer speaks for
+    // the reader's intent.
+    fireEvent.change(field(), { target: { value: "مصر الاقتصاد" } });
+    await settle(250);
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    // URLSearchParams encodes the space as "+", not "%20".
+    expect(push).toHaveBeenCalledWith(`/search?${new URLSearchParams({ q: "مصر الاقتصاد" })}`);
+  });
+});

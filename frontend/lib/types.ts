@@ -101,6 +101,16 @@ export type ArticleDetail = {
   scheduled_for: string | null;
   created_at: string;
   blocks: ArticleBlock[];
+  comments: ArticleComment[];
+};
+
+/** A reader-safe comment row as embedded on the article detail — the
+ *  moderation columns (status, article) deliberately never travel here. */
+export type ArticleComment = {
+  id: number;
+  user_name: string;
+  text: string;
+  created_at: string;
 };
 
 export type Comment = {

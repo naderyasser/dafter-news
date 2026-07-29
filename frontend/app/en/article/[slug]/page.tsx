@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import ArticleBlocks from "@/components/site/ArticleBlocks";
+import ArticleComments from "@/components/site/ArticleComments";
 import AudioPlayer from "@/components/site/AudioPlayer";
 import MostReadList from "@/components/site/MostReadList";
 import SectionBlock from "@/components/site/SectionBlock";
@@ -85,6 +86,8 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
               ))}
             </div>
           )}
+
+          <ArticleComments lang="en" articleId={article.id} initial={article.comments} />
         </main>
         <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
           <MostReadList lang="en" items={mostRead.results.map((a) => ({ title: a.title, href: `/en/article/${a.slug}`, section: a.section_name }))} />

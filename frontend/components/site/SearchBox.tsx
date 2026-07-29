@@ -86,6 +86,14 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
   const [total, setTotal] = useState(0);
   const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [cursor, setCursor] = useState(0);
+  // Whether the reader has *chosen* the highlighted row (arrow keys or
+  // pointer) since the results last changed. Enter used to open rows[cursor]
+  // whenever results existed — but the cursor rests on the first suggestion
+  // by default, so typing «مصر» and hitting Enter jumped into whatever
+  // article happened to rank first instead of the results page the reader
+  // asked for. Enter now searches unless the highlight was deliberate; the
+  // palette flow (↓ then ↵) is untouched.
+  const [picked, setPicked] = useState(false);
   const [recent, setRecent] = useState<string[]>([]);
   // Bumped by the error screen's "try again" button so the load effect below
   // reruns even when the query text itself hasn't changed — setQuery(q => q)
@@ -166,6 +174,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
           setRows(data.results);
           setTotal(data.count);
           setCursor(0);
+          setPicked(false);
           setState("ready");
         })
         .catch((err) => {
@@ -219,13 +228,15 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
       close();
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
+      setPicked(true);
       setCursor((c) => Math.min(c + 1, Math.max(rows.length - 1, 0)));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      setPicked(true);
       setCursor((c) => Math.max(c - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (rows[cursor]) goTo(rows[cursor]);
+      if (picked && rows[cursor]) goTo(rows[cursor]);
       else submit();
     }
   };
@@ -364,7 +375,10 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
                       key={r.id}
                       type="button"
                       data-active={i === cursor}
-                      onMouseEnter={() => setCursor(i)}
+                      onMouseEnter={() => {
+                        setPicked(true);
+                        setCursor(i);
+                      }}
                       onClick={() => goTo(r)}
                       className={`flex w-full items-center gap-3 border-s-[3px] px-5 py-3 text-start transition-colors duration-fast ${
                         i === cursor ? "border-brand bg-navy-2" : "border-transparent"
