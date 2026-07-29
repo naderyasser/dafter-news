@@ -164,4 +164,26 @@ describe("ArticleCard", () => {
       expect(screen.getByText("Breaking")).toBeInTheDocument();
     });
   });
+
+  /**
+   * Every headline on the site that isn't «عرب وعالم» comes through this
+   * component, so if the title is a <div> then a homepage of forty stories
+   * exposes not one article headline to heading navigation — which is how
+   * most screen-reader users move through a news page. WorldNewsBlock already
+   * emitted <h3>; the same content must not be a heading in one block and
+   * anonymous text in every other.
+   */
+  describe("headline semantics", () => {
+    it.each(["standard", "compact", "text", "hero"] as const)("renders the %s headline as a heading", (variant) => {
+      render(<ArticleCard {...base} lang="ar" variant={variant} />);
+
+      expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("عنوان الخبر");
+    });
+
+    it("keeps the headline inside the link, so the whole card stays one target", () => {
+      render(<ArticleCard {...base} lang="ar" variant="standard" />);
+
+      expect(screen.getByRole("link").querySelector("h3")).toHaveTextContent("عنوان الخبر");
+    });
+  });
 });
