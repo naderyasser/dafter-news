@@ -1,12 +1,15 @@
+import { Suspense } from "react";
+
 import Link from "next/link";
 
 import SiteShell from "@/components/site/SiteShell";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { getAuthors, mediaUrl } from "@/lib/api";
 import { toEasternNumerals } from "@/lib/format";
 
 export const revalidate = 300;
 
-export default async function AuthorsPage() {
+async function AuthorsContent() {
   const authors = await getAuthors();
 
   return (
@@ -38,5 +41,14 @@ export default async function AuthorsPage() {
         </div>
       </div>
     </SiteShell>
+  );
+}
+
+/** Skeleton inside the page — a loading.tsx here would soft-404 the nested detail routes; see app/page.tsx. */
+export default function AuthorsPage() {
+  return (
+    <Suspense fallback={<PageSkeleton lang="ar" variant="list" />}>
+      <AuthorsContent />
+    </Suspense>
   );
 }

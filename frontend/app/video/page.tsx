@@ -1,11 +1,14 @@
+import { Suspense } from "react";
+
 import SiteShell from "@/components/site/SiteShell";
 import VideoGrid from "@/components/site/VideoGrid";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 
 export const revalidate = 60;
 
-export default async function VideoListPage() {
+async function VideoListContent() {
   const videos = await getVideos("?page_size=24");
   const items = videos.results.map((v) => ({
     id: v.id,
@@ -28,5 +31,14 @@ export default async function VideoListPage() {
         <VideoGrid items={items} />
       </div>
     </SiteShell>
+  );
+}
+
+/** Skeleton inside the page — a loading.tsx here would soft-404 the nested detail routes; see app/page.tsx. */
+export default function VideoListPage() {
+  return (
+    <Suspense fallback={<PageSkeleton lang="ar" variant="list" />}>
+      <VideoListContent />
+    </Suspense>
   );
 }

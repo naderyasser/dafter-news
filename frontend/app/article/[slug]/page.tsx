@@ -11,8 +11,24 @@ import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getRelatedArticles, getSections, mediaUrl } from "@/lib/api";
 import { formatDate, relativeTime } from "@/lib/format";
+import { articleJsonLd, articleMetadata } from "@/lib/seo";
 
 export const revalidate = 30;
+
+/**
+ * Existence is decided HERE, not only in the page body. generateMetadata
+ * runs before the response starts streaming, so notFound() thrown from it
+ * produces a real HTTP 404 — thrown from the body of a route that has a
+ * loading.tsx boundary, it lands after the 200 status has already been
+ * flushed, and crawlers were told to index a page whose content said
+ * «غير موجود». (The page body keeps its own check as defence in depth;
+ * Next dedupes the fetch, so the article is still requested once.)
+ */
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const article = await getArticle(params.slug);
+  if (!article || article.kind !== "news" || article.status !== "published") notFound();
+  return articleMetadata(article, `/article/${encodeURIComponent(article.slug)}`);
+}
 
 export default async function ArticlePage({ params }: { params: { slug: string } }) {
   const article = await getArticle(params.slug);
@@ -37,6 +53,13 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
   return (
     <SiteShell lang="ar" active={article.section?.key}>
+      {/* NewsArticle structured data — what Google News actually reads.
+          Content is JSON.stringify output of our own fields; nothing here
+          is raw editor markup. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: articleJsonLd(article, `/article/${encodeURIComponent(article.slug)}`) }}
+      />
       {/* Centred reading column: equal inline margins both sides, and no
           sidebar — it ran out of content and left a dead rail. */}
       <div className="mx-auto w-full max-w-reading px-6 py-8">

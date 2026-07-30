@@ -11,8 +11,16 @@ import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getArticles, getRelatedArticles, mediaUrl } from "@/lib/api";
 import { formatDate, relativeTime } from "@/lib/format";
+import { articleJsonLd, articleMetadata } from "@/lib/seo";
 
 export const revalidate = 30;
+
+/** Existence decided before the stream starts — see app/article/[slug]. */
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const article = await getArticle(params.slug);
+  if (!article || article.language !== "en" || article.status !== "published") notFound();
+  return articleMetadata(article, `/en/article/${encodeURIComponent(article.slug)}`);
+}
 
 export default async function ArticleEnPage({ params }: { params: { slug: string } }) {
   const article = await getArticle(params.slug);
@@ -35,6 +43,10 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
 
   return (
     <SiteShell lang="en" active={article.section?.key}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: articleJsonLd(article, `/en/article/${encodeURIComponent(article.slug)}`) }}
+      />
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
         <main className="min-w-0 max-w-reading flex-[2_1_480px]">
           <div className="mb-4 text-[13px] text-ink-3">

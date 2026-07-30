@@ -6,8 +6,32 @@ import VideoComments from "@/components/site/VideoComments";
 import VideoPlayer from "@/components/site/VideoPlayer";
 import { getVideo, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 30;
+
+/** Existence decided before the stream starts — see app/article/[slug]. */
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const video = await getVideo(params.slug);
+  if (!video) notFound();
+  const url = `${SITE_URL}/en/video/${encodeURIComponent(video.slug)}`;
+  const poster = mediaUrl(video.cover_image);
+  return {
+    title: video.title,
+    description: video.description || video.title,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "video.other" as const,
+      title: video.title,
+      description: video.description || video.title,
+      url,
+      siteName: SITE_NAME.en,
+      locale: "en_US",
+      images: poster ? [{ url: poster, width: 1600, height: 900, alt: video.title }] : undefined,
+    },
+    twitter: { card: poster ? ("summary_large_image" as const) : ("summary" as const), title: video.title },
+  };
+}
 
 // Video carries no language field (see app/en/page.tsx's videoCards) — the
 // English home page buckets videos by script the same way it does tags and
