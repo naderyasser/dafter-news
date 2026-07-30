@@ -36,10 +36,14 @@
     outline-offset: 2px;
     border-radius: 2px;
   }
-  /* On the navy chrome the accent blue is nearly the background. */
+  /* On the navy chrome the accent blue is nearly the background. The two dark
+     section fronts are here for the same reason: an accent-blue ring on
+     #101820 or #0A0A0B is a ring a keyboard reader cannot find. */
   .bg-navy :focus-visible,
   .bg-navy-strong :focus-visible,
-  .bg-header-bg :focus-visible {
+  .bg-header-bg :focus-visible,
+  .bg-board :focus-visible,
+  .bg-board-stage :focus-visible {
     outline-color: theme("colors.paper");
   }
 }
@@ -122,6 +126,25 @@
     .section-watermark::before {
       display: none;
     }
+  }
+
+  /*
+   * An outlined chip that fills with its own colour on hover and on keyboard
+   * focus — the country jump strip on «الخليج العربي», the subject strip on
+   * «عرب وعالم».
+   *
+   * The fill colour is the section's and therefore dynamic, so it cannot be a
+   * Tailwind class (the JIT only sees literal strings). The chip sets `--chip`
+   * inline and this rule spends it. Focus is included deliberately: these are
+   * links, and a keyboard reader gets the same affordance a mouse does.
+   */
+  .chip-fill {
+    transition: background-color theme("transitionDuration.fast") ease, color theme("transitionDuration.fast") ease;
+  }
+  .chip-fill:hover,
+  .chip-fill:focus-visible {
+    background-color: var(--chip);
+    color: theme("colors.paper");
   }
 
   /*

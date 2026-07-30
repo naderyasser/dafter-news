@@ -1,61 +1,79 @@
 /**
- * How each section page is laid out — the client's «تصميم فريد لكل قسم».
+ * Which front each section page wears — the client's «تصميم فريد لكل قسم»,
+ * taken literally the second time of asking.
  *
- * The differentiation is driven by what a section IS, not by decoration.
- * «حركة السوق» opens with live prices because prices are its subject;
- * «جوّه الجون» opens with fixtures; «لقطة وتعليق» with a player. Sections
- * whose subject is simply news share the newswire archetype and are told
- * apart by the colour and line-art mark they already carry (lib/sections).
+ * The first pass shared four archetypes across thirteen desks and told them
+ * apart by an accent colour and a watermark. Read back, that is one page
+ * thirteen times: same coloured band, same lead photo, same run of rows. The
+ * client's note was blunt about it, so every desk now has its own component
+ * under components/site/fronts — its own masthead, its own grid, its own
+ * structural device.
  *
- * Thirteen bespoke page components were the alternative. They would have
- * meant thirteen places to change when a shared concern lands (ads, an
- * infinite feed, comments), and thirteen chances for the paper to stop
- * looking like one paper.
+ * What keeps this from becoming thirteen unrelated websites: the fronts share
+ * the shell, the tokens and the type ramp, and each one is a *layout* only.
+ * Data fetching, SEO, ads and the aside stay in the page, so a shared concern
+ * still lands in one place rather than thirteen.
+ *
+ * The device each front is built around is not decoration — it is the thing
+ * that desk actually deals in. Politics deals in dated statements, so it gets
+ * a chronicle. Courts deal in cases, so they get a docket. Markets deal in
+ * numbers, so the numbers are the hero. A desk whose device would be a lie
+ * (a governorate rail over stories with no governorate) does not get one.
  */
 
-/** The grid the section's stories fall into below its opening module. */
-export type SectionArchetype =
-  /** Dense and time-ordered: a lead, then a run of compact rows. Fast news. */
-  | "newswire"
-  /** Lead + rail + tiles, filterable by country. The geographic desks. */
-  | "geographic"
-  /** Poster cards, big type, bylines forward. Long-form and guides. */
-  | "magazine"
-  /** One poster on a dark stage, wings peeking — «ملف خاص» only. */
-  | "showcase";
+/** The component that renders the section's body. One per desk. */
+export type FrontKey =
+  | "politics"
+  | "egypt"
+  | "gulf"
+  | "world"
+  | "markets"
+  | "sports"
+  | "security"
+  | "tech"
+  | "culture"
+  | "special"
+  | "guide"
+  | "watch"
+  | "opinion"
+  /** Anything created in the dashboard later — never a blank page. */
+  | "newswire";
 
-/** An extra block rendered above the grid, fed by its own data. */
-export type SectionTopModule = "markets" | "matches" | "videos" | "columnists" | null;
+/** Extra data a front needs beyond the section's own stories. */
+export type FrontFeed = "markets" | "matches" | "videos" | null;
 
-type SectionLayout = { archetype: SectionArchetype; top: SectionTopModule };
-
-const LAYOUT: Record<string, SectionLayout> = {
-  // Subject-led: each opens with the thing the section is actually about.
-  economy: { archetype: "newswire", top: "markets" },
-  sports: { archetype: "newswire", top: "matches" },
-  video: { archetype: "magazine", top: "videos" },
-  opinion: { archetype: "magazine", top: "columnists" },
-
-  // Geographic desks — the country chips become a real filter here.
-  gulf: { archetype: "geographic", top: null },
-  world: { archetype: "geographic", top: null },
-
-  // Long-form and service journalism. «ملف خاص» gets the cinema stage —
-  // the client's «حالياً في دور العرض» reference: one file at a time.
-  special: { archetype: "showcase", top: null },
-  art: { archetype: "magazine", top: null },
-  guide: { archetype: "magazine", top: null },
-
-  // Fast news.
-  pol: { archetype: "newswire", top: null },
-  egypt: { archetype: "newswire", top: null },
-  security: { archetype: "newswire", top: null },
-  tech: { archetype: "newswire", top: null },
+export type SectionFront = {
+  front: FrontKey;
+  feed: FrontFeed;
+  /**
+   * Whether the «الأكثر قراءة» rail sits beside the front.
+   *
+   * Three desks refuse it. The screening room and the cinema stage are dark
+   * full-bleed surfaces and a white column beside them reads as a rendering
+   * fault; the op-ed page is a measured single column of argument and a
+   * popularity list next to it argues with the whole point of the page.
+   */
+  aside: boolean;
 };
 
-/** A section added in the dashboard gets the newswire grid — never a blank page. */
-export function sectionLayout(key?: string | null): SectionLayout {
-  return (key && LAYOUT[key]) || { archetype: "newswire", top: null };
+const FRONTS: Record<string, SectionFront> = {
+  pol: { front: "politics", feed: null, aside: true },
+  egypt: { front: "egypt", feed: null, aside: true },
+  gulf: { front: "gulf", feed: null, aside: true },
+  world: { front: "world", feed: null, aside: true },
+  economy: { front: "markets", feed: "markets", aside: true },
+  sports: { front: "sports", feed: "matches", aside: true },
+  security: { front: "security", feed: null, aside: true },
+  tech: { front: "tech", feed: null, aside: true },
+  art: { front: "culture", feed: null, aside: true },
+  guide: { front: "guide", feed: null, aside: true },
+  special: { front: "special", feed: null, aside: false },
+  video: { front: "watch", feed: "videos", aside: false },
+  opinion: { front: "opinion", feed: null, aside: false },
+};
+
+export function sectionFront(key?: string | null): SectionFront {
+  return (key && FRONTS[key]) || { front: "newswire", feed: null, aside: true };
 }
 
 /**

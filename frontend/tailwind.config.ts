@@ -29,6 +29,12 @@ const config: Config = {
         // navy that sat visibly beside the logo's #073252 rather than under it.
         navy: { DEFAULT: "#0B3454", strong: "#062639", 2: "#164A70", tint: "#E7EFF6" },
         ink: { DEFAULT: "#171A1F", 2: "#3C434C", 3: "#6A727C" },
+        // The two fronts that are dark all the way down: «علوم وتكنولوجيا»
+        // reads as a drafting board, «لقطة وتعليق» as a darkened room. Tokens
+        // rather than inline hex so the focus-ring rule in globals.css can name
+        // the surfaces — a keyboard reader on either page was otherwise getting
+        // the default blue ring against near-black.
+        board: { DEFAULT: "#101820", stage: "#0A0A0B" },
         paper: "#FFFFFF",
         surface: { DEFAULT: "#F4F5F7", 2: "#EBEDF0" },
         line: { DEFAULT: "#E2E5E9", strong: "#C9CED4" },
@@ -36,9 +42,16 @@ const config: Config = {
         // and footer read as the same object as the mark between them.
         header: { bg: "#072D4A", ink: "#F5F6F7", muted: "#9FB3C6" },
         badge: { breaking: "#D71F30", live: "#D71F30", exclusive: "#A97E14", video: "#171A1F" },
-        up: { DEFAULT: "#0E8A4C", tint: "#E7F4ED" },
-        down: { DEFAULT: "#C93030", tint: "#FBEDED" },
-        gold: { DEFAULT: "#A97E14" },
+        // `dark` is the on-dark step of each, for the market desk's price
+        // board. The paper-tuned values are unreadable there — #0E8A4C lands
+        // at 3.54:1 on navy-strong and #C93030 at 2.94:1, both under the 4.5
+        // floor for what is the most number-dense surface on the site. These
+        // clear 6.6:1 and 5.5:1. Direction is never carried by the colour
+        // alone in either mode: every figure ships with a ▲/▼ and a signed
+        // percentage, so a red/green pair stays legible to a CVD reader.
+        up: { DEFAULT: "#0E8A4C", tint: "#E7F4ED", dark: "#3FBF7F" },
+        down: { DEFAULT: "#C93030", tint: "#FBEDED", dark: "#F0736B" },
+        gold: { DEFAULT: "#A97E14", dark: "#E0B54A" },
       },
       fontFamily: {
         "display-ar": ["var(--font-kufi)", "var(--font-plex-arabic)", "system-ui", "sans-serif"],

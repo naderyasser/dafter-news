@@ -17,19 +17,28 @@ export default function CoverImage({
   alt,
   placeholder,
   className = "",
+  placeholderClassName,
   sizes = "(min-width: 768px) 33vw, 100vw",
 }: {
   src?: string | null;
   alt: string;
   placeholder: string;
   className?: string;
+  /**
+   * Replaces the empty slot's own colours. The default is a light grey box,
+   * which is right on paper and a bright hole punched through the dark fronts
+   * («لقطة وتعليق», «علوم وتكنولوجيا») — there it reads as a broken image
+   * rather than as a slot waiting for one.
+   */
+  placeholderClassName?: string;
   sizes?: string;
 }) {
   const [loaded, setLoaded] = useState(false);
 
   if (!src) {
+    const tone = placeholderClassName ?? "bg-surface-2 text-header-muted";
     return (
-      <div className={`flex items-center justify-center bg-surface-2 text-center text-caption font-semibold text-header-muted ${className}`}>
+      <div className={`flex items-center justify-center text-center text-caption font-semibold ${tone} ${className}`}>
         {placeholder}
       </div>
     );
