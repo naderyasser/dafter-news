@@ -58,8 +58,13 @@ class DailyVisitTests(TestCase):
 
 class SiteSettingsAPITests(APITestCase):
     def setUp(self):
-        self.staff = User.objects.create(username="settings-staff", is_staff=True)
-        self.client.force_authenticate(self.staff)
+        # Writing the settings singleton is admin-only: it holds the site name
+        # and the SEO title/description that ship on every page, plus the
+        # switches that take a whole language edition down. Reading stays open
+        # — every page is built from it.
+        self.admin = User.objects.create(username="settings-admin", is_staff=True, role=User.Role.ADMIN)
+        self.staff = User.objects.create(username="settings-staff", is_staff=True, role=User.Role.EDITOR)
+        self.client.force_authenticate(self.admin)
 
     def test_get_returns_settings_and_social_links(self):
         settings_obj = SiteSettings.load()
@@ -99,6 +104,30 @@ class SiteSettingsAPITests(APITestCase):
         self.assertEqual(settings_obj.seo_title, "عنوان SEO")
         self.assertFalse(settings_obj.lang_en_enabled)
         self.assertEqual(SiteSettings.objects.count(), 1)
+
+    def test_newsroom_staff_may_read_but_not_rewrite_the_settings(self):
+        """
+        An editor or moderator must not be able to rename the paper or rewrite
+        the description every page carries into search results. They could
+        until this was tightened — the blast radius of a moderator account was
+        the whole site's identity.
+        """
+        SiteSettings.load()
+        self.client.force_authenticate(self.staff)
+
+        self.assertEqual(self.client.get("/api/settings/").status_code, 200)
+
+        res = self.client.put("/api/settings/", {"site_name": "مُختطَف"}, format="json")
+
+        self.assertEqual(res.status_code, 403)
+        self.assertNotEqual(SiteSettings.load().site_name, "مُختطَف")
+
+    def test_anonymous_may_read_but_not_rewrite(self):
+        SiteSettings.load()
+        self.client.force_authenticate(None)
+
+        self.assertEqual(self.client.get("/api/settings/").status_code, 200)
+        self.assertIn(self.client.put("/api/settings/", {"site_name": "x"}, format="json").status_code, (401, 403))
 
     def test_put_is_partial_and_keeps_untouched_fields(self):
         settings_obj = SiteSettings.load()

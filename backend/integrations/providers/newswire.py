@@ -22,6 +22,20 @@ ENDPOINT = "https://newsdata.io/api/1/latest"
 
 MAX_STORED = 60
 
+# The floor between two calls to this provider, enforced by sync_feeds no
+# matter how often the cron fires.
+#
+# The quota in the docstring above is 200 credits/day. The cron ran the whole
+# feed set once a minute, so this endpoint was called 1,440 times a day: the
+# allowance burned out before breakfast and every call for the rest of the day
+# came back HTTP 429. It sat that way for 1,051 consecutive attempts — the one
+# feed whose job is to fill the desks that had the least on them.
+#
+# Fixing the crontab alone would have left the same trap armed for whoever
+# edits it next, which is why the limit lives beside the quota it protects.
+# 900s = 96 calls/day, comfortably inside 200 with room for a manual re-run.
+MIN_INTERVAL_SECONDS = 900
+
 
 def _parse_dt(value):
     """NewsData sends 'YYYY-MM-DD HH:MM:SS' in UTC."""

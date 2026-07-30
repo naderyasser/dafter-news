@@ -7,6 +7,7 @@ public site still needs to read almost everything without an account, so the
 split is by method rather than by endpoint:
 
   ReadOnlyOrStaff   public GET, staff-only writes — newsroom content
+  ReadOnlyOrAdmin   public GET, admin-only writes — site-wide singletons
   StaffOnly         staff for everything — no public read at all
   AdminOnly         superuser/admin role only — accounts and roles
   PublicSubmission  public POST only, staff for anything else — reader comments
@@ -34,6 +35,21 @@ class ReadOnlyOrStaff(BasePermission):
 
     def has_permission(self, request, view):
         return request.method in SAFE_METHODS or _is_staff(request)
+
+
+class ReadOnlyOrAdmin(BasePermission):
+    """
+    Anyone may read; only an admin may change.
+
+    For records the whole site is built from, where a wrong value is visible on
+    every page rather than on one story — the settings singleton is the case
+    this exists for.
+    """
+
+    message = "هذا الإجراء يتطلب صلاحية مدير."
+
+    def has_permission(self, request, view):
+        return request.method in SAFE_METHODS or _is_admin(request)
 
 
 class StaffOnly(BasePermission):

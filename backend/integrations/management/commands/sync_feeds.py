@@ -13,6 +13,7 @@ reads to show whether the ticker is current or coasting on stale numbers.
 import traceback
 
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from integrations.client import ProviderError
 from integrations.models import SyncLog
@@ -25,6 +26,11 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--only", help="مصادر محددة مفصولة بفاصلة")
         parser.add_argument("--skip", help="مصادر يتم تخطيها، مفصولة بفاصلة")
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="تجاهل الحد الأدنى للفاصل الزمني بين النداءات (تشغيل يدوي)",
+        )
         parser.add_argument(
             "--fail-fast",
             action="store_true",
@@ -45,8 +51,23 @@ class Command(BaseCommand):
             skip = {k.strip() for k in options["skip"].split(",")}
             selected = [p for p in selected if p.SOURCE not in skip]
 
-        ok = failed = 0
+        ok = failed = skipped = 0
+        force = bool(options.get("force"))
         for provider in selected:
+            # A provider may declare a minimum gap between calls when the
+            # service it wraps meters requests. Honouring it here rather than
+            # in each provider keeps the rule next to the scheduler that would
+            # otherwise breach it.
+            #
+            # NOT bypassed by --only: the cron line for the metered feed is
+            # itself an --only run, so treating that as "manual" would have
+            # disabled the guard precisely where it has to hold. --force is
+            # the explicit escape hatch for a human at a terminal.
+            wait = self._throttled_for(provider) if not force else 0
+            if wait:
+                skipped += 1
+                self.stdout.write(f"… {provider.SOURCE}: تخطٍّ ({wait}s حتى التحديث التالي)")
+                continue
             try:
                 records = provider.sync()
             except ProviderError as exc:
@@ -68,4 +89,24 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"✓ {provider.SOURCE}: {records} سجل"))
 
         summary = f"تم: {ok} نجح، {failed} فشل"
+        if skipped:
+            summary += f"، {skipped} تخطٍّ"
         self.stdout.write(self.style.SUCCESS(summary) if not failed else self.style.WARNING(summary))
+
+    @staticmethod
+    def _throttled_for(provider):
+        """
+        Seconds still to wait before this provider may be called again, or 0.
+
+        Reads the last attempt off SyncLog rather than keeping its own clock,
+        so the floor survives a restart and cannot be reset by running the
+        command twice.
+        """
+        floor = getattr(provider, "MIN_INTERVAL_SECONDS", 0)
+        if not floor:
+            return 0
+        row = SyncLog.objects.filter(source=provider.SOURCE).only("last_attempt_at").first()
+        if not row or not row.last_attempt_at:
+            return 0
+        elapsed = (timezone.now() - row.last_attempt_at).total_seconds()
+        return max(0, int(floor - elapsed))
