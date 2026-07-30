@@ -57,18 +57,28 @@ export default function WorldFront({ lang, accent, sectionKey, title, tagline, s
 
   return (
     <>
-      <header className="relative mb-7 border-t-[5px] pt-5" style={{ borderColor: accent }}>
+      {/* Masthead: the name sitting inside a stack of parallels — latitudes on
+          a chart, and the ruled paper a wire used to arrive on. The lines run
+          out to the open edge so the desk reads as looking outward. */}
+      <header className="relative mb-7">
         {art && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-y-[-20%] end-[-1rem] hidden w-[26%] bg-contain bg-center bg-no-repeat opacity-[.09] sm:block"
+            className="pointer-events-none absolute inset-y-[-25%] end-[-1rem] hidden w-[22%] bg-contain bg-center bg-no-repeat opacity-[.09] sm:block"
             style={{ backgroundImage: art }}
           />
         )}
-        <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
-          {title}
-        </h1>
-        {tagline && <p className="relative mt-2 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+        <div className="relative flex items-center gap-4">
+          <h1 className={`${fontDisplay} m-0 flex-shrink-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
+            {title}
+          </h1>
+          <span aria-hidden className="flex min-w-0 flex-1 flex-col gap-[5px]">
+            {[0.55, 0.35, 0.2, 0.12].map((o) => (
+              <span key={o} className="block h-[2px]" style={{ backgroundColor: accent, opacity: o }} />
+            ))}
+          </span>
+        </div>
+        {tagline && <p className="relative mt-2.5 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
       </header>
 
       {blocks.length > 1 && (

@@ -70,7 +70,10 @@ export default async function SectionEnPage({ params }: { params: { key: string 
           />
         </main>
         {front.aside && (
-          <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
+          <aside
+            className="min-w-[260px] max-w-[320px] flex-[1_1_280px]"
+            style={{ "--rule-b": accent } as React.CSSProperties}
+          >
             <MostReadList
               lang="en"
               items={mostRead.results.map((a) => ({

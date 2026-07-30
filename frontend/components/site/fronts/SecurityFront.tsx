@@ -6,8 +6,8 @@ import { sectionArtUrl } from "@/lib/sections";
 import type { FrontProps } from "./types";
 
 const T = {
-  ar: { drop: "أفلت صورة الواقعة هنا", register: "سجل الوقائع", date: "التاريخ", empty: "لا وقائع مقيّدة بعد." },
-  en: { drop: "Drop image here", register: "The register", date: "Date", empty: "Nothing on the register yet." },
+  ar: { drop: "أفلت صورة الواقعة هنا", register: "سجل الوقائع", entries: "الوقائع", empty: "لا وقائع مقيّدة بعد." },
+  en: { drop: "Drop image here", register: "The register", entries: "Cases", empty: "Nothing on the register yet." },
 };
 
 /**
@@ -33,18 +33,29 @@ export default function SecurityFront({ lang, accent, sectionKey, title, tagline
 
   return (
     <>
-      <header className="relative mb-7 border-t-[5px] pt-5" style={{ borderColor: accent }}>
-        {art && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-[-25%] end-0 hidden w-[22%] bg-contain bg-center bg-no-repeat opacity-[.1] sm:block"
-            style={{ backgroundImage: art }}
-          />
-        )}
-        <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
-          {title}
-        </h1>
-        {tagline && <p className="relative mt-2 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+      {/* Masthead: a case file. A tab carrying the register's name, then the
+          title inside a ruled box — the only outlined masthead on the site,
+          and the smallest, because this desk is not shouting. */}
+      <header className="relative mb-8">
+        <span
+          className={`${fontDisplay} inline-block rounded-t-[3px] px-3.5 py-1 text-[12px] font-extrabold text-paper`}
+          style={{ backgroundColor: accent }}
+        >
+          {t.register}
+        </span>
+        <div className="relative overflow-hidden border-2 px-5 py-5" style={{ borderColor: accent }}>
+          {art && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-[-30%] end-2 hidden w-[20%] bg-contain bg-center bg-no-repeat opacity-[.12] sm:block"
+              style={{ backgroundImage: art }}
+            />
+          )}
+          <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.5rem,1.15rem+1.6vw,2.25rem)] font-extrabold leading-[1.25]`} style={{ color: accent }}>
+            {title}
+          </h1>
+          {tagline && <p className="relative mt-2 max-w-[54ch] text-[14.5px] leading-[1.75] text-ink-2">{tagline}</p>}
+        </div>
       </header>
 
       {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
@@ -75,7 +86,7 @@ export default function SecurityFront({ lang, accent, sectionKey, title, tagline
       {register.length > 0 && (
         <section>
           <h2 className={`${fontDisplay} m-0 border-b-2 pb-2 text-[15px] font-extrabold`} style={{ borderColor: accent, color: accent }}>
-            {t.register}
+            {t.entries}
           </h2>
           <ol className="m-0 list-none p-0">
             {register.map((s) => (

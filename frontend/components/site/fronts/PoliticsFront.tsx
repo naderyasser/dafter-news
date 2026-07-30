@@ -50,21 +50,28 @@ export default function PoliticsFront({ lang, accent, sectionKey, title, tagline
 
   return (
     <>
-      <header className="relative mb-8 overflow-hidden border-t-[5px] bg-paper px-5 pb-6 pt-5 sm:px-7" style={{ borderColor: accent }}>
-        {art && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-[-18%] end-[-2.5rem] hidden w-[30%] bg-contain bg-center bg-no-repeat opacity-[.07] sm:block"
-            style={{ backgroundImage: art }}
-          />
-        )}
-        <div className="relative flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h1 className={`${fontDisplay} m-0 text-[clamp(2rem,1.3rem+2.8vw,3.25rem)] font-extrabold leading-[1.15]`} style={{ color: accent }}>
+      {/* Masthead: the name at full size on paper, then the desk's own colour
+          as a solid dateline band under it. The band is what makes this a
+          record rather than a page — it carries the day the way the top of a
+          printed page does, and no other desk opens on one. */}
+      <header className="relative mb-8">
+        <div className="relative overflow-hidden px-1 pb-4 pt-1">
+          {art && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-y-[-30%] end-[-1.5rem] hidden w-[26%] bg-contain bg-center bg-no-repeat opacity-[.08] sm:block"
+              style={{ backgroundImage: art }}
+            />
+          )}
+          <h1 className={`${fontDisplay} relative m-0 text-[clamp(2.125rem,1.35rem+3vw,3.5rem)] font-extrabold leading-[1.1]`} style={{ color: accent }}>
             {title}
           </h1>
-          <span className="tnum text-[13px] font-semibold text-ink-3">{today}</span>
+          {tagline && <p className="relative mt-2.5 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
         </div>
-        {tagline && <p className="relative mt-2.5 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2.5" style={{ backgroundColor: accent }}>
+          <span className={`${fontDisplay} text-[13px] font-extrabold text-paper`}>{t.record}</span>
+          <span className="tnum text-[13px] font-semibold text-paper/80">{today}</span>
+        </div>
       </header>
 
       {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}

@@ -38,7 +38,7 @@ export default function SportsFront({ lang, accent, title, tagline, stories, mat
   return (
     <>
       <header className="mb-8 overflow-hidden rounded-card" style={{ backgroundColor: accent }}>
-        <div className="relative px-5 py-9 sm:px-8 sm:py-12">
+        <div className="relative px-5 py-7 sm:px-8 sm:py-8">
           {/* The pitch. Pure borders, so it costs no request and scales with
               the panel; hidden from assistive tech, which gains nothing here. */}
           <div aria-hidden className="pointer-events-none absolute inset-4 opacity-30 sm:inset-6">

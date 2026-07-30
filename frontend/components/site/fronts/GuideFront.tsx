@@ -37,18 +37,26 @@ export default function GuideFront({ lang, accent, sectionKey, title, tagline, s
 
   return (
     <>
-      <header className="relative mb-8 border-t-[5px] pt-5" style={{ borderColor: accent }}>
+      {/* Masthead: the compass at reading size beside the name, on a tinted
+          panel behind a thick rule at the inline start. A service desk should
+          look like a signpost, so the mark is an icon a reader can actually
+          see rather than a watermark ghosted behind the type. */}
+      <header className="relative mb-8 flex items-center gap-5 border-s-[6px] bg-paper px-5 py-5" style={{ borderColor: accent }}>
         {art && (
-          <div
+          // 20:12 — the marks are drawn on a 200×120 canvas, so a square box
+          // would letterbox the compass down to a smudge.
+          <span
             aria-hidden
-            className="pointer-events-none absolute inset-y-[-30%] end-0 hidden w-[22%] bg-contain bg-center bg-no-repeat opacity-[.1] sm:block"
+            className="hidden h-12 w-20 flex-shrink-0 bg-contain bg-center bg-no-repeat sm:block"
             style={{ backgroundImage: art }}
           />
         )}
-        <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
-          {title}
-        </h1>
-        {tagline && <p className="relative mt-2 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+        <div className="min-w-0">
+          <h1 className={`${fontDisplay} m-0 text-[clamp(1.625rem,1.2rem+1.8vw,2.5rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
+            {title}
+          </h1>
+          {tagline && <p className="mt-1.5 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+        </div>
       </header>
 
       {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
