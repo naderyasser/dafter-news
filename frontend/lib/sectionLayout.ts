@@ -20,7 +20,9 @@ export type SectionArchetype =
   /** Lead + rail + tiles, filterable by country. The geographic desks. */
   | "geographic"
   /** Poster cards, big type, bylines forward. Long-form and guides. */
-  | "magazine";
+  | "magazine"
+  /** One poster on a dark stage, wings peeking — «ملف خاص» only. */
+  | "showcase";
 
 /** An extra block rendered above the grid, fed by its own data. */
 export type SectionTopModule = "markets" | "matches" | "videos" | "columnists" | null;
@@ -38,8 +40,9 @@ const LAYOUT: Record<string, SectionLayout> = {
   gulf: { archetype: "geographic", top: null },
   world: { archetype: "geographic", top: null },
 
-  // Long-form and service journalism.
-  special: { archetype: "magazine", top: null },
+  // Long-form and service journalism. «ملف خاص» gets the cinema stage —
+  // the client's «حالياً في دور العرض» reference: one file at a time.
+  special: { archetype: "showcase", top: null },
   art: { archetype: "magazine", top: null },
   guide: { archetype: "magazine", top: null },
 

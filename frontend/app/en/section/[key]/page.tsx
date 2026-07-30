@@ -9,6 +9,7 @@ import SectionHero from "@/components/site/SectionHero";
 import SectionMagazine from "@/components/site/SectionMagazine";
 import SectionNewswire from "@/components/site/SectionNewswire";
 import SiteShell from "@/components/site/SiteShell";
+import SpecialShowcase from "@/components/site/SpecialShowcase";
 import { getArticles, getMatches, getSection, getTicker, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
@@ -88,6 +89,18 @@ export default async function SectionEnPage({ params }: { params: { key: string 
                 country: a.country || undefined,
                 time: relativeTime(a.published_at, "en"),
                 imageSrc: mediaUrl(a.cover_image),
+              }))}
+            />
+          ) : layout.archetype === "showcase" ? (
+            <SpecialShowcase
+              lang="en"
+              items={results.map((a) => ({
+                href: `/en/article/${a.slug}`,
+                title: a.title,
+                imageSrc: mediaUrl(a.cover_image),
+                authorName: a.author_name_en || a.author_name || undefined,
+                authorAvatar: mediaUrl(a.author_avatar),
+                authorInitial: a.author_initial || undefined,
               }))}
             />
           ) : layout.archetype === "magazine" ? (
