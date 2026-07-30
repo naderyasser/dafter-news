@@ -385,7 +385,11 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
                         i === cursor ? "border-brand bg-navy-2" : "border-transparent"
                       }`}
                     >
-                      <span className="h-[42px] w-[58px] flex-shrink-0 overflow-hidden rounded bg-navy-2">
+                      {/* `relative` is load-bearing: a fill image anchors to
+                          the nearest positioned ancestor, and without it that
+                          was the whole modal — one thumbnail stretched over
+                          the entire search panel. */}
+                      <span className="relative h-[42px] w-[58px] flex-shrink-0 overflow-hidden rounded bg-navy-2">
                         {r.cover_image ? (
                           <Image src={mediaUrl(r.cover_image)!} alt="" fill sizes="96px" className="object-cover" />
                         ) : null}

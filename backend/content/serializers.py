@@ -74,6 +74,7 @@ class ArticleCardSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             "id", "title", "slug", "href_slug", "section_name", "subcategory", "country", "badge", "status", "cover_image",
+            "standfirst",
             "published_at", "views", "kind", "comment_count", "author_name", "author_name_en", "author_username", "author_initial",
             "author_avatar",
         ]

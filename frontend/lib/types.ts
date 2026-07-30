@@ -60,6 +60,8 @@ export type ArticleCard = {
   author_initial: string | null;
   /** The journalist chip on «ملف خاص» cards. */
   author_avatar: string | null;
+  /** Deck line — the magazine archetype puts it under the headline. */
+  standfirst: string;
 };
 
 export type ArticleBlock = {

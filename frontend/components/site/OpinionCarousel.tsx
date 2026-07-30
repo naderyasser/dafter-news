@@ -13,10 +13,15 @@ export default function OpinionCarousel({
   lang,
   items,
   seeAllHref,
+  hideHeading = false,
 }: {
   lang: "ar" | "en";
   items: OpinionItem[];
   seeAllHref: string;
+  /** The opinion SECTION page already says «بالعقل والمنطق» in its own
+   *  masthead directly above — repeating it inside the band reads like a
+   *  stutter. The home page keeps the heading. */
+  hideHeading?: boolean;
 }) {
   const isAr = lang === "ar";
   const fontBody = isAr ? "font-body-ar" : "font-body-en";
@@ -64,14 +69,18 @@ export default function OpinionCarousel({
       aria-roledescription="carousel"
     >
       <div className="mx-auto mb-5 flex max-w-container flex-wrap items-center justify-between gap-4 px-6">
-        <div className="flex items-center gap-4">
-          <span className={`${fontDisplay} rule-accent rule-on-dark ps-3.5 text-h2 font-extrabold text-paper`}>
-            {isAr ? "بالعقل والمنطق" : "By Reason & Logic"}
-          </span>
-          <a href={seeAllHref} className="text-[13px] text-header-muted no-underline hover:text-paper">
-            {isAr ? "عرض الكل" : "See all"}
-          </a>
-        </div>
+        {hideHeading ? (
+          <span aria-hidden />
+        ) : (
+          <div className="flex items-center gap-4">
+            <span className={`${fontDisplay} rule-accent rule-on-dark ps-3.5 text-h2 font-extrabold text-paper`}>
+              {isAr ? "بالعقل والمنطق" : "By Reason & Logic"}
+            </span>
+            <a href={seeAllHref} className="text-[13px] text-header-muted no-underline hover:text-paper">
+              {isAr ? "عرض الكل" : "See all"}
+            </a>
+          </div>
+        )}
         <div className="flex gap-2">
           <button
             onClick={() => scroll(-1)}
