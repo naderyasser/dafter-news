@@ -32,6 +32,8 @@ export type FrontStory = {
   authorAvatar?: string;
   authorInitial?: string;
   comments?: number;
+  /** The desk that filed it — only needed by the cross-paper rail. */
+  section?: string;
 };
 
 export type FrontProps = {
