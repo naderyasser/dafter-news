@@ -18,6 +18,15 @@
 export type SectionIdentity = {
   /** Drives the heading rule's second tone, the card kicker and the hover. */
   color: string;
+  /**
+   * The same identity lifted for use on a dark surface.
+   *
+   * `color` is tuned to clear 4.5:1 on paper, which makes it too dark to read
+   * on one — «علوم وتكنولوجيا» builds its whole front on an ink panel, and its
+   * #0E7490 lands at 3.34:1 there. Only a section that actually paints itself
+   * dark needs one; everything else reads `color` and is right already.
+   */
+  onDark?: string;
   /** Inline SVG for the block's background mark; omitted = no mark. */
   art?: string;
   /** Overrides for the default watermark placement. */
@@ -60,11 +69,20 @@ const ART = {
   dhow: `<path d="M14 96h172"/><path d="M22 96c26 12 130 12 156 0"/><path d="M100 14v72M100 20l52 60h-52M100 34L58 80h42"/><path d="M14 108c26 8 146 8 172 0"/>`,
   // زر تشغيل — «لقطة وتعليق»
   play: `<rect x="20" y="18" width="160" height="84" rx="10"/><path d="M86 44l34 18-34 18z"/><path d="M20 34h160M40 18v16M64 18v16M136 18v16M160 18v16"/>`,
+  // منصة خطابة بميكروفونين — «سياسة». The desk's subject is the moment a
+  // position is stated on the record, so the mark is the rostrum rather than
+  // a flag or a globe (both already spoken for by مصر and عرب وعالم).
+  rostrum: `<path d="M70 108h60l-8-44H78z"/><path d="M62 64h76"/><path d="M100 64V46"/><path d="M100 46 82 32M100 46l18-14"/><circle cx="80" cy="28" r="7"/><circle cx="120" cy="28" r="7"/><path d="M34 108h132"/>`,
   // علامة اقتباس — «بالعقل والمنطق»
   quote: `<path d="M64 88c-16 0-28-12-28-28 0-22 16-40 38-46l6 12c-14 5-22 14-22 24h6c14 0 24 10 24 22s-10 16-24 16z"/><path d="M136 88c-16 0-28-12-28-28 0-22 16-40 38-46l6 12c-14 5-22 14-22 24h6c14 0 24 10 24 22s-10 16-24 16z"/>`,
 } as const;
 
 export const SECTION_IDENTITY: Record<string, SectionIdentity> = {
+  // «سياسة» had no entry at all, so the desk the client leads with was the one
+  // section rendering in the fallback blue with no mark — the blandest page on
+  // the site. Oxblood is the bench-and-despatch-box colour and stays clear of
+  // the masthead red, which «ملف خاص» owns. 9.18:1 on paper white.
+  pol: { color: "#7A2E3E", art: ART.rostrum },
   egypt: { color: "#0E4B7B", art: ART.pyramids },
   gulf: { color: "#0B6B6A", art: ART.dhow },
   world: { color: "#1A5F99", art: ART.globe },
@@ -72,7 +90,9 @@ export const SECTION_IDENTITY: Record<string, SectionIdentity> = {
   // The client's worked example: «درجات اللون الأخضر لقسم الرياضة» over a pitch.
   sports: { color: "#12793F", art: ART.pitch },
   security: { color: "#41556E", art: ART.scales },
-  tech: { color: "#0E7490", art: ART.circuit },
+  // 7.56:1 on the front's own #101820 panel, and near enough the same hue
+  // that the desk reads as one colour across the light and dark surfaces.
+  tech: { color: "#0E7490", onDark: "#22B8D4", art: ART.circuit },
   art: { color: "#7A3E9D", art: ART.palette },
   // The only section that keeps the brand red: a «ملف خاص» is the paper
   // speaking in its own voice, so it wears the masthead's colour.
@@ -87,6 +107,12 @@ export const ACCENT = "#0E4B7B";
 
 export function sectionColor(key?: string | null): string {
   return (key && SECTION_IDENTITY[key]?.color) || ACCENT;
+}
+
+/** The section's colour for use on a dark panel. Falls back to `color`. */
+export function sectionColorOnDark(key?: string | null): string {
+  const identity = key ? SECTION_IDENTITY[key] : undefined;
+  return identity?.onDark || identity?.color || ACCENT;
 }
 
 /**

@@ -1,49 +1,6 @@
 import SectionHeading from "@/components/site/SectionHeading";
 import type { Match } from "@/lib/types";
-
-/**
- * TheSportsDB returns club, venue and league names in English only, so the
- * Arabic rail was printing "Ghazl El Mahalla" next to "الجولة 13". There is
- * no Arabic column on Match to fall back to, so the names are mapped here —
- * anything unmapped (a cup opponent, a newly promoted side) still renders in
- * English rather than disappearing.
- */
-const AR_NAMES: Record<string, string> = {
-  // clubs
-  "al ahly": "الأهلي",
-  zamalek: "الزمالك",
-  pyramids: "بيراميدز",
-  ismaily: "الإسماعيلي",
-  "al masry": "المصري",
-  "ghazl el mahalla": "غزل المحلة",
-  "haras el hodoud": "حرس الحدود",
-  enppi: "إنبي",
-  smouha: "سموحة",
-  "el gouna": "الجونة",
-  "ceramica cleopatra": "سيراميكا كليوباترا",
-  "future fc": "فيوتشر",
-  "modern future": "مودرن فيوتشر",
-  "national bank of egypt": "البنك الأهلي",
-  pharco: "فاركو",
-  zed: "زد",
-  "al ittihad alexandria": "الاتحاد السكندري",
-  "tala'ea el gaish": "طلائع الجيش",
-  "talaea el gaish": "طلائع الجيش",
-  "baladiyat el mahalla": "بلدية المحلة",
-  petrojet: "بتروجت",
-  aswan: "أسوان",
-  "eastern company": "الشرقية للدخان",
-  // venues
-  "el mahalla stadium": "استاد المحلة",
-  "cairo international stadium": "استاد القاهرة الدولي",
-  "borg el arab stadium": "استاد برج العرب",
-  "al salam stadium": "استاد السلام",
-  "petro sport stadium": "استاد بتروسبورت",
-  // competition
-  "egyptian premier league": "الدوري المصري الممتاز",
-};
-
-const ar = (value?: string | null) => (value ? AR_NAMES[value.trim().toLowerCase()] ?? value : "");
+import { arabicName } from "@/lib/teamNames";
 
 const T = {
   ar: { heading: "نتائج ومباريات", more: "جوّه الجون", live: "مباشر", finished: "انتهت", upcoming: "قادمة" },
@@ -74,12 +31,12 @@ function MatchCard({ match, lang }: { match: Match; lang: "ar" | "en" }) {
   const live = match.status === "live";
   const t = T[lang];
   // TheSportsDB's strings are already English; the mapping is for Arabic only.
-  const name = (v?: string | null) => (lang === "ar" ? ar(v) : v ?? "");
+  const name = (v?: string | null) => (lang === "ar" ? arabicName(v) : v ?? "");
 
   return (
     <div className="flex flex-col gap-2.5 rounded-card border border-line bg-paper p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[11.5px] font-semibold text-ink-3">{lang === "ar" ? match.round_label || ar(match.league) : name(match.league) || match.round_label}</span>
+        <span className="truncate text-[11.5px] font-semibold text-ink-3">{lang === "ar" ? match.round_label || arabicName(match.league) : name(match.league) || match.round_label}</span>
         {live ? (
           <span className="flex flex-shrink-0 items-center gap-1.5 rounded-badge bg-badge-live px-2 py-0.5 text-[11px] font-bold text-paper">
             <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-paper" />

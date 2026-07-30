@@ -1,50 +1,68 @@
 import { describe, expect, it } from "vitest";
 
-import { sectionLayout } from "./sectionLayout";
+import { sectionFront, sectionTagline } from "./sectionLayout";
 
 /**
- * The mapping IS the client's «تصميم فريد لكل قسم» — if a section quietly
- * loses its archetype or its opening module, the page silently reverts to
- * looking like every other one, which is exactly the complaint this
- * answered. These pin each desk to what it was promised.
+ * The mapping IS the client's «تصميم فريد لكل قسم». The complaint that
+ * produced these fronts was that thirteen desks shared four layouts and were
+ * told apart only by an accent colour — so the test that matters most is the
+ * one asserting no two desks share a front again.
  */
-describe("sectionLayout", () => {
-  it("opens the market desk with prices and the sports desk with fixtures", () => {
-    expect(sectionLayout("economy").top).toBe("markets");
-    expect(sectionLayout("sports").top).toBe("matches");
+describe("sectionFront", () => {
+  const DESKS = ["pol", "egypt", "gulf", "world", "economy", "sports", "security", "tech", "art", "special", "guide", "video", "opinion"];
+
+  it("gives every desk a front of its own", () => {
+    const fronts = DESKS.map((key) => sectionFront(key).front);
+    expect(new Set(fronts).size).toBe(DESKS.length);
   });
 
-  it("opens the video desk with a player and the opinion desk with its columnists", () => {
-    expect(sectionLayout("video").top).toBe("videos");
-    expect(sectionLayout("opinion").top).toBe("columnists");
-  });
-
-  it("gives both geographic desks the filterable archetype", () => {
-    expect(sectionLayout("gulf").archetype).toBe("geographic");
-    expect(sectionLayout("world").archetype).toBe("geographic");
-  });
-
-  it("gives the long-form desks the magazine archetype", () => {
-    for (const key of ["art", "guide"]) {
-      expect(sectionLayout(key).archetype).toBe("magazine");
+  it("never leaves a desk on the newswire fallback", () => {
+    // `newswire` exists for sections created in the dashboard later. A named
+    // desk landing on it means someone added a section here and forgot the
+    // component — which looks exactly like the bug this replaced.
+    for (const key of DESKS) {
+      expect(sectionFront(key).front).not.toBe("newswire");
     }
   });
 
-  it("puts «ملف خاص» on the cinema stage — the client's poster reference", () => {
-    expect(sectionLayout("special").archetype).toBe("showcase");
+  it("asks for the extra feed only where a front actually renders one", () => {
+    expect(sectionFront("economy").feed).toBe("markets");
+    expect(sectionFront("sports").feed).toBe("matches");
+    expect(sectionFront("video").feed).toBe("videos");
+    // Everything else must not pay for a request it will not use.
+    const others = DESKS.filter((k) => !["economy", "sports", "video"].includes(k));
+    for (const key of others) expect(sectionFront(key).feed).toBeNull();
   });
 
-  it("gives the fast-news desks the newswire archetype and no opening module", () => {
-    for (const key of ["pol", "egypt", "security", "tech"]) {
-      expect(sectionLayout(key)).toEqual({ archetype: "newswire", top: null });
+  it("drops the most-read rail on the three desks that own their full width", () => {
+    for (const key of ["special", "video", "opinion"]) {
+      expect(sectionFront(key).aside).toBe(false);
+    }
+    for (const key of ["pol", "egypt", "economy", "art"]) {
+      expect(sectionFront(key).aside).toBe(true);
     }
   });
 
-  it("falls back to newswire for a section added in the dashboard later", () => {
+  it("falls back to a working page for a section added in the dashboard later", () => {
     // A new section must never render a blank page just because nobody
     // remembered to add it here.
-    expect(sectionLayout("brand-new-desk")).toEqual({ archetype: "newswire", top: null });
-    expect(sectionLayout(null)).toEqual({ archetype: "newswire", top: null });
-    expect(sectionLayout(undefined)).toEqual({ archetype: "newswire", top: null });
+    const fallback = { front: "newswire", feed: null, aside: true };
+    expect(sectionFront("brand-new-desk")).toEqual(fallback);
+    expect(sectionFront(null)).toEqual(fallback);
+    expect(sectionFront(undefined)).toEqual(fallback);
+  });
+});
+
+describe("sectionTagline", () => {
+  it("gives every mapped desk a line in both editions", () => {
+    for (const key of ["pol", "egypt", "economy", "sports", "art", "opinion"]) {
+      expect(sectionTagline(key, "ar")).toBeTruthy();
+      expect(sectionTagline(key, "en")).toBeTruthy();
+    }
+  });
+
+  it("gives a dashboard-created section none rather than a generated platitude", () => {
+    expect(sectionTagline("brand-new-desk", "ar")).toBeUndefined();
+    expect(sectionTagline(null, "ar")).toBeUndefined();
   });
 });

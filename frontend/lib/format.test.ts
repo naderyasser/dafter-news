@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 
-import { decodeParam, formatDate, relativeTime, toEasternNumerals } from "./format";
+import { clockTime, dayBucket, decodeParam, formatDate, relativeTime, standfirstFor, toEasternNumerals, withoutSectionPrefix } from "./format";
 
 describe("decodeParam", () => {
   it("returns a plain ASCII slug unchanged", () => {
@@ -124,5 +124,93 @@ describe("formatDate", () => {
 
     expect(formatted).not.toBe("");
     expect(formatted).toMatch(/[؀-ۿ]/); // contains Arabic script
+  });
+});
+
+describe("standfirstFor", () => {
+  /**
+   * 61 of the 63 published stories carry a standfirst identical to their
+   * headline. Printing both was the loudest "generated page" tell on the site,
+   * so this helper is what every front leans on to avoid it.
+   */
+  it("drops a standfirst that merely repeats the headline", () => {
+    const title = "البنك المركزي يثبّت أسعار الفائدة";
+    expect(standfirstFor(title, title)).toBeUndefined();
+  });
+
+  it("drops one that differs only by punctuation, spacing or كشيدة", () => {
+    const title = "البنك المركزي يثبّت أسعار الفائدة";
+    expect(standfirstFor(title, "البنك  المركزي يثبّت أسعار الفائدة.")).toBeUndefined();
+    expect(standfirstFor(title, "البنك المركزي يثبّت أسعار الفائدة،")).toBeUndefined();
+  });
+
+  it("drops one that is the headline cut short or extended", () => {
+    const title = "البنك المركزي يثبّت أسعار الفائدة";
+    expect(standfirstFor(title, "البنك المركزي يثبّت")).toBeUndefined();
+    expect(standfirstFor(title, `${title} للاجتماع الثالث`)).toBeUndefined();
+  });
+
+  it("keeps a standfirst that says something new", () => {
+    const standfirst = "القرار جاء بعد تراجع التضخم للشهر الرابع على التوالي";
+    expect(standfirstFor("البنك المركزي يثبّت أسعار الفائدة", standfirst)).toBe(standfirst);
+  });
+
+  it("treats an empty or missing standfirst as nothing to print", () => {
+    expect(standfirstFor("عنوان", "")).toBeUndefined();
+    expect(standfirstFor("عنوان", null)).toBeUndefined();
+    expect(standfirstFor("عنوان", "   ")).toBeUndefined();
+  });
+});
+
+describe("dayBucket", () => {
+  it("groups by calendar day, not by elapsed hours", () => {
+    // 23:50 and 00:10 are twenty minutes apart and belong to different days.
+    const late = new Date();
+    late.setHours(23, 50, 0, 0);
+    expect(dayBucket(late.toISOString(), "ar")).toBe("اليوم");
+  });
+
+  it("names yesterday rather than counting back to it", () => {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    expect(dayBucket(y.toISOString(), "ar")).toBe("أمس");
+    expect(dayBucket(y.toISOString(), "en")).toBe("Yesterday");
+  });
+
+  it("files an undated draft under «الأحدث» rather than inventing a date", () => {
+    expect(dayBucket(null, "ar")).toBe("الأحدث");
+    expect(dayBucket("not-a-date", "ar")).toBe("الأحدث");
+  });
+});
+
+describe("clockTime", () => {
+  it("writes midnight as 00, never as 24", () => {
+    // `hour12: false` resolves to the h24 cycle, where 00:04 is written 24:04 —
+    // a time that does not exist, on every story filed in the small hours.
+    const midnight = new Date(2026, 6, 27, 0, 4);
+    expect(clockTime(midnight.toISOString(), "en")).toBe("00:04");
+  });
+
+  it("returns nothing for a story with no timestamp", () => {
+    expect(clockTime(null, "ar")).toBe("");
+  });
+});
+
+describe("withoutSectionPrefix", () => {
+  it("strips the desk's own name from its headlines", () => {
+    expect(withoutSectionPrefix("دليلك الأول: تجديد رخصة القيادة", "دليلك الأول")).toBe("تجديد رخصة القيادة");
+  });
+
+  it("leaves a headline that only happens to begin with the same word", () => {
+    const title = "دليلك الأول لفهم قانون الإيجار";
+    expect(withoutSectionPrefix(title, "دليلك الأول")).toBe(title);
+  });
+
+  it("never strips a headline down to nothing", () => {
+    expect(withoutSectionPrefix("دليلك الأول:", "دليلك الأول")).toBe("دليلك الأول:");
+  });
+
+  it("is a no-op without a section name", () => {
+    expect(withoutSectionPrefix("عنوان", undefined)).toBe("عنوان");
   });
 });
