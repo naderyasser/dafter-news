@@ -25,9 +25,13 @@ describe("sectionLayout", () => {
   });
 
   it("gives the long-form desks the magazine archetype", () => {
-    for (const key of ["special", "art", "guide"]) {
+    for (const key of ["art", "guide"]) {
       expect(sectionLayout(key).archetype).toBe("magazine");
     }
+  });
+
+  it("puts «ملف خاص» on the cinema stage — the client's poster reference", () => {
+    expect(sectionLayout("special").archetype).toBe("showcase");
   });
 
   it("gives the fast-news desks the newswire archetype and no opening module", () => {
