@@ -9,7 +9,8 @@ an error body, and a partially-valid payload.
 The property under test throughout is that a bad upstream degrades to
 "nothing changed" — never to blank prices on a live ticker.
 """
-from datetime import date
+from datetime import date, timedelta
+from io import StringIO
 from unittest.mock import patch
 
 import requests
@@ -737,3 +738,65 @@ class WeatherBackendSelectionTests(TestCase):
         cairo = WeatherCity.objects.get(key="cairo")
         self.assertEqual(cairo.hi, 34)
         self.assertEqual(cairo.lo, 34)
+
+class SyncThrottleTests(TestCase):
+    """
+    The newswire allowance is 200 calls/day and the cron ran every source once
+    a minute — 1,440 calls, so the quota was gone before noon and the feed
+    returned 429 for the rest of the day. It sat that way for 1,051 attempts.
+    Rescheduling alone would leave the trap armed for the next person to edit
+    the crontab, so the floor is enforced in code and pinned here.
+    """
+
+    def _run(self, **kwargs):
+        out = StringIO()
+        call_command("sync_feeds", only="newswire", stdout=out, stderr=out, **kwargs)
+        return out.getvalue()
+
+    def test_a_metered_provider_declares_a_floor(self):
+        self.assertGreaterEqual(newswire.MIN_INTERVAL_SECONDS, 600)
+
+    def test_second_call_inside_the_window_is_skipped_not_fetched(self):
+        SyncLog.record_success("newswire", newswire.LABEL, records=3)
+
+        with patch("integrations.providers.newswire.fetch_json") as fetched:
+            output = self._run()
+
+        fetched.assert_not_called()
+        self.assertIn("تخطٍّ", output)
+
+    def test_the_floor_is_not_bypassed_by_only(self):
+        """--only is how the cron itself invokes it; it must not mean "manual"."""
+        SyncLog.record_success("newswire", newswire.LABEL, records=3)
+
+        with patch("integrations.providers.newswire.fetch_json") as fetched:
+            self._run()
+
+        fetched.assert_not_called()
+
+    def test_force_lets_an_operator_refresh_now(self):
+        SyncLog.record_success("newswire", newswire.LABEL, records=3)
+
+        with patch("integrations.providers.newswire.fetch_json", return_value=NEWSDATA_OK) as fetched:
+            self._run(force=True)
+
+        fetched.assert_called()
+
+    def test_a_provider_that_never_ran_is_not_held_back(self):
+        SyncLog.objects.filter(source="newswire").delete()
+
+        with patch("integrations.providers.newswire.fetch_json", return_value=NEWSDATA_OK) as fetched:
+            self._run()
+
+        fetched.assert_called()
+
+    def test_the_window_expires(self):
+        SyncLog.record_success("newswire", newswire.LABEL, records=3)
+        SyncLog.objects.filter(source="newswire").update(
+            last_attempt_at=timezone.now() - timedelta(seconds=newswire.MIN_INTERVAL_SECONDS + 60)
+        )
+
+        with patch("integrations.providers.newswire.fetch_json", return_value=NEWSDATA_OK) as fetched:
+            self._run()
+
+        fetched.assert_called()

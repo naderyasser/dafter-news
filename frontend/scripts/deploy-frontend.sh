@@ -34,6 +34,11 @@ sleep 4
 systemctl is-active dafter-frontend
 
 echo "── warming the pages a reader lands on"
-node scripts/warm-images.js || echo "   (warming failed — readers will warm it instead; site is up)"
+# Capped heap: this runs straight after a Next build on a box shared with
+# several other apps, and the kernel OOM-killed it once at exactly this step
+# (exit 137) — after the swap and restart, so the site was already live and
+# only the thumbnails went unwarmed. The `||` below always kept that
+# non-fatal; the cap stops it happening in the first place.
+node --max-old-space-size=1024 scripts/warm-images.js || echo "   (warming failed — readers will warm it instead; site is up)"
 
 echo "✓ deployed"

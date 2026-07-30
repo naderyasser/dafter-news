@@ -109,9 +109,20 @@ export default function FeedsPanel({ logs: initial }: { logs: SyncLog[] }) {
               </div>
 
               <div className="px-4 py-3">
-                <span className={`text-[12.5px] font-semibold ${log.is_stale ? "text-down" : "text-ink-2"}`}>
+                {/* suppressHydrationWarning: this label is "now minus a
+                    timestamp". The server computes it when it renders and the
+                    browser recomputes it when it hydrates, so crossing a minute
+                    boundary between the two makes them legitimately disagree
+                    ("منذ ٧ دقيقة" vs "منذ ٨") and React logged a mismatch on
+                    every load of this screen. The browser's value is the
+                    correct one and is what stays on screen. */}
+                <time
+                  dateTime={log.last_success_at ?? undefined}
+                  suppressHydrationWarning
+                  className={`text-[12.5px] font-semibold ${log.is_stale ? "text-down" : "text-ink-2"}`}
+                >
                   {ago(log.last_success_at)}
-                </span>
+                </time>
                 {log.is_stale ? <span className="ms-1.5 text-[11px] font-bold text-down">قديمة</span> : null}
               </div>
 

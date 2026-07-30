@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from aldaftar.permissions import ReadOnlyOrStaff, StaffOnly
+from aldaftar.permissions import ReadOnlyOrAdmin, ReadOnlyOrStaff, StaffOnly
 from .models import DailyVisit, SiteSettings, SocialLink, WelcomeAlert
 from .serializers import (
     DailyVisitSerializer,
@@ -17,9 +17,19 @@ from .serializers import (
 
 
 class SiteSettingsView(APIView):
-    """GET/PUT /api/settings/ — DashSettings.dc.html single-record form."""
+    """
+    GET/PUT /api/settings/ — DashSettings.dc.html single-record form.
 
-    permission_classes = [ReadOnlyOrStaff]
+    Read stays public (the header, footer and <title> of every page are built
+    from it). Writing is admin-only: this one record carries the site name, the
+    SEO title and description that go out on every page, and the toggles that
+    switch a whole language edition off. Under the newsroom-wide ReadOnlyOrStaff
+    it used to sit behind, a comment moderator could rename the paper and
+    rewrite its search listing — a blast radius nothing else on the staff side
+    comes close to. Accounts already draw the same line (see UserViewSet).
+    """
+
+    permission_classes = [ReadOnlyOrAdmin]
 
     def get(self, request):
         return Response(SiteSettingsSerializer(SiteSettings.load()).data)
