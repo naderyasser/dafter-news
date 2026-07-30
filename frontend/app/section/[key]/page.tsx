@@ -28,10 +28,11 @@ export const revalidate = 60;
 export default async function SectionPage({ params }: { params: { key: string } }) {
   const front = sectionFront(params.key);
 
-  const [section, articles, mostRead, matches, ticker, videos] = await Promise.all([
+  const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
     getSection(params.key),
     getArticles(`?language=ar&section__key=${params.key}&ordering=-published_at&page_size=24`),
     getArticles("?language=ar&ordering=-views&page_size=5"),
+    getArticles("?language=ar&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),
     front.feed === "markets" ? getTicker() : Promise.resolve(null),
     front.feed === "videos" ? getVideos("?page_size=24") : Promise.resolve(null),
@@ -61,6 +62,25 @@ export default async function SectionPage({ params }: { params: { key: string } 
     comments: a.comment_count,
   }));
 
+  // The rest of the paper, for a desk having a quiet week. Anything this
+  // section already shows is filtered out so the rail never repeats a story
+  // the reader just scrolled past.
+  const ownHrefs = new Set(stories.map((s) => s.href));
+  const more: FrontStory[] = latest.results
+    .map((a) => ({
+      id: a.id,
+      href: `/${a.kind === "opinion" ? "opinion" : "article"}/${a.slug}`,
+      title: a.title,
+      imageSrc: mediaUrl(a.cover_image),
+      time: relativeTime(a.published_at, "ar"),
+      iso: a.published_at,
+      badge: a.badge,
+      views: a.views,
+      section: a.section_name,
+    }))
+    .filter((s) => !ownHrefs.has(s.href))
+    .slice(0, 6);
+
   return (
     <SiteShell lang="ar" active={params.key}>
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
@@ -69,6 +89,7 @@ export default async function SectionPage({ params }: { params: { key: string } 
             front={front.front}
             feeds={{ matches, ticker, videos }}
             count={articles.count}
+            more={more}
             lang="ar"
             accent={accent}
             sectionKey={params.key}

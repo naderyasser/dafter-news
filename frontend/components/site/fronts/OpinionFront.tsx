@@ -48,7 +48,7 @@ export default function OpinionFront({ lang, accent, sectionKey, title, tagline,
 
   return (
     <>
-      <header className="relative mb-10 overflow-hidden rounded-card px-6 py-8 sm:px-9 sm:py-10" style={{ backgroundColor: accent }}>
+      <header className="relative mb-10 overflow-hidden rounded-card px-6 py-6 sm:px-9 sm:py-7" style={{ backgroundColor: accent }}>
         {art && (
           <div
             aria-hidden
@@ -88,8 +88,12 @@ export default function OpinionFront({ lang, accent, sectionKey, title, tagline,
         </Link>
       )}
 
+      {/* Two columns only once there are two columns' worth. A lone second
+          column left the single remaining writer stranded in one half of the
+          page with the other half empty — which read as a layout fault, not as
+          a quiet week. */}
       {rest.length > 0 && (
-        <div className="grid gap-x-9 gap-y-8 border-t border-line pt-9 sm:grid-cols-2">
+        <div className={`grid gap-x-9 gap-y-8 border-t border-line pt-9 ${rest.length > 1 ? "sm:grid-cols-2" : "mx-auto max-w-[620px]"}`}>
           {rest.map((s) => (
             <Link key={s.id} href={s.href} className="card-link block no-underline" style={accentVar}>
               <article className="flex gap-4">
