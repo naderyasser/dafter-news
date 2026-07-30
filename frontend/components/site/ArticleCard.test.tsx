@@ -166,6 +166,46 @@ describe("ArticleCard", () => {
   });
 
   /**
+   * The client's country badge: الكويت on a gulf card's photo, and only
+   * where a caller passes it — every other section's grid stays clean.
+   */
+  describe("country chip", () => {
+    it("rides the photo's bottom-start corner on the standard card", () => {
+      render(<ArticleCard {...base} variant="standard" chip="الكويت" />);
+
+      const chip = screen.getByText("الكويت");
+      expect(chip.className).toContain("bottom-0");
+      expect(chip.className).toContain("start-0");
+      expect(chip.className).not.toMatch(/\bleft-|\bright-/);
+    });
+
+    it("takes the section colour when an accent is given", () => {
+      render(<ArticleCard {...base} variant="standard" chip="قطر" accent="#0A7B58" />);
+
+      expect(screen.getByText("قطر")).toHaveStyle({ backgroundColor: "#0A7B58" });
+    });
+
+    it("shows on the compact thumbnail too", () => {
+      render(<ArticleCard {...base} variant="compact" chip="الجزائر" />);
+
+      expect(screen.getByText("الجزائر")).toBeInTheDocument();
+    });
+
+    it("stays clear of the corner the breaking badge owns", () => {
+      render(<ArticleCard {...base} variant="standard" chip="الكويت" badge="breaking" />);
+
+      expect(screen.getByText("عاجل").className).toContain("top-2");
+      expect(screen.getByText("الكويت").className).toContain("bottom-0");
+    });
+
+    it("renders no chip element when none is passed", () => {
+      const { container } = render(<ArticleCard {...base} variant="standard" />);
+
+      expect(container.querySelector(".bottom-0.start-0")).toBeNull();
+    });
+  });
+
+  /**
    * Every headline on the site that isn't «عرب وعالم» comes through this
    * component, so if the title is a <div> then a homepage of forty stories
    * exposes not one article headline to heading navigation — which is how

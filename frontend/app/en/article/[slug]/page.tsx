@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import ArticleBlocks from "@/components/site/ArticleBlocks";
 import ArticleComments from "@/components/site/ArticleComments";
 import AudioPlayer from "@/components/site/AudioPlayer";
+import AuthorProfileCard from "@/components/site/AuthorProfileCard";
 import MostReadList from "@/components/site/MostReadList";
 import SectionBlock from "@/components/site/SectionBlock";
 import ShareRow from "@/components/site/ShareRow";
@@ -70,6 +71,14 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
             <span>◔ {article.read_minutes} min read</span>
             <ShareRow lang="en" title={article.title} />
           </div>
+
+          {/* Signed investigations carry the reporter's profile — see the
+              Arabic article page. */}
+          {article.section?.key === "special" && article.author && (
+            <div className="mt-4">
+              <AuthorProfileCard lang="en" author={article.author} />
+            </div>
+          )}
 
           {article.cover_image && (
             <figure className="mb-1 mt-4">

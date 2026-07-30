@@ -308,6 +308,19 @@ class ArticleWriteAPITests(APITestCase):
         self.assertEqual(res.status_code, 201)
         self.assertEqual(res.json()["slug"], "مقال-جديد-من-المحرر")
 
+    def test_country_round_trips_editor_to_card(self):
+        """The «الخليج»/«عرب وعالم» country chip: the editor writes it and
+        the public card list exposes it, so the photo badge has a source."""
+        res = self.client.post(
+            "/api/articles/",
+            {"title": "الكويت تفتتح المتحف الجديد", "status": "published", "country": "الكويت", "language": "ar"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201)
+
+        card = next(a for a in self.client.get("/api/articles/").json()["results"] if a["id"] == res.json()["id"])
+        self.assertEqual(card["country"], "الكويت")
+
     def test_create_with_blocks_and_tags(self):
         res = self.client.post(
             "/api/articles/",

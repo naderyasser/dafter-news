@@ -106,6 +106,12 @@ class Article(models.Model):
     # editorial shorthand that varies per section and shouldn't need a taxonomy
     # row (and a new one shouldn't need a migration).
     subcategory = models.CharField(max_length=60, blank=True, help_text="تصنيف فرعي يظهر كوسم أحمر على البطاقة")
+    # The geographic chip on «الخليج» and «عرب وعالم» cards (الكويت / قطر /
+    # الجزائر…). Separate from subcategory on purpose: world stories already
+    # use that for the topic («سياسة»), and a Kuwait politics piece needs
+    # both — the country on the photo, the topic in the kicker. Free text
+    # like subcategory, and for the same reason.
+    country = models.CharField(max_length=60, blank=True, help_text="اسم الدولة — يظهر كشارة على صورة الخبر في «الخليج» و«عرب وعالم»")
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="articles", null=True, blank=True
     )

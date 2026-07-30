@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import ArticleBlocks from "@/components/site/ArticleBlocks";
 import ArticleComments from "@/components/site/ArticleComments";
+import AuthorProfileCard from "@/components/site/AuthorProfileCard";
 import InfiniteSections from "@/components/site/InfiniteSections";
 import AudioPlayer from "@/components/site/AudioPlayer";
 import SectionBlock from "@/components/site/SectionBlock";
@@ -101,6 +102,14 @@ export default async function ArticlePage({ params }: { params: { slug: string }
             <span>◔ {article.read_minutes} دقائق قراءة</span>
             <ShareRow lang="ar" title={article.title} />
           </div>
+
+          {/* «ملف خاص» pieces are signed investigations — the reporter's
+              profile sits under the headline like an opinion column's. */}
+          {article.section?.key === "special" && article.author && (
+            <div className="mt-4">
+              <AuthorProfileCard lang="ar" author={article.author} />
+            </div>
+          )}
 
           {article.cover_image && (
             <figure className="mb-1 mt-4">

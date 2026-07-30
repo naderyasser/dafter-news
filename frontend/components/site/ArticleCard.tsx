@@ -29,6 +29,23 @@ function BadgeChip({ badge, lang, size = "md" }: { badge: Badge; lang: "ar" | "e
   );
 }
 
+/**
+ * Solid label riding the photo's bottom-start corner — the country on
+ * «الخليج»/«عرب وعالم» cards. Bottom-start because «عاجل»/«خاص» owns
+ * top-start, so a breaking Kuwait story wears both without stacking.
+ */
+function PhotoChip({ label, accent }: { label?: string; accent?: string }) {
+  if (!label) return null;
+  return (
+    <span
+      className="absolute bottom-0 start-0 z-10 bg-brand px-2.5 py-1 text-[11px] font-extrabold text-paper"
+      style={accent ? { backgroundColor: accent } : undefined}
+    >
+      {label}
+    </span>
+  );
+}
+
 type CardProps = {
   lang: "ar" | "en";
   variant: "standard" | "compact" | "text" | "hero";
@@ -42,6 +59,8 @@ type CardProps = {
   isVideo?: boolean;
   videoDuration?: string;
   comments?: number;
+  /** Country (or other geographic) label shown on the photo itself. */
+  chip?: string;
   /**
    * The owning section's colour. Paints the kicker and the headline hover;
    * defaults to the accent blue. The kicker used to be brand red on every
@@ -64,6 +83,7 @@ export default function ArticleCard({
   isVideo,
   videoDuration,
   comments,
+  chip,
   accent,
 }: CardProps) {
   const t = T[lang];
@@ -78,6 +98,7 @@ export default function ArticleCard({
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(10,11,13,.88)] via-[rgba(10,11,13,.15)] to-transparent" />
         </div>
         <BadgeChip badge={badge} lang={lang} />
+        <PhotoChip label={chip} accent={accent} />
         <div className="absolute inset-x-0 bottom-0 p-5">
           {section && <span className="text-xs font-bold text-navy-tint">{section}</span>}
           <h3 className={`${fontDisplay} m-0 mt-1.5 text-[clamp(1.25rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.4] text-paper`}>
@@ -96,6 +117,7 @@ export default function ArticleCard({
             <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
           </div>
           <BadgeChip badge={badge} lang={lang} size="sm" />
+          <PhotoChip label={chip} accent={accent} />
         </div>
         <div className="min-w-0 flex-1">
           <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-bold leading-[1.45] text-ink`}>{title}</h3>
@@ -121,6 +143,7 @@ export default function ArticleCard({
       <div className="relative aspect-video">
         <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
         <BadgeChip badge={badge} lang={lang} />
+        <PhotoChip label={chip} accent={accent} />
         {isVideo && (
           <>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">

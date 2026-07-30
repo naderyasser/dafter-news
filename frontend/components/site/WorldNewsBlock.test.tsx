@@ -85,6 +85,15 @@ describe("WorldNewsBlock", () => {
     expect(screen.getByText("سياسة").className).toContain("start-0");
   });
 
+  it("gives a side item its topic kicker when the chip is spent on the country", () => {
+    // With «الكويت» on the photo, the topic still needs somewhere to go.
+    const withKicker = cards.map((c, i) => (i === 1 ? { ...c, label: "الكويت", kicker: "دبلوماسية" } : c));
+    render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={withKicker} sectionKey="world" />);
+
+    expect(screen.getByText("الكويت")).toBeInTheDocument();
+    expect(screen.getByText("دبلوماسية")).toBeInTheDocument();
+  });
+
   it("leaves no chip at all when a card has no label", () => {
     render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={[{ ...cards[1], label: undefined }]} />);
 

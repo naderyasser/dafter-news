@@ -17,6 +17,8 @@ export type SectionBlockCard = {
   isVideo?: boolean;
   videoDuration?: string;
   comments?: number;
+  /** Country label on the photo — set only by «الخليج»/«عرب وعالم» callers. */
+  chip?: string;
 };
 
 export default function SectionBlock({
@@ -70,6 +72,7 @@ export default function SectionBlock({
             isVideo={c.isVideo}
             videoDuration={c.videoDuration}
             comments={c.comments}
+            chip={c.chip}
             accent={accent}
           />
         ))}

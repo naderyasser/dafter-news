@@ -9,9 +9,12 @@ type Lang = "ar" | "en";
 export type WorldCard = {
   href: string;
   title: string;
-  /** The chip — the article's subcategory («سياسة» / «ثقافة وفنون»), with
-   *  the section name as a fallback so a card is never left without one. */
+  /** The chip on the photo — the country when the desk set one, else the
+   *  subcategory («سياسة»), else the section name; never blank. */
   label?: string;
+  /** Small topic line above a side item's title — set only when the chip is
+   *  already spent on the country, so the topic still has somewhere to go. */
+  kicker?: string;
   time?: string;
   imageSrc?: string | null;
 };
@@ -81,6 +84,11 @@ function Side({ card, lang, accent }: { card: WorldCard; lang: Lang; accent: str
         <Chip label={card.label} accent={accent} />
       </div>
       <div className="min-w-0 flex-1">
+        {card.kicker && (
+          <div className="mb-1 text-[11px] font-bold" style={{ color: accent }}>
+            {card.kicker}
+          </div>
+        )}
         <h3 className={`${lang === "ar" ? "font-display-ar" : "font-display-en"} text-[15px] font-bold leading-[1.5] card-title text-ink`}>{card.title}</h3>
         {card.time && <div className="mt-1.5 text-caption text-ink-3">{card.time}</div>}
       </div>
