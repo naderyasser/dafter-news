@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 
 import { ibmPlexSansArabic, inter, notoKufiArabic } from "@/lib/fonts";
+import { SITE_URL } from "@/lib/seo";
 
 import "./globals.css";
 
@@ -10,15 +11,26 @@ import "./globals.css";
 // Arabic <title> on the English edition's tab and in its search snippet.
 export function generateMetadata(): Metadata {
   const isEn = headers().get("x-locale") === "en";
-  return isEn
-    ? {
-        title: "Al Daftar News — aldaftarnews.com",
-        description: "Arabic news from Egypt and the region: politics, economy, sport and opinion.",
-      }
-    : {
-        title: "الدفتر نيوز — aldaftarnews.com",
-        description: "موقع إخباري عربي يغطي مصر والمنطقة: سياسة، اقتصاد، رياضة، ورأي.",
-      };
+  return {
+    // Base for every relative URL in child metadata (OG images, canonicals),
+    // and a title template so an article tab reads «العنوان — الدفتر نيوز»
+    // without each page re-stating the suffix.
+    metadataBase: new URL(SITE_URL),
+    alternates: {
+      types: {
+        "application/rss+xml": isEn ? "/en/rss.xml" : "/rss.xml",
+      },
+    },
+    ...(isEn
+      ? {
+          title: { default: "Al Daftar News — aldaftarnews.com", template: "%s — Al Daftar News" },
+          description: "Arabic news from Egypt and the region: politics, economy, sport and opinion.",
+        }
+      : {
+          title: { default: "الدفتر نيوز — aldaftarnews.com", template: "%s — الدفتر نيوز" },
+          description: "موقع إخباري عربي يغطي مصر والمنطقة: سياسة، اقتصاد، رياضة، ورأي.",
+        }),
+  };
 }
 
 // The site is bilingual (AR RTL default / EN LTR — brief §4). App Router

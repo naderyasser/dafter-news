@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import Link from "next/link";
 
 import ArrowCarousel from "@/components/site/ArrowCarousel";
@@ -15,6 +17,7 @@ import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
 import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
+import PageSkeleton from "@/components/ui/PageSkeleton";
 import { getLiveStreams, getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
@@ -56,7 +59,7 @@ function toWorldCard(a: ArticleCardType) {
 const sectionFeed = (key: string, size = 6) =>
   getArticles(`?language=ar&section__key=${key}&ordering=-published_at&page_size=${size}`);
 
-export default async function HomePage() {
+async function HomeContent() {
   const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches, sections, breaking, streams] =
     await Promise.all([
       getArticles("?language=ar&pinned=true&ordering=-published_at&page_size=5"),
@@ -300,5 +303,19 @@ export default async function HomePage() {
         </div>
       </div>
     </SiteShell>
+  );
+}
+
+/**
+ * The skeleton lives INSIDE the page, not in loading.tsx: a loading
+ * boundary in this segment (or above it) also wraps the nested
+ * [slug]/section routes, and a flushed loading shell locks their
+ * status at 200 before notFound() can say 404.
+ */
+export default function HomePage() {
+  return (
+    <Suspense fallback={<PageSkeleton lang="ar" variant="home" />}>
+      <HomeContent />
+    </Suspense>
   );
 }

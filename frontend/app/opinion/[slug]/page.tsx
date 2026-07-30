@@ -7,9 +7,17 @@ import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getArticles, mediaUrl } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { articleJsonLd, articleMetadata } from "@/lib/seo";
 import Link from "next/link";
 
 export const revalidate = 30;
+
+/** Existence decided before the stream starts — see app/article/[slug]. */
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const article = await getArticle(params.slug);
+  if (!article || article.kind !== "opinion" || article.status !== "published") notFound();
+  return articleMetadata(article, `/opinion/${encodeURIComponent(article.slug)}`);
+}
 
 export default async function ArticleOpinionPage({ params }: { params: { slug: string } }) {
   const [article, mostRead] = await Promise.all([getArticle(params.slug), getArticles("?language=ar&ordering=-views&page_size=5")]);
@@ -19,6 +27,10 @@ export default async function ArticleOpinionPage({ params }: { params: { slug: s
 
   return (
     <SiteShell lang="ar" active="opinion">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: articleJsonLd(article, `/opinion/${encodeURIComponent(article.slug)}`) }}
+      />
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
         <main className="min-w-0 max-w-reading flex-[2_1_480px]">
           <div className="mb-4 text-[13px] text-ink-3">
@@ -76,7 +88,15 @@ export default async function ArticleOpinionPage({ params }: { params: { slug: s
           <ArticleComments lang="ar" articleId={article.id} initial={article.comments} />
         </main>
         <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
-          <MostReadList lang="ar" items={mostRead.results.map((a) => ({ title: a.title, href: `/article/${a.slug}`, section: a.section_name }))} />
+          <MostReadList
+            lang="ar"
+            items={mostRead.results.map((a) => ({
+              title: a.title,
+              href: `/article/${a.slug}`,
+              section: a.section_name,
+              imageSrc: mediaUrl(a.cover_image),
+            }))}
+          />
         </aside>
       </div>
     </SiteShell>
