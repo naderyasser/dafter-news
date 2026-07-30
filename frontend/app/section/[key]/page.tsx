@@ -27,6 +27,8 @@ export default async function SectionPage({ params }: { params: { key: string } 
     badge: a.badge,
     imageSrc: mediaUrl(a.cover_image),
     views: a.views,
+    // The country rides the photo in the two geographic sections only.
+    chip: params.key === "gulf" || params.key === "world" ? a.country || undefined : undefined,
   }));
 
   return (

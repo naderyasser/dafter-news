@@ -13,6 +13,7 @@ import SectionBlock from "@/components/site/SectionBlock";
 import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
+import SpecialFilesBlock from "@/components/site/SpecialFilesBlock";
 import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
 import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
@@ -31,7 +32,7 @@ export const revalidate = 60;
  * the dashboard puts it on the home page instead of stranding it on a
  * /section/… page no reader navigates to.
  */
-const CURATED_KEYS = ["egypt", "gulf", "world", "economy", "art", "tech", "video", "sports", "opinion"];
+const CURATED_KEYS = ["egypt", "gulf", "world", "economy", "art", "tech", "video", "sports", "opinion", "special"];
 
 function toSectionCard(a: ArticleCardType) {
   return {
@@ -44,13 +45,21 @@ function toSectionCard(a: ArticleCardType) {
   };
 }
 
+/** Gulf cards carry the country on the photo — and only the gulf ones;
+ *  the other section grids stay clean, per the client. */
+function toGulfCard(a: ArticleCardType) {
+  return { ...toSectionCard(a), chip: a.country || undefined };
+}
+
 function toWorldCard(a: ArticleCardType) {
   return {
     href: `/article/${a.slug}`,
     title: a.title,
-    // Falls back to the section name when an editor hasn't set a subcategory,
-    // so the red chip is never blank.
-    label: a.subcategory || a.section_name,
+    // Country first (the client's geographic chip), then the editorial
+    // subcategory, then the section name — so the chip is never blank.
+    label: a.country || a.subcategory || a.section_name,
+    // When the chip carries the country, the topic still gets its line.
+    kicker: a.country && a.subcategory ? a.subcategory : undefined,
     time: relativeTime(a.published_at, "ar"),
     imageSrc: mediaUrl(a.cover_image),
   };
@@ -60,7 +69,7 @@ const sectionFeed = (key: string, size = 6) =>
   getArticles(`?language=ar&section__key=${key}&ordering=-published_at&page_size=${size}`);
 
 async function HomeContent() {
-  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, matches, sections, breaking, streams] =
+  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, matches, sections, breaking, streams] =
     await Promise.all([
       getArticles("?language=ar&pinned=true&ordering=-published_at&page_size=5"),
       getArticles("?language=ar&ordering=-published_at&page_size=12"),
@@ -71,6 +80,7 @@ async function HomeContent() {
       sectionFeed("sports"),
       sectionFeed("art", 7),
       sectionFeed("tech"),
+      sectionFeed("special", 8),
       // Deeper than the four a grid needed: the showcase's thumbnail strip is
       // the section's navigation, and it only reads as a playlist with a
       // playlist's worth of tiles in it.
@@ -150,6 +160,15 @@ async function HomeContent() {
     time: relativeTime(v.created_at, "ar"),
   }));
 
+  const specialItems = special.results.map((a) => ({
+    href: `/article/${a.slug}`,
+    title: a.title,
+    imageSrc: mediaUrl(a.cover_image),
+    authorName: a.author_name || undefined,
+    authorAvatar: mediaUrl(a.author_avatar),
+    authorInitial: a.author_initial || undefined,
+  }));
+
   const opinionItems = opinion.results.map((a) => ({
     name: a.author_name || "",
     quote: a.title,
@@ -202,7 +221,7 @@ async function HomeContent() {
 
       {gulf.results.length ? (
         <>
-          <SectionBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" cards={gulf.results.map(toSectionCard)} initialCount={4} sectionKey="gulf" />
+          <SectionBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" cards={gulf.results.map(toGulfCard)} initialCount={4} sectionKey="gulf" />
           <SectionDivider />
         </>
       ) : null}
@@ -224,15 +243,16 @@ async function HomeContent() {
       <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econ.results.map(toSectionCard)} initialCount={4} sectionKey="economy" />
       <SectionDivider />
 
-      {/* ثقافة وفن — the arrow-navigated horizontal rail the client asked
-          for («شريط تمرير أفقي مزود بأسهم»), in the section's own colours. */}
+      {/* ثقافة وفن — the arrow-navigated rail, upgraded to the big
+          photo-first slides of the client's reference: hero cards with the
+          title on the image, rather than another row of 300px news tiles. */}
       {art.results.length ? (
         <>
           <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("art")}>
             <SectionHeading lang="ar" title="ثقافة وفن" href="/section/art" sectionKey="art" />
-            <ArrowCarousel lang="ar" itemClassName="w-[300px]">
+            <ArrowCarousel lang="ar" itemClassName="w-[480px] max-w-[88vw]">
               {art.results.map((a) => (
-                <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} accent={sectionColor("art")} />
+                <ArticleCard key={a.id} lang="ar" variant="hero" {...toSectionCard(a)} />
               ))}
             </ArrowCarousel>
           </section>
@@ -255,6 +275,10 @@ async function HomeContent() {
       <SectionDivider />
       <SectionBlock lang="ar" title="جوّه الجون" seeAllHref="/section/sports" cards={sports.results.map(toSectionCard)} initialCount={4} sectionKey="sports" />
       <MatchesRail lang="ar" matches={matches.results} />
+
+      {/* ملف خاص — the magazine shelf. No divider before it: like the video
+          showcase, its own dark band is the separation. */}
+      <SpecialFilesBlock lang="ar" title="ملف خاص" href="/section/special" items={specialItems} />
 
       {/* أمن ومحاكم / ملف خاص / دليلك الأول — and anything added later.
           Rendered here rather than left to /section/… pages. */}

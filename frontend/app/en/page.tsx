@@ -13,6 +13,7 @@ import SectionBlock from "@/components/site/SectionBlock";
 import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
+import SpecialFilesBlock from "@/components/site/SpecialFilesBlock";
 import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
 import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
@@ -35,7 +36,7 @@ export const revalidate = 60;
  * two pages now share every component and differ only in language, direction
  * and which articles they query.
  */
-const CURATED_KEYS = ["egypt", "gulf", "world", "economy", "art", "tech", "video", "sports", "opinion"];
+const CURATED_KEYS = ["egypt", "gulf", "world", "economy", "art", "tech", "video", "sports", "opinion", "special"];
 
 const T = {
   egypt: "Egypt",
@@ -46,6 +47,7 @@ const T = {
   tech: "Science & Tech",
   video: "Watch",
   sports: "Sports",
+  special: "Special Files",
   trendingTags: "Trending tags",
   liveCoverage: "Live coverage",
 };
@@ -61,11 +63,18 @@ function toCard(a: ArticleCardType) {
   };
 }
 
+/** Gulf cards carry the country on the photo — mirrors the Arabic home. */
+function toGulfCard(a: ArticleCardType) {
+  return { ...toCard(a), chip: a.country || undefined };
+}
+
 function toWorldCard(a: ArticleCardType) {
   return {
     href: `/en/article/${a.slug}`,
     title: a.title,
-    label: a.subcategory || a.section_name,
+    label: a.country || a.subcategory || a.section_name,
+    // When the chip carries the country, the topic still gets its line.
+    kicker: a.country && a.subcategory ? a.subcategory : undefined,
     time: relativeTime(a.published_at, "en"),
     imageSrc: mediaUrl(a.cover_image),
   };
@@ -75,7 +84,7 @@ const sectionFeed = (key: string, size = 6) =>
   getArticles(`?language=en&section__key=${key}&ordering=-published_at&page_size=${size}`);
 
 async function HomeEnContent() {
-  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, videos, opinion, mostRead, tags, popular, stories, sections, breaking, streams, matches] =
+  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, sections, breaking, streams, matches] =
     await Promise.all([
       getArticles("?language=en&pinned=true&ordering=-published_at&page_size=5"),
       getArticles("?language=en&ordering=-published_at&page_size=12"),
@@ -86,6 +95,7 @@ async function HomeEnContent() {
       sectionFeed("sports"),
       sectionFeed("art", 7),
       sectionFeed("tech"),
+      sectionFeed("special", 8),
       // Deep enough for the showcase strip to read as a playlist; the English
       // edition also filters this list down to Latin-script titles.
       getVideos("?page_size=12"),
@@ -161,6 +171,15 @@ async function HomeEnContent() {
       time: relativeTime(v.created_at, "en"),
     }));
 
+  const specialItems = special.results.map((a) => ({
+    href: `/en/article/${a.slug}`,
+    title: a.title,
+    imageSrc: mediaUrl(a.cover_image),
+    authorName: a.author_name_en || a.author_name || undefined,
+    authorAvatar: mediaUrl(a.author_avatar),
+    authorInitial: a.author_initial || undefined,
+  }));
+
   const opinionItems = opinion.results.map((a) => ({
     // Arabic first/last name columns meant an Arabic byline under an English
     // headline; name_en carries the romanised form.
@@ -218,7 +237,7 @@ async function HomeEnContent() {
 
       {gulf.results.length ? (
         <>
-          <SectionBlock lang="en" title={T.gulf} seeAllHref="/en/section/gulf" cards={gulf.results.map(toCard)} initialCount={4} sectionKey="gulf" />
+          <SectionBlock lang="en" title={T.gulf} seeAllHref="/en/section/gulf" cards={gulf.results.map(toGulfCard)} initialCount={4} sectionKey="gulf" />
           <SectionDivider />
         </>
       ) : null}
@@ -234,15 +253,15 @@ async function HomeEnContent() {
       <SectionBlock lang="en" title={T.economy} seeAllHref="/en/section/economy" cards={econ.results.map(toCard)} initialCount={4} sectionKey="economy" />
       <SectionDivider />
 
-      {/* Culture & Art as the arrow-navigated rail, mirroring the Arabic
+      {/* Culture & Art — the big photo-first slides, mirroring the Arabic
           home block for block. */}
       {art.results.length ? (
         <>
           <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("art")}>
             <SectionHeading lang="en" title={T.art} href="/en/section/art" sectionKey="art" />
-            <ArrowCarousel lang="en" itemClassName="w-[300px]">
+            <ArrowCarousel lang="en" itemClassName="w-[480px] max-w-[88vw]">
               {art.results.map((a) => (
-                <ArticleCard key={a.id} lang="en" variant="standard" {...toCard(a)} accent={sectionColor("art")} />
+                <ArticleCard key={a.id} lang="en" variant="hero" {...toCard(a)} />
               ))}
             </ArrowCarousel>
           </section>
@@ -266,6 +285,9 @@ async function HomeEnContent() {
       {/* TheSportsDB's own strings are English — the rail only ever needed
           its chrome translated, which MatchesRail now carries per language. */}
       <MatchesRail lang="en" matches={matches.results} />
+
+      {/* Special Files — the magazine shelf, mirroring the Arabic home. */}
+      <SpecialFilesBlock lang="en" title={T.special} href="/en/section/special" items={specialItems} />
 
       {tail.map(({ section, articles }) => (
         <div key={section.key}>

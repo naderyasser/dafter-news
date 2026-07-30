@@ -15,6 +15,8 @@ export type ArchiveCard = {
   badge: Badge;
   imageSrc?: string;
   views: number;
+  /** Country label on the photo — set by the gulf/world archives only. */
+  chip?: string;
 };
 
 const PAGE_SIZE = 6;
@@ -84,6 +86,7 @@ export default function SectionArchive({
             time={c.time}
             badge={c.badge}
             imageSrc={c.imageSrc}
+            chip={c.chip}
             accent={accent}
           />
         ))}

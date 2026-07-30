@@ -45,6 +45,7 @@ export type ArticleCard = {
   href_slug: string;
   section_name: string;
   subcategory: string;
+  country: string;
   badge: Badge;
   status: ArticleStatus;
   cover_image: string | null;
@@ -57,6 +58,8 @@ export type ArticleCard = {
   author_name_en: string | null;
   author_username: string | null;
   author_initial: string | null;
+  /** The journalist chip on «ملف خاص» cards. */
+  author_avatar: string | null;
 };
 
 export type ArticleBlock = {
@@ -81,6 +84,7 @@ export type ArticleDetail = {
   kind: "news" | "opinion";
   section: Section | null;
   subcategory: string;
+  country: string;
   author: Author | null;
   tags: Tag[];
   language: "ar" | "en";

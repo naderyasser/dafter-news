@@ -64,6 +64,7 @@ export default function ArticleEditorForm({
   const bodyRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
   const [section, setSection] = useState(initial?.section?.key ?? sections[0]?.key ?? "egypt");
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
+  const [country, setCountry] = useState(initial?.country ?? "");
   const [badge, setBadge] = useState<Badge>(initial?.badge ?? "none");
   const [lang, setLang] = useState<"ar" | "en">(initial?.language ?? "ar");
   const [tags, setTags] = useState<string[]>(initial?.tags.map((t) => t.name) ?? []);
@@ -185,6 +186,7 @@ export default function ArticleEditorForm({
       language: lang,
       section: sectionId,
       subcategory: subcategory.trim(),
+      country: country.trim(),
       blocks: blocks.map((b, i) => ({
         order: i,
         type: b.type,
@@ -415,6 +417,27 @@ export default function ArticleEditorForm({
             className="w-full rounded-lg border border-line px-2.5 py-2 text-xs outline-none focus:border-brand"
           />
           <div className="mt-2 text-[11px] leading-relaxed text-ink-3">يظهر كوسم أحمر فوق عنوان البطاقة في الصفحة الرئيسية.</div>
+        </div>
+        {/* The country chip on «الخليج» / «عرب وعالم» photos. The datalist
+            offers the GCC six because the gulf desk uses the same handful
+            daily, but it stays free text — عرب وعالم needs الجزائر, فلسطين,
+            and whatever tomorrow's map brings. */}
+        <div className="rounded-card border border-line bg-paper p-4">
+          <div className="mb-2.5 text-[13px] font-bold">الدولة</div>
+          <input
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            maxLength={60}
+            list="dn-country-suggestions"
+            placeholder="السعودية / الكويت / الجزائر"
+            className="w-full rounded-lg border border-line px-2.5 py-2 text-xs outline-none focus:border-brand"
+          />
+          <datalist id="dn-country-suggestions">
+            {["السعودية", "الإمارات", "الكويت", "قطر", "البحرين", "عُمان", "مصر", "فلسطين", "الأردن", "لبنان", "العراق", "سوريا", "اليمن", "ليبيا", "تونس", "الجزائر", "المغرب", "السودان"].map((c) => (
+              <option key={c} value={c} />
+            ))}
+          </datalist>
+          <div className="mt-2 text-[11px] leading-relaxed text-ink-3">تظهر كشارة على صورة الخبر في قسمي «الخليج العربي» و«عرب وعالم» فقط.</div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">الوسوم</div>

@@ -1,8 +1,8 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import ArticleBlocks from "@/components/site/ArticleBlocks";
 import ArticleComments from "@/components/site/ArticleComments";
+import AuthorProfileCard from "@/components/site/AuthorProfileCard";
 import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getArticles, mediaUrl } from "@/lib/api";
@@ -43,22 +43,7 @@ export default async function ArticleOpinionPage({ params }: { params: { slug: s
             </Link>
           </div>
 
-          {article.author && (
-            <div className="mb-5 flex items-center gap-3 rounded-card border border-line bg-paper p-3.5">
-              <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-brand bg-brand-tint">
-                {article.author.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mediaUrl(article.author.avatar)} alt={article.author.name} className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-[22px] font-extrabold text-brand">{article.author.initial}</span>
-                )}
-              </div>
-              <div>
-                <div className="text-[15px] font-bold text-ink">{article.author.name}</div>
-                <div className="mt-0.5 text-[13px] text-ink-3">{article.author.title || (article.author.bio ?? "")}</div>
-              </div>
-            </div>
-          )}
+          {article.author && <AuthorProfileCard lang="ar" author={article.author} />}
 
           <h1 className="font-display-ar mb-3.5 text-[clamp(1.375rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.5] text-accent">
             {article.title}

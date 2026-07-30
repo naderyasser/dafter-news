@@ -66,12 +66,16 @@ class ArticleCardSerializer(serializers.ModelSerializer):
     author_name_en = serializers.CharField(source="author.name_en", read_only=True, default=None)
     author_username = serializers.CharField(source="author.username", read_only=True, default=None)
     author_initial = serializers.CharField(source="author.initial", read_only=True, default=None)
+    # The «ملف خاص» rail puts the investigator's face on the card — the
+    # journalist chip is that section's whole visual identity.
+    author_avatar = serializers.ImageField(source="author.avatar", read_only=True, default=None)
 
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "href_slug", "section_name", "subcategory", "badge", "status", "cover_image",
+            "id", "title", "slug", "href_slug", "section_name", "subcategory", "country", "badge", "status", "cover_image",
             "published_at", "views", "kind", "comment_count", "author_name", "author_name_en", "author_username", "author_initial",
+            "author_avatar",
         ]
 
     def get_section_name(self, obj):
@@ -89,7 +93,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "kind", "section", "subcategory", "author", "tags", "language", "related_article",
+            "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "tags", "language", "related_article",
             "status", "badge", "pinned", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "views", "read_minutes", "tts_status", "tts_audio", "tts_duration_seconds",
             "published_at", "scheduled_for", "created_at", "blocks", "comments",
@@ -136,7 +140,7 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "kind", "section", "subcategory", "author", "language", "related_article",
+            "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "language", "related_article",
             "status", "badge", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "scheduled_for", "blocks", "tag_names", "cover_asset_id", "pinned", "push_breaking", "push_story",
         ]
