@@ -33,7 +33,9 @@ export default function GulfFront({ lang, accent, sectionKey, title, tagline, st
   const isAr = lang === "ar";
   const t = T[lang];
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
-  const art = sectionArtUrl(sectionKey, accent, 5);
+  // The mark sits on the teal panel, so it is stroked in white rather than in
+  // the section's own colour — a teal dhow on teal is an invisible dhow.
+  const artOnDark = sectionArtUrl(sectionKey, "rgba(255,255,255,.95)", 5);
   const accentVar = { "--card-accent": accent } as React.CSSProperties;
 
   const [lead, ...others] = stories;
@@ -50,35 +52,37 @@ export default function GulfFront({ lang, accent, sectionKey, title, tagline, st
 
   return (
     <>
-      <header className="relative mb-6 border-t-[5px] pt-5" style={{ borderColor: accent }}>
-        {art && (
+      {/* Masthead and country strip are one object: on a desk organised BY
+          country, the capitals belong to the nameplate, not to a row of chips
+          floating under it. Reversed out of the desk's own teal, with the
+          dhow behind — the only front whose navigation is part of its flag. */}
+      <header className="relative mb-8 overflow-hidden rounded-card" style={{ backgroundColor: accent }}>
+        {artOnDark && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-y-0 end-0 hidden w-[28%] bg-contain bg-center bg-no-repeat opacity-[.08] sm:block"
-            style={{ backgroundImage: art }}
+            className="pointer-events-none absolute inset-y-[-15%] end-[-1rem] hidden w-[30%] bg-contain bg-center bg-no-repeat opacity-[.18] sm:block"
+            style={{ backgroundImage: artOnDark }}
           />
         )}
-        <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
-          {title}
-        </h1>
-        {tagline && <p className="relative mt-2 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+        <div className="relative px-5 pb-6 pt-6 sm:px-7">
+          <h1 className={`${fontDisplay} m-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2] text-paper`}>{title}</h1>
+          {tagline && <p className="mt-2 max-w-[52ch] text-[14px] leading-[1.7] text-paper/85">{tagline}</p>}
+        </div>
+        {columns.length > 0 && (
+          <nav aria-label={t.jump} className="relative flex flex-wrap gap-x-1 gap-y-0 bg-[rgba(0,0,0,.18)] px-3 py-1.5 sm:px-5">
+            {columns.map(([country, items]) => (
+              <a
+                key={country}
+                href={`#${anchorId(country)}`}
+                className="rounded-[3px] px-2.5 py-1.5 text-[13px] font-bold text-paper no-underline transition-colors duration-fast hover:bg-[rgba(255,255,255,.16)] focus-visible:bg-[rgba(255,255,255,.16)]"
+              >
+                {country}
+                <span className="tnum ms-1.5 text-paper/60">{isAr ? toEasternNumerals(items.length) : items.length}</span>
+              </a>
+            ))}
+          </nav>
+        )}
       </header>
-
-      {columns.length > 0 && (
-        <nav aria-label={t.jump} className="mb-8 flex flex-wrap gap-2">
-          {columns.map(([country, items]) => (
-            <a
-              key={country}
-              href={`#${anchorId(country)}`}
-              className="chip-fill rounded-pill border px-3.5 py-1.5 text-[13px] font-bold no-underline"
-              style={{ borderColor: accent, color: accent, "--chip": accent } as React.CSSProperties}
-            >
-              {country}
-              <span className="tnum ms-1.5 opacity-60">{isAr ? toEasternNumerals(items.length) : items.length}</span>
-            </a>
-          ))}
-        </nav>
-      )}
 
       {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
 

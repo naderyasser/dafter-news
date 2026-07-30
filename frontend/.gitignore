@@ -5,11 +5,13 @@ out
 *.log
 tsconfig.tsbuildinfo
 
-# Throwaway build dir used to typecheck/compile without touching the
-# deployed .next that the running service is serving.
-.next-verify/
-
-# Build swaps for zero-downtime deploys (npm run build lands in .next-new,
-# the previous build is parked as .next-old)
-.next-new/
-.next-old/
+# Every sibling of .next is a build directory, never source: the throwaway
+# used to typecheck without touching the deployed one (.next-verify), the
+# zero-downtime swap pair (.next-new / .next-old), and any dist dir a dev
+# server is pointed at via NEXT_DIST_DIR so it cannot write into the build
+# the live service is serving (.next-dev).
+#
+# A glob rather than a list — the list was already three entries long and the
+# fourth one got committed, 239 files of build output, because nobody thought
+# to extend it before running `git add -A`.
+.next-*/

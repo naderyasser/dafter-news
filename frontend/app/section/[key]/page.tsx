@@ -77,8 +77,15 @@ export default async function SectionPage({ params }: { params: { key: string } 
             stories={stories}
           />
         </main>
+        {/* `--rule-b` is the second tone of the two-colour heading rule (see
+            globals.css). Setting it on the aside is what keeps the rail beside
+            a green sports page green and beside an oxblood politics page
+            oxblood, instead of every sidebar reverting to the default blue. */}
         {front.aside && (
-          <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
+          <aside
+            className="min-w-[260px] max-w-[320px] flex-[1_1_280px]"
+            style={{ "--rule-b": accent } as React.CSSProperties}
+          >
             <MostReadList
               lang="ar"
               items={mostRead.results.map((a) => ({

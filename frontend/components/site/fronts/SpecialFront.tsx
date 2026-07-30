@@ -23,27 +23,31 @@ export default function SpecialFront({ lang, accent, sectionKey, title, tagline,
   const isAr = lang === "ar";
   const t = T[lang];
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
-  const art = sectionArtUrl(sectionKey, accent, 5);
+  // Stroked white: a red folder on the red slab would be invisible.
+  const artOnDark = sectionArtUrl(sectionKey, "rgba(255,255,255,.95)", 5);
 
   return (
     <>
-      <header className="relative mb-7 border-t-[5px] pt-5" style={{ borderColor: accent }}>
-        {art && (
+      {/* Masthead: a solid slab in the masthead red. This is the one desk that
+          speaks in the paper's own voice, so it is the loudest nameplate on
+          the site — and the only one that runs straight into the dark stage
+          below it, so flag and screen read as a single object. */}
+      <header className="relative overflow-hidden rounded-t-card px-5 py-7 sm:px-8" style={{ backgroundColor: accent }}>
+        {artOnDark && (
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-y-[-30%] end-0 hidden w-[20%] bg-contain bg-center bg-no-repeat opacity-[.1] sm:block"
-            style={{ backgroundImage: art }}
+            className="pointer-events-none absolute inset-y-[-20%] end-[-1rem] hidden w-[24%] bg-contain bg-center bg-no-repeat opacity-25 sm:block"
+            style={{ backgroundImage: artOnDark }}
           />
         )}
-        <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
-          {title}
-        </h1>
-        {tagline && <p className="relative mt-2 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+        <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.875rem,1.3rem+2.4vw,3rem)] font-extrabold leading-[1.15] text-paper`}>{title}</h1>
+        {tagline && <p className="relative mt-2.5 max-w-[52ch] text-[15px] leading-[1.75] text-paper/85">{tagline}</p>}
       </header>
 
       {stories.length === 0 ? (
-        <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>
+        <p className="rounded-b-card border border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>
       ) : (
+        <div className="[&>section]:rounded-t-none">
         <SpecialShowcase
           lang={lang}
           items={stories.map((s) => ({
@@ -55,6 +59,7 @@ export default function SpecialFront({ lang, accent, sectionKey, title, tagline,
             authorInitial: s.authorInitial,
           }))}
         />
+        </div>
       )}
     </>
   );

@@ -68,18 +68,22 @@ export default function CultureFront({ lang, accent, sectionKey, title, tagline,
 
   return (
     <>
-      <header className="relative mb-9 border-t-[5px] pt-5" style={{ borderColor: accent }}>
+      {/* Masthead: the introduction panel at a gallery entrance — centred
+          inside a hairline frame, with the palette mark set small above the
+          name rather than ghosted behind it. The only symmetrical masthead on
+          the site, because everything below it is hung symmetrically too. */}
+      <header className="relative mx-auto mb-10 max-w-[620px] border px-6 py-7 text-center" style={{ borderColor: accent }}>
         {art && (
-          <div
+          <span
             aria-hidden
-            className="pointer-events-none absolute inset-y-[-30%] end-0 hidden w-[24%] bg-contain bg-center bg-no-repeat opacity-[.1] sm:block"
+            className="mx-auto mb-3 block h-[42px] w-[70px] bg-contain bg-center bg-no-repeat opacity-75"
             style={{ backgroundImage: art }}
           />
         )}
-        <h1 className={`${fontDisplay} relative m-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
+        <h1 className={`${fontDisplay} m-0 text-[clamp(1.625rem,1.2rem+1.8vw,2.5rem)] font-extrabold leading-[1.25]`} style={{ color: accent }}>
           {title}
         </h1>
-        {tagline && <p className="relative mt-2 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
+        {tagline && <p className="mx-auto mt-2.5 max-w-[46ch] text-[14.5px] leading-[1.8] text-ink-2">{tagline}</p>}
       </header>
 
       {!feature && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
