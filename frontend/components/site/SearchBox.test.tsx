@@ -6,6 +6,10 @@ import SearchBox from "./SearchBox";
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
+vi.mock("next/image", () => ({
+  default: ({ src, alt, fill, sizes, ...rest }: any) => <img src={typeof src === "string" ? src : ""} alt={alt} {...rest} />,
+}));
+
 /** The search effect debounces by 0/180ms; settle past either. */
 const settle = async (ms = 250) => {
   await act(async () => {
@@ -173,5 +177,47 @@ describe("SearchBox — Enter means search unless a row was deliberately picked"
 
     // URLSearchParams encodes the space as "+", not "%20".
     expect(push).toHaveBeenCalledWith(`/search?${new URLSearchParams({ q: "مصر الاقتصاد" })}`);
+  });
+});
+
+describe("SearchBox result thumbnails", () => {
+  beforeEach(() => {
+    Element.prototype.scrollIntoView = () => {};
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            { id: 1, slug: "with-cover", title: "خبر بصورة", section_name: "شؤون مصر", published_at: null, badge: "none", cover_image: "/media/covers/x.jpg" },
+          ],
+        }),
+      }),
+    );
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    push.mockClear();
+  });
+
+  it("keeps the fill image caged in a positioned thumbnail box", async () => {
+    // Regression: the 58px thumb span had no `relative`, so the fill image
+    // anchored to the modal itself — one cover stretched over the whole
+    // search panel, burying the field and every result under a blurry photo.
+    const { baseElement } = render(<SearchBox lang="ar" />);
+    fireEvent.click(screen.getByLabelText("بحث"));
+    await settle(250);
+
+    // alt="" makes the thumb role=presentation, so query by tag.
+    const img = baseElement.querySelector("img") as HTMLElement;
+    expect(img).not.toBeNull();
+    const box = img.parentElement as HTMLElement;
+    expect(box.className).toContain("relative");
+    expect(box.className).toContain("w-[58px]");
   });
 });
