@@ -1,151 +1,123 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
 
 import CoverImage from "@/components/ui/CoverImage";
 import { sectionArtUrl } from "@/lib/sections";
-import type { FrontProps, FrontStory } from "./types";
+import type { FrontProps } from "./types";
 
 const T = {
-  ar: { drop: "أفلت صورة الخبر هنا", other: "متفرقات", empty: "لا أخبار على هذا المكتب بعد.", jump: "على الطاولة اليوم" },
-  en: { drop: "Drop image here", other: "In brief", empty: "Nothing on this desk yet.", jump: "On the desk today" },
+  ar: { drop: "أفلت صورة الخبر هنا", empty: "لا أخبار على هذا المكتب بعد.", all: "الآن" },
+  en: { drop: "Drop image here", empty: "Nothing on this desk yet.", all: "Now" },
 };
 
-const anchorId = (subject: string) => `subject-${encodeURIComponent(subject)}`;
-
 /**
- * «عرب وعالم» — the wire.
+ * «عرب وعالم» — the wire, read the way a wire agency's own app reads it.
  *
- * A foreign desk's stories answer "where" before they answer "what", which is
- * why every wire service in the world puts the dateline first. So does this
- * front: each item opens with its origin set in the desk's blue, an em dash,
- * then the headline — the shape a reader already knows from a news agency.
+ * Client forwarded Al Jazeera's mobile page and asked for this desk to match
+ * it: a lead photo with the headline set straight over it beside a coloured
+ * rule, a strip of datelines to page through underneath, then a plain feed —
+ * thumbnail and headline where a story has a photo, a subject line standing
+ * in for it where it doesn't.
  *
- * Above the datelines, the desk's subjects (سياسة, اقتصاد, ثقافة) become the
- * page's sections, because this is the one desk that files against both a
- * place and a subject. Both fields are real columns on the article; neither is
- * invented to make the layout work, and a story missing one still renders —
- * it simply loses its dateline or files under «متفرقات».
+ * The dateline strip is a real filter, not a decorative row of chips: every
+ * story here already carries the country it is filed under (see WorldFront's
+ * old wire design), so paging the feed by country costs a click handler and
+ * no extra data.
  */
 export default function WorldFront({ lang, accent, sectionKey, title, tagline, stories }: FrontProps) {
   const isAr = lang === "ar";
   const t = T[lang];
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
   const art = sectionArtUrl(sectionKey, accent, 5);
-  const accentVar = { "--card-accent": accent } as React.CSSProperties;
 
-  const [lead, ...others] = stories;
+  const [lead, ...rest] = stories;
 
-  const bySubject = new Map<string, FrontStory[]>();
-  const unplaced: FrontStory[] = [];
-  for (const s of others) {
-    if (!s.subject) unplaced.push(s);
-    else bySubject.set(s.subject, [...(bySubject.get(s.subject) ?? []), s]);
-  }
-  const blocks = [...bySubject.entries()];
-  if (unplaced.length) blocks.push([t.other, unplaced]);
+  // Datelines in the order the desk filed them, deduplicated — the strip a
+  // reader actually gets, not a hardcoded list of capitals.
+  const countries = useMemo(() => {
+    const seen = new Set<string>();
+    const list: string[] = [];
+    for (const s of rest) {
+      if (s.country && !seen.has(s.country)) {
+        seen.add(s.country);
+        list.push(s.country);
+      }
+    }
+    return list;
+  }, [rest]);
 
-  const Dateline = ({ place }: { place?: string }) =>
-    place ? (
-      <>
-        <span className="font-extrabold" style={{ color: accent }}>
-          {place}
-        </span>
-        <span aria-hidden className="mx-1.5 text-ink-3">
-          —
-        </span>
-      </>
-    ) : null;
+  const [active, setActive] = useState<string | null>(null);
+  const feed = active ? rest.filter((s) => s.country === active) : rest;
+
+  const Tab = ({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-shrink-0 whitespace-nowrap border-b-2 px-0.5 pb-2.5 text-[14px] font-extrabold transition-colors ${
+        isActive ? "" : "border-transparent text-ink-3 hover:text-ink-2"
+      }`}
+      style={isActive ? { borderColor: accent, color: accent } : undefined}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <>
-      {/* Masthead: the name sitting inside a stack of parallels — latitudes on
-          a chart, and the ruled paper a wire used to arrive on. The lines run
-          out to the open edge so the desk reads as looking outward. */}
-      <header className="relative mb-7">
-        {art && (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-y-[-25%] end-[-1rem] hidden w-[22%] bg-contain bg-center bg-no-repeat opacity-[.09] sm:block"
-            style={{ backgroundImage: art }}
-          />
-        )}
-        <div className="relative flex items-center gap-4">
-          <h1 className={`${fontDisplay} m-0 flex-shrink-0 text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
+      <header className="relative mb-5 flex items-center gap-2.5">
+        {art && <span aria-hidden className="h-8 w-8 flex-shrink-0 bg-contain bg-center bg-no-repeat opacity-80" style={{ backgroundImage: art }} />}
+        <div>
+          <h1 className={`${fontDisplay} m-0 text-[clamp(1.5rem,1.15rem+1.6vw,2.25rem)] font-extrabold leading-[1.2]`} style={{ color: accent }}>
             {title}
           </h1>
-          <span aria-hidden className="flex min-w-0 flex-1 flex-col gap-[5px]">
-            {[0.55, 0.35, 0.2, 0.12].map((o) => (
-              <span key={o} className="block h-[2px]" style={{ backgroundColor: accent, opacity: o }} />
-            ))}
-          </span>
+          {tagline && <p className="mt-1 max-w-[54ch] text-[13.5px] leading-[1.7] text-ink-2">{tagline}</p>}
         </div>
-        {tagline && <p className="relative mt-2.5 max-w-[54ch] text-[15px] leading-[1.75] text-ink-2">{tagline}</p>}
       </header>
 
-      {blocks.length > 1 && (
-        <nav aria-label={t.jump} className="mb-8 flex flex-wrap gap-2">
-          {blocks.map(([subject]) => (
-            <a
-              key={subject}
-              href={`#${anchorId(subject)}`}
-              className="chip-fill rounded-pill border px-3.5 py-1.5 text-[13px] font-bold no-underline"
-              style={{ borderColor: accent, color: accent, "--chip": accent } as React.CSSProperties}
-            >
-              {subject}
-            </a>
+      {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
+
+      {/* The lead: headline set straight over the photo beside a solid rule
+          in the desk's colour, the way the reference page's own splash reads. */}
+      {lead && (
+        <Link href={lead.href} className="group relative mb-6 block overflow-hidden rounded-card no-underline">
+          <div className="relative aspect-[4/3] sm:aspect-[21/9]">
+            <CoverImage src={lead.imageSrc} alt={lead.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 1024px) 900px, 100vw" />
+            <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,.88),rgba(0,0,0,.12)_55%,transparent_75%)]" />
+          </div>
+          <div className="absolute inset-x-0 bottom-0 flex items-stretch gap-3.5 p-5">
+            <span aria-hidden className="w-1 flex-shrink-0 rounded-full" style={{ backgroundColor: accent }} />
+            <h2 className={`${fontDisplay} m-0 text-[clamp(1.3rem,1rem+1.6vw,1.875rem)] font-extrabold leading-[1.35] text-white`}>{lead.title}</h2>
+          </div>
+        </Link>
+      )}
+
+      {countries.length > 0 && (
+        <nav aria-label={t.all} className="mb-6 flex gap-5 overflow-x-auto border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <Tab label={t.all} isActive={active === null} onClick={() => setActive(null)} />
+          {countries.map((c) => (
+            <Tab key={c} label={c} isActive={active === c} onClick={() => setActive(c)} />
           ))}
         </nav>
       )}
 
-      {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
-
-      {/* The lead runs wide rather than tall: a foreign lead is usually one
-          picture and a long headline, and stacking them wastes the fold. */}
-      {lead && (
-        <Link href={lead.href} className="card-link mb-9 block border-b border-line pb-8 no-underline" style={accentVar}>
-          <article className="grid gap-6 sm:grid-cols-[1fr_1.1fr] sm:items-center">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-card">
-              <CoverImage src={lead.imageSrc} alt={lead.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 768px) 45vw, 100vw" />
+      <div className="flex flex-col">
+        {feed.map((s) => (
+          <Link key={s.id} href={s.href} className="flex items-center gap-3.5 border-b border-line py-4 no-underline last:border-b-0">
+            {s.imageSrc ? (
+              <div className="relative h-[64px] w-[64px] flex-shrink-0 overflow-hidden rounded-[8px]">
+                <CoverImage src={s.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="64px" />
+              </div>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              {!s.imageSrc && s.subject && <div className="mb-1 text-[12px] font-semibold text-ink-3">{s.subject}</div>}
+              <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-extrabold leading-[1.6] text-ink`}>{s.title}</h3>
             </div>
-            <div>
-              <h2 className={`${fontDisplay} card-title m-0 text-[clamp(1.25rem,1rem+1.5vw,1.875rem)] font-extrabold leading-[1.45] text-ink`}>
-                <Dateline place={lead.country} />
-                {lead.title}
-              </h2>
-              {lead.standfirst && <p className="mt-2.5 text-[15px] leading-[1.75] text-ink-2">{lead.standfirst}</p>}
-              {lead.time && <div className="mt-2.5 text-[13px] font-semibold text-ink-3">{lead.time}</div>}
-            </div>
-          </article>
-        </Link>
-      )}
-
-      {blocks.map(([subject, items]) => (
-        <section key={subject} id={anchorId(subject)} className="mb-9 scroll-mt-24">
-          <h2 className="m-0 flex items-center gap-3 pb-3">
-            <span className={`${fontDisplay} text-[15px] font-extrabold`} style={{ color: accent }}>
-              {subject}
-            </span>
-            <span aria-hidden className="h-px flex-1" style={{ backgroundColor: accent, opacity: 0.22 }} />
-          </h2>
-          <div className="grid gap-x-7 gap-y-0 sm:grid-cols-2">
-            {items.map((s) => (
-              <Link key={s.id} href={s.href} className="card-link flex items-start gap-4 border-b border-line py-4 no-underline" style={accentVar}>
-                <div className="min-w-0 flex-1">
-                  <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-extrabold leading-[1.65] text-ink`}>
-                    <Dateline place={s.country} />
-                    {s.title}
-                  </h3>
-                  {s.time && <div className="mt-1.5 text-[12px] font-semibold text-ink-3">{s.time}</div>}
-                </div>
-                {s.imageSrc && (
-                  <div className="relative h-[58px] w-[80px] flex-shrink-0 overflow-hidden rounded-[3px]">
-                    <CoverImage src={s.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="80px" />
-                  </div>
-                )}
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
+          </Link>
+        ))}
+        {feed.length === 0 && active && <p className="py-8 text-center text-[14px] text-ink-3">{t.empty}</p>}
+      </div>
     </>
   );
 }
