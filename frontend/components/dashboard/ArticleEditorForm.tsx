@@ -76,7 +76,7 @@ const BADGES: { key: Badge; label: string }[] = [
   { key: "exclusive", label: "خاص" },
   { key: "live", label: "مباشر" },
 ];
-const BLOCK_LABELS: Record<Block["type"], string> = { paragraph: "فقرة", heading: "عنوان فرعي", image: "صورة", quote: "اقتباس", related: "اقرأ أيضاً" };
+const BLOCK_LABELS: Record<Block["type"], string> = { paragraph: "المحتوى", heading: "عنوان فرعي", image: "صورة", quote: "اقتباس", related: "اقرأ أيضاً" };
 
 function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
@@ -198,37 +198,43 @@ export default function ArticleEditorForm({
   };
 
   /**
-   * «تحويل التحديد إلى عنوان فرعي»: lift the selected sentence out of a
-   * paragraph into its own heading block, splitting whatever text sits
-   * before and after it back into paragraphs. Mirrors splitBlock's shape —
-   * same id bookkeeping, same "nothing to do without a real span" guard —
-   * but produces up to three blocks instead of two.
+   * Lifts the current selection out of a content block into its own block of
+   * `type`, splitting whatever text sits before and after it back into
+   * paragraphs — so the block is a free canvas, not a series of separately
+   * added boxes: type the whole thing in one place, then select a line and
+   * mark it as a heading or as its own standalone paragraph. Mirrors
+   * splitBlock's shape (same id bookkeeping, same "nothing to do without a
+   * real span" guard) but produces up to three blocks instead of two, and
+   * carries the original block's alignment onto every piece.
    */
-  const convertSelectionToHeading = (id: number) => {
+  const liftSelection = (id: number, type: "paragraph" | "heading", emptyPrompt: string) => {
     const el = bodyRefs.current[id];
     const vis = el ? getVisibleSelection(el) : null;
     if (!vis || vis.start === vis.end) {
-      window.alert("حدّد الجملة التي تريد تحويلها إلى عنوان فرعي أولاً.");
+      window.alert(emptyPrompt);
       return;
     }
     setBlocks((bs) => {
       const i = bs.findIndex((b) => b.id === id);
       if (i === -1) return bs;
       const text = bs[i].text;
+      const align = bs[i].align;
       const start = rawOffsetFromVisible(text, vis.start);
       const end = rawOffsetFromVisible(text, vis.end);
       const before = text.slice(0, start).trim();
       // Headings render as plain text on the public page (no colour/format
-      // markup support there), so a lifted selection can't carry any along.
-      const selected = stripInline(text.slice(start, end)).trim();
+      // markup support there), so a lifted heading can't carry any along; a
+      // paragraph keeps whatever markup it already had.
+      const raw = text.slice(start, end).trim();
+      const selected = type === "heading" ? stripInline(raw) : raw;
       const after = text.slice(end).trim();
       if (!selected) return bs;
 
       let id2 = nextId;
       const replacement: Block[] = [];
-      if (before) replacement.push(blankBlock(id2++, "paragraph", before));
-      replacement.push(blankBlock(id2++, "heading", selected));
-      if (after) replacement.push(blankBlock(id2++, "paragraph", after));
+      if (before) replacement.push({ ...blankBlock(id2++, "paragraph", before), align });
+      replacement.push({ ...blankBlock(id2++, type, selected), align });
+      if (after) replacement.push({ ...blankBlock(id2++, "paragraph", after), align });
 
       const arr = [...bs];
       arr.splice(i, 1, ...replacement);
@@ -236,6 +242,9 @@ export default function ArticleEditorForm({
       return arr;
     });
   };
+
+  const convertSelectionToHeading = (id: number) => liftSelection(id, "heading", "حدّد الجملة التي تريد تحويلها إلى عنوان فرعي أولاً.");
+  const convertSelectionToParagraph = (id: number) => liftSelection(id, "paragraph", "حدّد الجزء الذي تريد فصله كفقرة مستقلة أولاً.");
 
   const pickAsset = (asset: MediaAsset) => {
     const url = mediaUrl(asset.image) ?? null;
@@ -416,8 +425,15 @@ export default function ArticleEditorForm({
               <div className="flex items-center gap-2.5 text-xs text-header-muted">
                 {b.type === "paragraph" && b.text.trim() ? (
                   <>
-                    <span onClick={() => splitBlock(b.id)} title="تقسيم الفقرة عند المؤشر" className="cursor-pointer font-semibold hover:text-accent">
+                    <span onClick={() => splitBlock(b.id)} title="تقسيم المحتوى عند المؤشر" className="cursor-pointer font-semibold hover:text-accent">
                       ✂ تقسيم
+                    </span>
+                    <span
+                      onClick={() => convertSelectionToParagraph(b.id)}
+                      title="حدّد جزءاً من النص لفصله كفقرة مستقلة"
+                      className="cursor-pointer font-semibold hover:text-accent"
+                    >
+                      ¶ فقرة مستقلة
                     </span>
                     <span
                       onClick={() => convertSelectionToHeading(b.id)}
