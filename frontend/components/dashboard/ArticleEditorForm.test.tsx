@@ -141,3 +141,39 @@ describe("ArticleEditorForm scheduling", () => {
     expect(payload.scheduled_for).toBeNull();
   });
 });
+
+describe("ArticleEditorForm author", () => {
+  afterEach(() => {
+    push.mockClear();
+    refresh.mockClear();
+    dashMutate.mockReset();
+  });
+
+  const authors = [
+    { id: 5, name: "سامية فاروق" },
+    { id: 6, name: "أحمد لبيب" },
+  ];
+
+  it("saves with no author at all — the field is optional", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} authors={authors} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر بلا كاتب" } });
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
+    expect(payload.author).toBeNull();
+  });
+
+  it("saves the picked author's id", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} authors={authors} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر لسامية" } });
+    fireEvent.change(screen.getByLabelText("اسم الكاتب"), { target: { value: "5" } });
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
+    expect(payload.author).toBe(5);
+  });
+});
