@@ -40,11 +40,11 @@ export default function TextColorToolbar({
   onClear,
 }: {
   value: string;
-  onApply: (kind: "c" | "h" | "b" | "i" | "u", color?: string) => void;
+  onApply: (kind: "c" | "h" | "b" | "i" | "u" | "L", color?: string) => void;
   onClear: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const hasFormatting = parseInline(value).some((s) => s.color || s.background || s.bold || s.italic || s.underline);
+  const hasFormatting = parseInline(value).some((s) => s.color || s.background || s.bold || s.italic || s.underline || s.large);
 
   // Every control here reads the editor's live text selection at click time
   // (see RichTextEditor's applyFormat) — but a bare mousedown on any element
@@ -88,6 +88,19 @@ export default function TextColorToolbar({
           className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[13px] font-bold text-ink underline hover:bg-surface-2"
         >
           U
+        </button>
+        {/* «فقرة» — the client's own word for a line set bigger and bolder
+            than the body around it, e.g. a lead sentence. Same mechanics as
+            B/I/U: acts on the selection, stays inline in the same box. */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onApply("L")}
+          title="فقرة (نص أكبر وأغمق من باقي المحتوى)"
+          aria-label="فقرة"
+          className="flex h-7 items-center justify-center rounded border border-line bg-surface px-2 text-[13px] font-extrabold text-ink hover:bg-surface-2"
+        >
+          فقرة
         </button>
         <span className="h-5 w-px bg-line" aria-hidden />
         <button

@@ -45,6 +45,20 @@ describe("renderTokensInto / domToTokens round-trip", () => {
     expect(domToTokens(el)).toBe("{c:#B01F2E|b|i|u|كل شيء}");
   });
 
+  it("round-trips the large flag via its own data attribute, not just the bold-looking fontWeight it shares", () => {
+    const el = box();
+    renderTokensInto(el, "{L|فقرة مميزة}");
+
+    const span = el.querySelector("span")!;
+    expect(span.dataset.large).toBe("1");
+    expect(span.style.fontSize).toBe("1.2em");
+
+    // Large also sets fontWeight to look bold, which styleOf() reads back as
+    // an actual bold flag too — harmless (both render identically), just not
+    // byte-identical to the input token.
+    expect(domToTokens(el)).toBe("{b|L|فقرة مميزة}");
+  });
+
   it("merges an ancestor's style into a nested run — the shape typing at a span's edge can leave behind", () => {
     const el = box();
     const outer = document.createElement("span");

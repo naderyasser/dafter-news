@@ -98,7 +98,7 @@ export default function RichTextEditor({
     return { start: rawOffsetFromVisible(value, vis.start), end: rawOffsetFromVisible(value, vis.end), vis };
   };
 
-  const applyFormat = (kind: "c" | "h" | "b" | "i" | "u", color?: string) => {
+  const applyFormat = (kind: "c" | "h" | "b" | "i" | "u" | "L", color?: string) => {
     const el = elRef.current;
     const sel = rawSelection();
     if (!el || !sel) {

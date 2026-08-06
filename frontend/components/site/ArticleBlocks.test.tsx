@@ -126,6 +126,12 @@ describe("ArticleBlocks", () => {
     expect(screen.getByText("تحته خط")).toHaveStyle({ textDecoration: "underline" });
   });
 
+  it("renders the large («فقرة») markup bigger and bold, even without a separate bold flag", () => {
+    render(<ArticleBlocks lang="ar" blocks={[block({ text: "عادي {L|فقرة بارزة} عادي" })]} />);
+
+    expect(screen.getByText("فقرة بارزة")).toHaveStyle({ fontWeight: "700", fontSize: "1.2em" });
+  });
+
   it.each([
     ["left", "text-left"],
     ["center", "text-center"],
