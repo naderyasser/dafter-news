@@ -202,13 +202,24 @@ class ArticleBlock(models.Model):
         QUOTE = "quote", "اقتباس"
         RELATED = "related", "اقرأ أيضاً"
 
+    class Align(models.TextChoices):
+        LEFT = "left", "محاذاة اليسار"
+        CENTER = "center", "محاذاة الوسط"
+        RIGHT = "right", "محاذاة اليمين"
+        JUSTIFY = "justify", "ضبط"
+
     article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="blocks")
     order = models.PositiveSmallIntegerField(default=0)
     type = models.CharField(max_length=10, choices=Type.choices)
     text = models.TextField(blank=True)
-    # Paragraph text alignment — the editor's «ضبط النص» toggle. Only
-    # meaningful for paragraph/quote blocks; harmless (and unread) on the rest.
-    justify = models.BooleanField(default=False, help_text="ضبط النص (Justify) على هذه الفقرة")
+    # Paragraph text alignment — the editor's alignment menu (left/center/
+    # right/justify, the client's literal reference). Only meaningful for
+    # paragraph/quote blocks; harmless (and unread) on the rest. Physical
+    # left/right rather than logical start/end on purpose: the menu is a
+    # deliberate override an editor reaches for, same posture as a word
+    # processor's — it should mean the same side regardless of the
+    # article's own language/direction.
+    align = models.CharField(max_length=10, choices=Align.choices, default=Align.RIGHT, help_text="محاذاة الفقرة")
     image = models.ImageField(upload_to="article_blocks/", blank=True, null=True)
     caption = models.CharField(max_length=240, blank=True)
     credit = models.CharField(max_length=120, blank=True)

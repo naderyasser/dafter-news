@@ -69,8 +69,9 @@ export type ArticleBlock = {
   order: number;
   type: "paragraph" | "heading" | "image" | "quote" | "related";
   text: string;
-  /** «ضبط النص» — justified alignment, paragraph blocks only. */
-  justify: boolean;
+  /** Paragraph alignment — the editor's left/center/right/justify menu.
+   *  Meaningful for paragraph/quote blocks only. */
+  align: "left" | "center" | "right" | "justify";
   image: string | null;
   /** Stored file name (e.g. library/x.jpg) — echoed back on save as
    * keep_image so re-saving an article doesn't strip its photos. */

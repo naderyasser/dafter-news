@@ -16,8 +16,8 @@ type Block = {
   text: string;
   caption: string;
   credit: string;
-  /** «ضبط النص» — justified alignment, paragraph blocks only. */
-  justify: boolean;
+  /** Left/center/right/justify — paragraph blocks only. */
+  align: ArticleBlock["align"];
   /** Library asset chosen in this session — sent as asset_id. */
   assetId: number | null;
   /** Stored file name of an image the block already had — echoed as keep_image. */
@@ -33,11 +33,40 @@ const blankBlock = (id: number, type: Block["type"], text = ""): Block => ({
   text,
   caption: "",
   credit: "",
-  justify: false,
+  align: "right",
   assetId: null,
   imageName: "",
   imageUrl: null,
 });
+
+const ALIGN_OPTIONS: { key: ArticleBlock["align"]; label: string }[] = [
+  { key: "left", label: "محاذاة اليسار" },
+  { key: "center", label: "محاذاة الوسط" },
+  { key: "right", label: "محاذاة اليمين" },
+  { key: "justify", label: "ضبط" },
+];
+
+/**
+ * The word-processor alignment glyph — three bars of varying width laid out
+ * per `align`, matching the client's own reference image exactly rather
+ * than approximating it with a generic icon.
+ */
+function AlignIcon({ align, className = "h-4 w-4" }: { align: ArticleBlock["align"]; className?: string }) {
+  const widths = [16, 11, 13];
+  const x = (w: number) => {
+    if (align === "left") return 1;
+    if (align === "right") return 19 - w;
+    if (align === "justify") return 1;
+    return (20 - w) / 2;
+  };
+  return (
+    <svg viewBox="0 0 20 14" fill="none" aria-hidden className={className}>
+      {widths.map((w, i) => (
+        <rect key={i} x={x(align === "justify" ? 18 : w)} y={1 + i * 5} width={align === "justify" ? 18 : w} height={2} rx={1} fill="currentColor" />
+      ))}
+    </svg>
+  );
+}
 export type EditorSection = { id: number; key: string; label: string };
 
 const BADGES: { key: Badge; label: string }[] = [
@@ -71,7 +100,7 @@ export default function ArticleEditorForm({
       text: b.text,
       caption: b.caption,
       credit: b.credit,
-      justify: b.justify ?? false,
+      align: b.align ?? "right",
       assetId: null,
       imageName: b.image_name ?? "",
       imageUrl: mediaUrl(b.image) ?? null,
@@ -100,6 +129,8 @@ export default function ArticleEditorForm({
   const [coverAssetId, setCoverAssetId] = useState<number | null>(null);
   // Which spot the library picker is choosing for: a block id, or the cover.
   const [pickerFor, setPickerFor] = useState<number | "cover" | null>(null);
+  // Which block's alignment menu is open.
+  const [alignMenuFor, setAlignMenuFor] = useState<number | null>(null);
   // Publishing surfaces: pinning is a stored article field; the two pushes
   // are one-shot actions the server performs on this save (published only).
   const [pinned, setPinned] = useState(initial?.pinned ?? false);
@@ -158,9 +189,8 @@ export default function ArticleEditorForm({
       if (!before || !after) return bs;
       const arr = [...bs];
       arr[i] = { ...arr[i], text: before };
-      // The new half keeps whatever alignment the original paragraph had —
-      // splitting a justified paragraph shouldn't un-justify its second half.
-      arr.splice(i + 1, 0, { ...blankBlock(nextId, "paragraph", after), justify: arr[i].justify });
+      // The new half keeps whatever alignment the original paragraph had.
+      arr.splice(i + 1, 0, { ...blankBlock(nextId, "paragraph", after), align: arr[i].align });
       return arr;
     });
     setNextId((n) => n + 1);
@@ -290,7 +320,7 @@ export default function ArticleEditorForm({
         order: i,
         type: b.type,
         text: b.text,
-        justify: b.justify,
+        align: b.align,
         caption: b.caption,
         credit: b.credit,
         ...(b.assetId ? { asset_id: b.assetId } : b.imageName ? { keep_image: b.imageName } : {}),
@@ -370,12 +400,37 @@ export default function ArticleEditorForm({
                   </>
                 ) : null}
                 {b.type === "paragraph" ? (
-                  <span
-                    onClick={() => updateBlock(b.id, { justify: !b.justify })}
-                    title="ضبط النص (Justify) — يمتد الفقرة على عرض الهامشين"
-                    className={`cursor-pointer font-semibold ${b.justify ? "text-accent" : "hover:text-accent"}`}
-                  >
-                    ≣ ضبط
+                  <span className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setAlignMenuFor(alignMenuFor === b.id ? null : b.id)}
+                      title="محاذاة الفقرة"
+                      aria-label="محاذاة الفقرة"
+                      aria-expanded={alignMenuFor === b.id}
+                      className="flex h-6 w-6 items-center justify-center rounded text-ink-3 hover:bg-surface hover:text-accent"
+                    >
+                      <AlignIcon align={b.align} />
+                    </button>
+                    {alignMenuFor === b.id ? (
+                      <div className="absolute end-0 top-7 z-20 w-44 overflow-hidden rounded-lg border border-line bg-paper py-1 shadow-2">
+                        {ALIGN_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.key}
+                            type="button"
+                            onClick={() => {
+                              updateBlock(b.id, { align: opt.key });
+                              setAlignMenuFor(null);
+                            }}
+                            className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-[12.5px] hover:bg-surface ${
+                              b.align === opt.key ? "font-bold text-brand" : "text-ink"
+                            }`}
+                          >
+                            {opt.label}
+                            <AlignIcon align={opt.key} />
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
                   </span>
                 ) : null}
                 <span onClick={() => moveBlock(b.id, -1)} className="cursor-pointer">
