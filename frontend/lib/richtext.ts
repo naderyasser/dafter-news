@@ -151,6 +151,91 @@ export function stripInline(text: string): string {
   return unnestTokens(text).replace(INLINE, "$2");
 }
 
+/** The inverse of parseInline: segments back to the token grammar. */
+export function serializeSegments(segments: Segment[]): string {
+  return segments
+    .map((s) => {
+      let prefix = "";
+      if (s.color) prefix += `c:${s.color}|`;
+      if (s.background) prefix += `h:${s.background}|`;
+      if (s.bold) prefix += "b|";
+      if (s.italic) prefix += "i|";
+      if (s.underline) prefix += "u|";
+      return prefix ? `{${prefix}${s.text}}` : s.text;
+    })
+    .join("");
+}
+
+/**
+ * Drop all styling from the portion of `segments` between the two VISIBLE
+ * (stripped-text) offsets, keeping whatever sits outside that range styled
+ * exactly as it was — including a segment the range only partially covers,
+ * which gets split into a still-styled part and a now-plain part.
+ *
+ * This is deliberately segment-based rather than a raw-string slice: raw
+ * offsets from rawOffsetFromVisible land *inside* an existing token's
+ * payload on purpose (that's what lets mergeColorWrap fold a new style into
+ * it), which is exactly wrong for clearing — slicing there and splicing the
+ * same substring back in reproduces the original token unchanged, wrapper
+ * and all. Working from the already-parsed segments sidesteps that: there's
+ * no wrapper to accidentally preserve, only styled-or-not runs of text.
+ */
+export function clearRangeInSegments(segments: Segment[], start: number, end: number): Segment[] {
+  const out: Segment[] = [];
+  let pos = 0;
+  for (const seg of segments) {
+    const segStart = pos;
+    const segEnd = pos + seg.text.length;
+    pos = segEnd;
+    const overlapStart = Math.max(segStart, start);
+    const overlapEnd = Math.min(segEnd, end);
+    if (overlapStart >= overlapEnd) {
+      if (seg.text) out.push(seg);
+      continue;
+    }
+    if (overlapStart > segStart) out.push({ ...seg, text: seg.text.slice(0, overlapStart - segStart) });
+    out.push({ text: seg.text.slice(overlapStart - segStart, overlapEnd - segStart) });
+    if (overlapEnd < segEnd) out.push({ ...seg, text: seg.text.slice(overlapEnd - segStart) });
+  }
+  return out;
+}
+
+/**
+ * Map a position in the STRIPPED text — what RichTextEditor's live,
+ * hex-free box actually shows and lets the editor select — back to the
+ * equivalent position in the raw token string, i.e. what mergeColorWrap and
+ * the plain-wrap fallback expect as `start`/`end`.
+ *
+ * A visible offset sitting exactly on the boundary of a token resolves to
+ * *inside* that token (its first/last raw position) rather than just before
+ * the opening `{` — the case a browser selection actually produces when an
+ * editor selects a coloured word by, say, double-clicking it. Landing at the
+ * closing `}` for an end-offset is deliberate too: it's exactly what
+ * mergeColorWrap's `value[end] !== "}"` check needs to recognise the
+ * selection as sitting inside an existing token.
+ */
+export function rawOffsetFromVisible(value: string, visibleOffset: number): number {
+  const normalised = unnestTokens(value);
+  let visPos = 0;
+  let last = 0;
+  for (const m of normalised.matchAll(INLINE)) {
+    const at = m.index ?? 0;
+    const plainLen = at - last;
+    if (visibleOffset < visPos + plainLen) return last + (visibleOffset - visPos);
+    visPos += plainLen;
+    last = at;
+
+    const [, prefix, inner] = m;
+    if (visibleOffset <= visPos + inner.length) {
+      const innerRawStart = at + 1 + prefix.length; // "{" + prefix, then the payload
+      return innerRawStart + (visibleOffset - visPos);
+    }
+    visPos += inner.length;
+    last = at + m[0].length;
+  }
+  return last + (visibleOffset - visPos);
+}
+
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
 /** Sentence enders, Arabic and Latin. `،` is a comma and deliberately absent. */

@@ -6,6 +6,8 @@ import { useRef, useState } from "react";
 import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { dashMutate, dashUpload, describeApiError, mediaUrl } from "@/lib/api";
+import { getVisibleSelection } from "@/lib/richTextDom";
+import { rawOffsetFromVisible, stripInline } from "@/lib/richtext";
 import type { ArticleBlock, ArticleDetail, Badge, MediaAsset } from "@/lib/types";
 
 type Block = {
@@ -76,8 +78,8 @@ export default function ArticleEditorForm({
     })) ?? [blankBlock(1, "paragraph")],
   );
   const [nextId, setNextId] = useState((blocks.at(-1)?.id ?? 0) + 1);
-  // Keyed by block id, not index, so reordering a block keeps its textarea.
-  const bodyRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
+  // Keyed by block id, not index, so reordering a block keeps its field.
+  const bodyRefs = useRef<Record<number, HTMLDivElement | null>>({});
   // Keyed the same way, for the "upload from device" file input on each image block.
   const imageFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [section, setSection] = useState(initial?.section?.key ?? sections[0]?.key ?? "egypt");
@@ -136,12 +138,19 @@ export default function ArticleEditorForm({
    */
   const splitBlock = (id: number) => {
     const el = bodyRefs.current[id];
+    // Read the field's live selection now, at click time — the field itself
+    // (a contentEditable) only ever knows PLAIN-text offsets, so this needs
+    // rawOffsetFromVisible to land on the equivalent spot in the block's
+    // actual (possibly coloured/formatted) stored text.
+    const vis = el ? getVisibleSelection(el) : null;
     setBlocks((bs) => {
       const i = bs.findIndex((b) => b.id === id);
       if (i === -1) return bs;
-      const at = el ? el.selectionStart : Math.floor(bs[i].text.length / 2);
-      const before = bs[i].text.slice(0, at).trim();
-      const after = bs[i].text.slice(at).trim();
+      const text = bs[i].text;
+      const visAt = vis ? vis.start : Math.floor(stripInline(text).length / 2);
+      const at = rawOffsetFromVisible(text, visAt);
+      const before = text.slice(0, at).trim();
+      const after = text.slice(at).trim();
       if (!before || !after) return bs;
       const arr = [...bs];
       arr[i] = { ...arr[i], text: before };
@@ -162,23 +171,28 @@ export default function ArticleEditorForm({
    */
   const convertSelectionToHeading = (id: number) => {
     const el = bodyRefs.current[id];
-    if (!el || el.selectionStart === el.selectionEnd) {
+    const vis = el ? getVisibleSelection(el) : null;
+    if (!vis || vis.start === vis.end) {
       window.alert("حدّد الجملة التي تريد تحويلها إلى عنوان فرعي أولاً.");
       return;
     }
-    const { selectionStart: start, selectionEnd: end } = el;
     setBlocks((bs) => {
       const i = bs.findIndex((b) => b.id === id);
       if (i === -1) return bs;
-      const before = bs[i].text.slice(0, start).trim();
-      const selected = bs[i].text.slice(start, end).trim();
-      const after = bs[i].text.slice(end).trim();
+      const text = bs[i].text;
+      const start = rawOffsetFromVisible(text, vis.start);
+      const end = rawOffsetFromVisible(text, vis.end);
+      const before = text.slice(0, start).trim();
+      // Headings render as plain text on the public page (no colour/format
+      // markup support there), so a lifted selection can't carry any along.
+      const selected = stripInline(text.slice(start, end)).trim();
+      const after = text.slice(end).trim();
       if (!selected) return bs;
 
       let id2 = nextId;
       const replacement: Block[] = [];
       if (before) replacement.push(blankBlock(id2++, "paragraph", before));
-      replacement.push({ ...blankBlock(id2++, "heading", selected) });
+      replacement.push(blankBlock(id2++, "heading", selected));
       if (after) replacement.push(blankBlock(id2++, "paragraph", after));
 
       const arr = [...bs];
@@ -375,7 +389,7 @@ export default function ArticleEditorForm({
                 value={b.text}
                 onChange={(text) => updateBlock(b.id, { text })}
                 placeholder={b.type === "paragraph" ? "نص الفقرة" : "نص الاقتباس"}
-                registerTextarea={(el) => {
+                registerField={(el) => {
                   bodyRefs.current[b.id] = el;
                 }}
               />

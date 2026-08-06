@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { mergeColorWrap, paginateBlocks, parseInline, splitLongParagraph, stripInline } from "./richtext";
+import {
+  clearRangeInSegments,
+  mergeColorWrap,
+  paginateBlocks,
+  parseInline,
+  rawOffsetFromVisible,
+  serializeSegments,
+  splitLongParagraph,
+  stripInline,
+} from "./richtext";
 
 const sentence = (n: number) => `هذه الجملة رقم ${n} وفيها عدد من الكلمات المتوسطة الطول لاختبار التقسيم الصحيح.`;
 const para = (count: number) =>
@@ -129,6 +138,50 @@ describe("mergeColorWrap", () => {
   });
 });
 
+describe("rawOffsetFromVisible", () => {
+  // "قبل " (4) + "أحمر" (4, coloured) + " بعد" (4) — stripped: "قبل أحمر بعد"
+  const value = "قبل {c:#B01F2E|أحمر} بعد";
+  const raw = (visible: number) => rawOffsetFromVisible(value, visible);
+
+  it("is the identity mapping when there's no markup at all", () => {
+    expect(rawOffsetFromVisible("hello world", 6)).toBe(6);
+  });
+
+  it("maps a position before any token straight through", () => {
+    expect(raw(2)).toBe(2); // inside "قب"
+  });
+
+  it("lands inside the token's payload for a position within the coloured word", () => {
+    // visible index 6 = 2 characters into "أحمر" ("قبل " + "أح" = 6)
+    expect(raw(6)).toBe(value.indexOf("أحمر") + 2);
+  });
+
+  it("resolves a boundary right before a coloured word to the start of its payload, not the opening brace", () => {
+    // visible index 4 = right where "أحمر" begins
+    expect(raw(4)).toBe(value.indexOf("أحمر"));
+  });
+
+  it("resolves the boundary right after a coloured word to its closing brace — what mergeColorWrap's value[end] check needs", () => {
+    // visible index 8 = right after "أحمر" ends
+    const end = raw(8);
+    expect(value[end]).toBe("}");
+  });
+
+  it("maps a position after the token straight through, offset by the token's raw overhead", () => {
+    // visible index 10 = 2 characters into " بعد"
+    expect(raw(10)).toBe(value.indexOf("}") + 1 + 2);
+  });
+
+  it("round-trips through mergeColorWrap for a selection landing exactly on the coloured word", () => {
+    // Exactly what a double-click-to-select would produce in the live box.
+    const start = raw(4);
+    const end = raw(8);
+    const merged = mergeColorWrap(value, start, end, "b");
+    expect(merged).not.toBeNull();
+    expect(merged!.next).toBe("قبل {c:#B01F2E|b|أحمر} بعد");
+  });
+});
+
 describe("stripInline", () => {
   it("leaves the words and drops the tokens", () => {
     expect(stripInline("قبل {c:#B01F2E|ملوّن} بعد")).toBe("قبل ملوّن بعد");
@@ -136,6 +189,52 @@ describe("stripInline", () => {
 
   it("drops a stacked colour+highlight token cleanly", () => {
     expect(stripInline("قبل {c:#0E4B7B|h:#FFF3B0|ملوّن} بعد")).toBe("قبل ملوّن بعد");
+  });
+});
+
+describe("serializeSegments", () => {
+  it("round-trips through parseInline", () => {
+    const value = "قبل {c:#B01F2E|b|أحمر} بعد";
+    expect(serializeSegments(parseInline(value))).toBe(value);
+  });
+
+  it("emits plain text with no wrapper at all", () => {
+    expect(serializeSegments([{ text: "نص عادي" }])).toBe("نص عادي");
+  });
+
+  it("orders a segment's stacked flags the same way COLOR_OPEN/mergeColorWrap do — c, h, b, i, u", () => {
+    expect(serializeSegments([{ text: "س", color: "#111111", underline: true, bold: true }])).toBe("{c:#111111|b|u|س}");
+  });
+});
+
+describe("clearRangeInSegments", () => {
+  it("strips styling only from the part of a segment the range covers, splitting it in two", () => {
+    // "قبل أحمر بعد" — clear just "أحمر" (visible offsets 4..8).
+    const segments = parseInline("قبل {c:#B01F2E|أحمر} بعد");
+    const cleared = clearRangeInSegments(segments, 4, 8);
+    expect(serializeSegments(cleared)).toBe("قبل أحمر بعد");
+  });
+
+  it("leaves segments entirely outside the range untouched", () => {
+    const segments = parseInline("{c:#B01F2E|أحمر} {h:#FFF3B0|مظلّل}");
+    // Clear only the first word (0..4); the highlighted one must survive.
+    const cleared = clearRangeInSegments(segments, 0, 4);
+    expect(serializeSegments(cleared)).toBe("أحمر {h:#FFF3B0|مظلّل}");
+  });
+
+  it("splits a segment the range only partially overlaps, keeping styling on the untouched part", () => {
+    // "أحمر جداً" all coloured — clear only "جداً" (visible offsets 5..9).
+    const segments = parseInline("{c:#B01F2E|أحمر جداً}");
+    const cleared = clearRangeInSegments(segments, 5, 9);
+    expect(cleared).toEqual([
+      { text: "أحمر ", color: "#B01F2E" },
+      { text: "جداً" },
+    ]);
+  });
+
+  it("clears everything when the range spans the whole text", () => {
+    const segments = parseInline("{c:#B01F2E|كل النص هنا}");
+    expect(serializeSegments(clearRangeInSegments(segments, 0, "كل النص هنا".length))).toBe("كل النص هنا");
   });
 });
 
