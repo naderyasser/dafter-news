@@ -1,77 +1,55 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 
 import CoverImage from "@/components/ui/CoverImage";
-import { formatDate } from "@/lib/format";
+import { formatDate, toEasternNumerals } from "@/lib/format";
 import { sectionArtUrl } from "@/lib/sections";
-import type { FrontProps, FrontStory } from "./types";
+import type { FrontProps } from "./types";
 
 const T = {
-  ar: { drop: "أفلت صورة العمل هنا", empty: "لا موضوعات على هذا المكتب بعد." },
-  en: { drop: "Drop image here", empty: "Nothing on this desk yet." },
+  ar: { drop: "أفلت صورة العمل هنا", empty: "لا موضوعات على هذا المكتب بعد.", prev: "السابق", next: "التالي" },
+  en: { drop: "Drop image here", empty: "Nothing on this desk yet.", prev: "Previous", next: "Next" },
 };
 
-/**
- * The salon hang: five slots that repeat, so a wall of any length keeps its
- * rhythm without anything being placed at random.
- *
- * Two wide works to a row, then three narrow ones — the alternation a curator
- * uses to stop a hang reading as a spreadsheet. The aspect ratios differ per
- * slot for the same reason: identical crops are what make a culture page look
- * like a stock grid no matter how good the photography is.
- */
-const HANG = [
-  { span: "sm:col-span-3", ratio: "aspect-[4/5]" },
-  { span: "sm:col-span-3", ratio: "aspect-[4/3]" },
-  { span: "sm:col-span-2", ratio: "aspect-[1/1]" },
-  { span: "sm:col-span-2", ratio: "aspect-[3/4]" },
-  { span: "sm:col-span-2", ratio: "aspect-[1/1]" },
-];
+function Chevron({ dir, className = "" }: { dir: "left" | "right"; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d={dir === "left" ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+    </svg>
+  );
+}
 
 /**
- * «ثقافة وفن» — the gallery wall.
+ * «ثقافة وفن» — the story reel.
  *
- * The old culture page was two columns of equal photo cards, each printing its
- * headline and then the same sentence again as a standfirst. It was the single
- * most templated page on the site, on the one desk whose whole subject is how
- * things look.
- *
- * So every piece is hung as a work: a white mat, a hairline frame, and a
- * museum label centred underneath carrying the title, the writer and the date.
- * The frames are deliberately different sizes and crops — a wall, not a grid.
- * The label is the signature, and everything else on the page stays quiet
- * enough to let the pictures do the work.
+ * The client forwarded a WhatsApp Status ad — one work at a time, full-bleed
+ * photo, a coloured caption bar with paging arrows either side of the title —
+ * and asked for exactly that in place of the old gallery-wall hang. So this
+ * front now pages through the desk's stories one at a time instead of laying
+ * them all out at once; the caption bar reads in the desk's own accent rather
+ * than the ad's blue, which is the one thing every front on the site already
+ * agrees on.
  */
 export default function CultureFront({ lang, accent, sectionKey, title, tagline, stories }: FrontProps) {
   const isAr = lang === "ar";
   const t = T[lang];
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
   const art = sectionArtUrl(sectionKey, accent, 5);
-  const accentVar = { "--card-accent": accent } as React.CSSProperties;
-  const [feature, ...wall] = stories;
+  const [index, setIndex] = useState(0);
+  const active = stories[index];
 
-  const Label = ({ s, large = false }: { s: FrontStory; large?: boolean }) => (
-    <figcaption className="mt-3 text-center">
-      <h3 className={`${fontDisplay} card-title m-0 font-extrabold leading-[1.5] text-ink ${large ? "text-[clamp(1.125rem,.95rem+1vw,1.5rem)]" : "text-[15px]"}`}>
-        {s.title}
-      </h3>
-      <p className="mt-1.5 text-[12px] leading-[1.6] text-ink-3">
-        {s.authorName && (
-          <span className="font-bold" style={{ color: accent }}>
-            {s.authorName}
-          </span>
-        )}
-        {s.authorName && (s.iso || s.time) && <span aria-hidden> · </span>}
-        {formatDate(s.iso, lang) || s.time}
-      </p>
-    </figcaption>
-  );
+  // Physical left/right, not reading-direction start/end — these are paging
+  // buttons on a photo viewer, not text controls, and the client's reference
+  // image put "previous" on the left regardless of script.
+  const go = (delta: number) => setIndex((i) => (i + delta + stories.length) % stories.length);
 
   return (
     <>
       {/* Masthead: the introduction panel at a gallery entrance — centred
           inside a hairline frame, with the palette mark set small above the
-          name rather than ghosted behind it. The only symmetrical masthead on
-          the site, because everything below it is hung symmetrically too. */}
+          name rather than ghosted behind it. */}
       <header className="relative mx-auto mb-10 max-w-[620px] border px-6 py-7 text-center" style={{ borderColor: accent }}>
         {art && (
           <span
@@ -86,42 +64,54 @@ export default function CultureFront({ lang, accent, sectionKey, title, tagline,
         {tagline && <p className="mx-auto mt-2.5 max-w-[46ch] text-[14.5px] leading-[1.8] text-ink-2">{tagline}</p>}
       </header>
 
-      {!feature && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
+      {!active && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
 
-      {/* The featured work, hung on its own and centred. */}
-      {feature && (
-        <Link href={feature.href} className="card-link mx-auto mb-11 block max-w-[560px] no-underline" style={accentVar}>
-          <figure className="m-0">
-            <span className="block bg-paper p-3 shadow-2 ring-1 ring-line">
-              <span className="relative block aspect-[5/4] overflow-hidden ring-1 ring-ink/10">
-                <CoverImage src={feature.imageSrc} alt={feature.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 640px) 560px, 100vw" />
-              </span>
+      {active && (
+        <div className="mx-auto mb-10 max-w-[420px] overflow-hidden rounded-[26px] bg-paper shadow-2 ring-1 ring-line">
+          <Link href={active.href} className="block no-underline">
+            <span className="relative block aspect-[4/3]">
+              <CoverImage src={active.imageSrc} alt={active.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 640px) 420px, 100vw" />
             </span>
-            <Label s={feature} large />
-            {feature.standfirst && (
-              <p className="mx-auto mt-2 max-w-[46ch] text-center text-[14px] leading-[1.75] text-ink-2">{feature.standfirst}</p>
-            )}
-          </figure>
-        </Link>
-      )}
+          </Link>
 
-      {wall.length > 0 && (
-        <div className="grid gap-x-6 gap-y-9 sm:grid-cols-6">
-          {wall.map((s, i) => {
-            const slot = HANG[i % HANG.length];
-            return (
-              <Link key={s.id} href={s.href} className={`card-link block no-underline ${slot.span}`} style={accentVar}>
-                <figure className="m-0">
-                  <span className="block bg-paper p-2.5 shadow-1 ring-1 ring-line">
-                    <span className={`relative block overflow-hidden ring-1 ring-ink/10 ${slot.ratio}`}>
-                      <CoverImage src={s.imageSrc} alt={s.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 640px) 33vw, 100vw" />
-                    </span>
-                  </span>
-                  <Label s={s} />
-                </figure>
-              </Link>
-            );
-          })}
+          <div className="relative flex items-center gap-3 px-3 py-5" style={{ backgroundColor: accent }}>
+            {stories.length > 1 && (
+              <button
+                type="button"
+                onClick={() => go(-1)}
+                aria-label={t.prev}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
+              >
+                <Chevron dir="left" className="h-5 w-5" />
+              </button>
+            )}
+
+            <Link href={active.href} className="flex-1 text-center no-underline">
+              <h2 className={`${fontDisplay} m-0 text-[16px] font-extrabold leading-[1.5] text-white`}>{active.title}</h2>
+              <p className="mt-1.5 text-[11.5px] font-semibold text-white/70">
+                {active.authorName && <span>{active.authorName}</span>}
+                {active.authorName && (active.iso || active.time) && <span aria-hidden> · </span>}
+                {formatDate(active.iso, lang) || active.time}
+              </p>
+            </Link>
+
+            {stories.length > 1 && (
+              <button
+                type="button"
+                onClick={() => go(1)}
+                aria-label={t.next}
+                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-white/20 text-white transition-colors hover:bg-white/30"
+              >
+                <Chevron dir="right" className="h-5 w-5" />
+              </button>
+            )}
+          </div>
+
+          {stories.length > 1 && (
+            <div className="tnum flex justify-center gap-1 border-t border-line bg-paper py-2 text-[11px] font-semibold text-ink-3">
+              {isAr ? toEasternNumerals(index + 1) : index + 1} / {isAr ? toEasternNumerals(stories.length) : stories.length}
+            </div>
+          )}
         </div>
       )}
     </>
