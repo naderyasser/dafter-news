@@ -290,8 +290,12 @@ export default function ArticleEditorForm({
     setStandfirst(draft.standfirst);
     setByline(draft.byline);
     let id = nextId;
-    const imported = draft.paragraphs.map((text) => blankBlock(id++, "paragraph", text));
-    setBlocks(imported.length ? imported : [blankBlock(id++, "paragraph")]);
+    // One block, not one per source <p> — a scraped page often runs one
+    // sentence per tag, which would hand the editor a wall of tiny boxes to
+    // fight with. Merged into a single block, the editor keeps the ✂ تقسيم
+    // tool to split it wherever they actually want a break.
+    const body = draft.paragraphs.join(" ").trim();
+    setBlocks([blankBlock(id++, "paragraph", body)]);
     setNextId(id);
     if (draft.cover_asset_id) {
       setCoverAssetId(draft.cover_asset_id);

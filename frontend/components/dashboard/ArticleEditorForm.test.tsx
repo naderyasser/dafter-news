@@ -290,11 +290,11 @@ describe("ArticleEditorForm import from URL", () => {
 
     expect(screen.getByPlaceholderText("عنوان الخبر")).toHaveValue("عنوان من الاستيراد");
     expect(screen.getByLabelText("اسم الكاتب")).toHaveValue("منقول عن example.com");
-    expect(screen.getByText("الفقرة الأولى المستوردة.")).toBeInTheDocument();
+    expect(screen.getByText("الفقرة الأولى المستوردة. الفقرة الثانية المستوردة.")).toBeInTheDocument();
 
     await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string }[] }];
-    expect(payload.blocks.map((b) => b.text)).toEqual(["الفقرة الأولى المستوردة.", "الفقرة الثانية المستوردة."]);
+    expect(payload.blocks.map((b) => b.text)).toEqual(["الفقرة الأولى المستوردة. الفقرة الثانية المستوردة."]);
   });
 });
