@@ -39,6 +39,7 @@ const blankBlock = (id: number, type: Block["type"], text = ""): Block => ({
   imageUrl: null,
 });
 export type EditorSection = { id: number; key: string; label: string };
+export type EditorAuthor = { id: number; name: string };
 
 const BADGES: { key: Badge; label: string }[] = [
   { key: "none", label: "بدون" },
@@ -56,10 +57,12 @@ export default function ArticleEditorForm({
   initial,
   articleId,
   sections,
+  authors = [],
 }: {
   initial: ArticleDetail | null;
   articleId?: number;
   sections: EditorSection[];
+  authors?: EditorAuthor[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -83,6 +86,9 @@ export default function ArticleEditorForm({
   // Keyed the same way, for the "upload from device" file input on each image block.
   const imageFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [section, setSection] = useState(initial?.section?.key ?? sections[0]?.key ?? "egypt");
+  // «اسم الكاتب» — اختياري: Article.author is nullable, so "no author picked"
+  // is a real, supported state, not just an empty placeholder.
+  const [authorId, setAuthorId] = useState<number | null>(initial?.author?.id ?? null);
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
   const [country, setCountry] = useState(initial?.country ?? "");
   const [badge, setBadge] = useState<Badge>(initial?.badge ?? "none");
@@ -279,6 +285,7 @@ export default function ArticleEditorForm({
       badge,
       language: lang,
       section: sectionId,
+      author: authorId,
       subcategory: subcategory.trim(),
       country: country.trim(),
       blocks: blocks.map((b, i) => ({
@@ -493,6 +500,24 @@ export default function ArticleEditorForm({
               </button>
             ))}
           </div>
+        </div>
+        <div className="rounded-card border border-line bg-paper p-4">
+          <div className="mb-2.5 text-[13px] font-bold">
+            اسم الكاتب <span className="font-normal text-ink-3">(اختياري)</span>
+          </div>
+          <select
+            value={authorId ?? ""}
+            onChange={(e) => setAuthorId(e.target.value ? Number(e.target.value) : null)}
+            aria-label="اسم الكاتب"
+            className="w-full rounded-lg border border-line bg-paper px-2.5 py-2 text-[13px] outline-none focus:border-brand"
+          >
+            <option value="">— بدون كاتب —</option>
+            {authors.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">صورة الغلاف</div>
