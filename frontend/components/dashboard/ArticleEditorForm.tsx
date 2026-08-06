@@ -763,7 +763,7 @@ export default function ArticleEditorForm({
 
         <div className="flex gap-2.5">
           <button onClick={() => save("draft")} disabled={saving} className="flex-1 rounded-lg border border-line-strong bg-paper py-2.5 text-[13px] font-bold text-ink disabled:opacity-60">
-            حفظ كمسودة
+            حفظ كأرشفة
           </button>
           <button onClick={() => save("published")} disabled={saving} className="flex-1 rounded-lg bg-brand py-2.5 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-60">
             حفظ ونشر
