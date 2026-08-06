@@ -112,6 +112,14 @@ export default function ArticleEditorForm({
   const bodyRefs = useRef<Record<number, HTMLDivElement | null>>({});
   // Keyed the same way, for the "upload from device" file input on each image block.
   const imageFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  // Same idea for «+ صورة»'s own "رفع من الجهاز" file input on paragraph/quote
+  // blocks — a separate map since the two never coexist on one block (only
+  // "image"-type blocks render the one above).
+  const inlineImageFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  // Where the cursor was when insertInlineImageFromDevice was clicked, for
+  // uploadInlineImage's onChange handler to insert into once a file lands.
+  const pendingInlineUpload = useRef<{ blockId: number; offset: number } | null>(null);
+  const coverFileRef = useRef<HTMLInputElement | null>(null);
   const [section, setSection] = useState(initial?.section?.key ?? sections[0]?.key ?? "egypt");
   // «اسم الكاتب» — يُكتب يدوياً، اختياري. منفصل عن حساب Article.author (نظام
   // «بالعقل والمنطق»/الكتّاب المسجّلين) — هذا مجرد اسم يظهر تحت العنوان بلا
@@ -260,13 +268,29 @@ export default function ArticleEditorForm({
    * selection at all (field not focused) falls back to the end of the text,
    * same spirit as "append" rather than a guess at the middle.
    */
-  const insertInlineImage = (id: number) => {
+  const captureInsertOffset = (id: number): number | null => {
     const block = blocks.find((b) => b.id === id);
-    if (!block) return;
+    if (!block) return null;
     const el = bodyRefs.current[id];
     const vis = el ? getVisibleSelection(el) : null;
     const visibleAt = vis ? vis.start : stripInline(block.text).length;
-    setPickerFor({ blockId: id, offset: rawOffsetFromVisible(block.text, visibleAt) });
+    return rawOffsetFromVisible(block.text, visibleAt);
+  };
+
+  const insertInlineImage = (id: number) => {
+    const offset = captureInsertOffset(id);
+    if (offset === null) return;
+    setPickerFor({ blockId: id, offset });
+  };
+
+  /** «رفع من الجهاز» half of «+ صورة» — captures the cursor the same way
+   *  insertInlineImage does, then hands off to the block's own hidden file
+   *  input (uploadInlineImage does the actual upload once a file is picked). */
+  const insertInlineImageFromDevice = (id: number) => {
+    const offset = captureInsertOffset(id);
+    if (offset === null) return;
+    pendingInlineUpload.current = { blockId: id, offset };
+    inlineImageFileRefs.current[id]?.click();
   };
 
   const pickAsset = (asset: MediaAsset) => {
@@ -296,6 +320,21 @@ export default function ArticleEditorForm({
   };
 
   /**
+   * Every upload needs a real name, not the camera's own filename — «كل
+   * صورة تنرفع يكون الها اسم بحيث يكون في ترتيب بداتا الموقع»: the media
+   * library is searched by name (see MediaLibraryPicker), so an asset filed
+   * under "IMG_20260512_finalfinal2" is effectively unfindable later. Null
+   * means the editor cancelled — callers must not upload without a name
+   * rather than silently falling back to the filename.
+   */
+  const promptForImageTitle = (file: File): string | null => {
+    const suggested = file.name.replace(/\.[^.]+$/, "");
+    const name = window.prompt("اسم الصورة (يساعد على ترتيب المكتبة والبحث عنها لاحقاً):", suggested);
+    if (name === null) return null;
+    return name.trim() || suggested;
+  };
+
+  /**
    * «رفع صورة من الجهاز» for an in-body image block. Uploads straight to the
    * media library (same endpoint MediaManager's own uploader uses) and then
    * points the block at the created asset — so a photo dropped mid-article
@@ -303,11 +342,13 @@ export default function ArticleEditorForm({
    * this block can see.
    */
   const uploadBlockImage = async (id: number, file: File) => {
+    const title = promptForImageTitle(file);
+    if (title === null) return;
     setError("");
     try {
       const form = new FormData();
       form.append("image", file);
-      form.append("title", file.name.replace(/\.[^.]+$/, ""));
+      form.append("title", title);
       const created = await dashUpload<MediaAsset>("/media/", "POST", form);
       updateBlock(id, {
         assetId: created.id,
@@ -315,6 +356,44 @@ export default function ArticleEditorForm({
         imageUrl: mediaUrl(created.image) ?? null,
         credit: created.credit,
       });
+    } catch {
+      setError("تعذّر رفع الصورة. تأكد من نوع الملف وحاول مرة أخرى.");
+    }
+  };
+
+  /** Same upload, for the cover slot. */
+  const uploadCoverImage = async (file: File) => {
+    const title = promptForImageTitle(file);
+    if (title === null) return;
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      form.append("title", title);
+      const created = await dashUpload<MediaAsset>("/media/", "POST", form);
+      setCoverAssetId(created.id);
+      setCoverUrl(mediaUrl(created.image) ?? null);
+    } catch {
+      setError("تعذّر رفع الصورة. تأكد من نوع الملف وحاول مرة أخرى.");
+    }
+  };
+
+  /**
+   * Same upload again, for «+ صورة»'s "رفع من الجهاز" — inserted as an
+   * `{img:…}` token at the cursor position captured when the button was
+   * clicked (see insertInlineImage's own doc comment for why that has to
+   * happen before the async upload, not after).
+   */
+  const uploadInlineImage = async (id: number, offset: number, file: File) => {
+    const title = promptForImageTitle(file);
+    if (title === null) return;
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      form.append("title", title);
+      const created = await dashUpload<MediaAsset>("/media/", "POST", form);
+      setBlocks((bs) => bs.map((b) => (b.id === id ? { ...b, text: b.text.slice(0, offset) + `{img:${created.image}}` + b.text.slice(offset) } : b)));
     } catch {
       setError("تعذّر رفع الصورة. تأكد من نوع الملف وحاول مرة أخرى.");
     }
@@ -483,14 +562,40 @@ export default function ArticleEditorForm({
                   </>
                 ) : null}
                 {b.type === "paragraph" || b.type === "quote" ? (
-                  <span
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => insertInlineImage(b.id)}
-                    title="إضافة صورة عند مكان المؤشر داخل النص"
-                    className="cursor-pointer font-semibold hover:text-accent"
-                  >
-                    🖼 صورة
-                  </span>
+                  <>
+                    <span
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => insertInlineImage(b.id)}
+                      title="إضافة صورة من المكتبة عند مكان المؤشر داخل النص"
+                      className="cursor-pointer font-semibold hover:text-accent"
+                    >
+                      🖼 من المكتبة
+                    </span>
+                    <span
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => insertInlineImageFromDevice(b.id)}
+                      title="رفع صورة من الجهاز عند مكان المؤشر داخل النص"
+                      className="cursor-pointer font-semibold hover:text-accent"
+                    >
+                      ⬆ رفع صورة
+                    </span>
+                    <input
+                      ref={(el) => {
+                        inlineImageFileRefs.current[b.id] = el;
+                      }}
+                      type="file"
+                      accept="image/*"
+                      aria-label="رفع صورة داخل النص من الجهاز"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        const pending = pendingInlineUpload.current;
+                        if (f && pending && pending.blockId === b.id) uploadInlineImage(pending.blockId, pending.offset, f);
+                        pendingInlineUpload.current = null;
+                        e.target.value = "";
+                      }}
+                    />
+                  </>
                 ) : null}
                 {b.type === "paragraph" ? (
                   <span className="relative">
@@ -680,6 +785,28 @@ export default function ArticleEditorForm({
               </span>
             ) : null}
           </button>
+          {/* Upload a new file straight from the device — an alternative to
+              picking an existing library asset, same as the in-body image
+              block already offers. */}
+          <button
+            type="button"
+            onClick={() => coverFileRef.current?.click()}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface py-2 text-[12px] font-semibold text-header-muted hover:border-accent hover:text-accent"
+          >
+            <span aria-hidden>⬆</span> رفع صورة من الجهاز
+          </button>
+          <input
+            ref={coverFileRef}
+            type="file"
+            accept="image/*"
+            aria-label="رفع صورة الغلاف من الجهاز"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) uploadCoverImage(f);
+              e.target.value = "";
+            }}
+          />
           <div className="mt-2 text-[11px] leading-relaxed text-ink-3">
             ابحث باسم الصورة أو الشخصية — الصور المرفوعة سابقاً تُعاد بلا رفع جديد وبحقوقها المسجلة.
           </div>
