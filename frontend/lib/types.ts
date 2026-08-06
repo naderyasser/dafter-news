@@ -90,6 +90,9 @@ export type ArticleDetail = {
   subcategory: string;
   country: string;
   author: Author | null;
+  /** Manual byline typed in the editor — wins over `author`'s name
+   *  wherever a card/list shows one; see content/serializers.py. */
+  byline: string;
   tags: Tag[];
   language: "ar" | "en";
   related_article: number | null;

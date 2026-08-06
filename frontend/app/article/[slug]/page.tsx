@@ -91,11 +91,17 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           )}
 
           <div className="mb-2 flex flex-wrap items-center gap-2 border-y border-line py-3 text-[14px] text-ink-3">
-            {article.author && (
+            {/* A manual byline is a deliberate override — same priority as
+                ArticleCardSerializer.get_author_name — so it wins even when
+                an account also happens to be linked, and has no profile to
+                link out to since it isn't one. */}
+            {article.byline ? (
+              <span className="font-bold text-ink-2">{article.byline}</span>
+            ) : article.author ? (
               <Link href={`/authors/${article.author.username}`} className="font-bold text-ink-2 no-underline">
                 {article.author.name}
               </Link>
-            )}
+            ) : null}
             <span>•</span>
             <span>{formatDate(article.published_at, "ar")}</span>
             <span>•</span>

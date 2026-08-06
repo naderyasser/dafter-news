@@ -62,13 +62,17 @@ class ArticleCardSerializer(serializers.ModelSerializer):
     section_name = serializers.SerializerMethodField()
     href_slug = serializers.CharField(source="slug", read_only=True)
     comment_count = serializers.IntegerField(read_only=True, default=0)
-    author_name = serializers.CharField(source="author.display_name", read_only=True, default=None)
-    author_name_en = serializers.CharField(source="author.name_en", read_only=True, default=None)
-    author_username = serializers.CharField(source="author.username", read_only=True, default=None)
-    author_initial = serializers.CharField(source="author.initial", read_only=True, default=None)
+    # A manual byline (typed in the editor) wins over a linked account
+    # entirely when both are set, not just its name — a deliberate override
+    # of "who wrote this", so a card must not still link out to a different
+    # person's profile or photo under the overridden name.
+    author_name = serializers.SerializerMethodField()
+    author_name_en = serializers.SerializerMethodField()
+    author_username = serializers.SerializerMethodField()
+    author_initial = serializers.SerializerMethodField()
     # The «ملف خاص» rail puts the investigator's face on the card — the
     # journalist chip is that section's whole visual identity.
-    author_avatar = serializers.ImageField(source="author.avatar", read_only=True, default=None)
+    author_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
@@ -82,6 +86,33 @@ class ArticleCardSerializer(serializers.ModelSerializer):
     def get_section_name(self, obj):
         return section_name_for(obj)
 
+    def get_author_name(self, obj):
+        byline = obj.byline.strip()
+        if byline:
+            return byline
+        return obj.author.display_name if obj.author_id else None
+
+    def get_author_initial(self, obj):
+        byline = obj.byline.strip()
+        if byline:
+            return byline[:1]
+        return obj.author.initial if obj.author_id else None
+
+    def get_author_name_en(self, obj):
+        if obj.byline.strip():
+            return None
+        return obj.author.name_en if obj.author_id else None
+
+    def get_author_username(self, obj):
+        if obj.byline.strip():
+            return None
+        return obj.author.username if obj.author_id else None
+
+    def get_author_avatar(self, obj):
+        if obj.byline.strip() or not obj.author_id or not obj.author.avatar:
+            return None
+        return obj.author.avatar.url
+
 
 class ArticleDetailSerializer(serializers.ModelSerializer):
     section = SectionSerializer(read_only=True)
@@ -94,7 +125,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "tags", "language", "related_article",
+            "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "byline", "tags", "language", "related_article",
             "status", "badge", "pinned", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "views", "read_minutes", "tts_status", "tts_audio", "tts_duration_seconds",
             "published_at", "scheduled_for", "created_at", "blocks", "comments",
@@ -141,7 +172,7 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
     class Meta:
         model = Article
         fields = [
-            "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "language", "related_article",
+            "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "byline", "language", "related_article",
             "status", "badge", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "scheduled_for", "blocks", "tag_names", "cover_asset_id", "pinned", "push_breaking", "push_story",
         ]
