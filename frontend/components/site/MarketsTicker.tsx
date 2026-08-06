@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { API_URL } from "@/lib/api";
 import type { TickerPayload } from "@/lib/types";
@@ -59,11 +59,55 @@ function Chip({ up, children }: { up: boolean; children: React.ReactNode }) {
  * restarts on a frame where copy B sits precisely where copy A began —
  * that's what makes it read as endless rather than as a jump. Motion pauses
  * on hover so a reader can actually take a number in.
+ *
+ * The strip is also a real scroll container (overflow-x-auto), so a reader
+ * can page through it by hand — a finger-drag on mobile scrolls it natively;
+ * a mouse drag gets the same via the pointer handlers below, since a mouse
+ * doesn't get that for free. Either kind of manual scroll pauses the
+ * automatic animation for a moment (the `scroll` event fires for both), so
+ * the two motions don't fight over the same pixels.
  */
 export default function MarketsTicker({ lang, data: initial }: { lang: "ar" | "en"; data: TickerPayload }) {
   const isAr = lang === "ar";
   const fontBody = isAr ? "font-body-ar" : "font-body-en";
   const [data, setData] = useState(initial);
+
+  // Manual scroll (touch drag or the mouse-drag handlers below) pauses the
+  // automatic tape for a moment rather than fighting it — cleared a beat
+  // after the last scroll event, so it resumes on its own once let go of.
+  const [interacting, setInteracting] = useState(false);
+  const resumeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onScroll = () => {
+    setInteracting(true);
+    if (resumeTimer.current) clearTimeout(resumeTimer.current);
+    resumeTimer.current = setTimeout(() => setInteracting(false), 1200);
+  };
+  useEffect(() => () => { if (resumeTimer.current) clearTimeout(resumeTimer.current); }, []);
+
+  // Mouse drag-to-scroll: touch already scrolls this natively (it's a real
+  // overflow-x-auto container), but a mouse doesn't get that for free.
+  // `drag.moved` also tells the click handler below whether the mouse-up that
+  // ends a drag was a scroll or an actual tap meant to follow the link.
+  const dragRef = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse") return;
+    dragRef.current = { startX: e.clientX, startScroll: e.currentTarget.scrollLeft, moved: false };
+  };
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag || e.pointerType !== "mouse") return;
+    const delta = e.clientX - drag.startX;
+    if (Math.abs(delta) > 4) drag.moved = true;
+    e.currentTarget.scrollLeft = drag.startScroll - delta;
+  };
+  const endDrag = () => {
+    // The click that a mouse-up dispatches fires after this, so the flag it
+    // reads has to survive one more tick before clearing.
+    setTimeout(() => { dragRef.current = null; }, 0);
+  };
+  const onLinkClick = (e: React.MouseEvent) => {
+    if (dragRef.current?.moved) e.preventDefault();
+  };
 
   // `modules` was fetched and then ignored, so the dashboard's on/off switches
   // and its ordering changed nothing out here. Drive both from it now: only
@@ -156,14 +200,22 @@ export default function MarketsTicker({ lang, data: initial }: { lang: "ar" | "e
     <Link
       href={isAr ? "/markets" : "/en"}
       aria-label={isAr ? "الأسواق" : "Markets"}
+      onClick={onLinkClick}
       className={`${fontBody} fixed inset-x-0 bottom-0 z-40 block h-[52px] overflow-hidden border-t border-line bg-paper shadow-sticky`}
     >
-      <div className="mx-auto flex h-full max-w-container items-center overflow-hidden px-6">
+      <div
+        onScroll={onScroll}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerLeave={endDrag}
+        className="mx-auto flex h-full max-w-container cursor-grab items-center overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {items.length ? (
           <div
             className={`flex min-w-full items-center ${
               isAr ? "animate-ticker-rtl" : "animate-ticker-ltr"
-            } motion-reduce:animate-none hover:[animation-play-state:paused]`}
+            } motion-reduce:animate-none hover:[animation-play-state:paused] ${interacting ? "[animation-play-state:paused]" : ""}`}
           >
             {strip("a")}
             {strip("b")}

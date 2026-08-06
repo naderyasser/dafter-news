@@ -1,6 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 
-import { getSiteSettings } from "@/lib/api";
+import { getSiteSettings, mediaUrl } from "@/lib/api";
 
 /** Glyph and label per platform key — matches SocialLink.Platform. */
 const SOCIAL_META: Record<string, { glyph: string; label: string }> = {
@@ -49,6 +50,7 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
   // Settings → روابط التواصل; a platform with no URL saved simply doesn't
   // render, so the row never shows a dead link.
   const settings = await getSiteSettings();
+  const logoSrc = mediaUrl(settings?.logo);
   const socials = (settings?.social_links ?? [])
     .filter((l) => l.url && SOCIAL_META[l.platform])
     .map((l) => ({ ...l, ...SOCIAL_META[l.platform] }));
@@ -57,9 +59,19 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
     <footer className={`${fontBody} bg-header-bg pb-[52px]`} dir={isAr ? "rtl" : "ltr"}>
       <div className="mx-auto flex max-w-container flex-wrap gap-10 px-6 pb-6 pt-12">
         <div className="min-w-[220px] flex-[2_1_260px]">
-          <div className={`${fontDisplay} inline-flex items-center rule-accent rule-on-dark ps-3.5 text-[20px] font-extrabold text-header-ink`}>
-            {isAr ? "الدفتر نيوز" : "Al Daftar News"}
-          </div>
+          {/* Same brand mark as the masthead (Settings → الشعار), sat on a
+              paper chip — the uploaded logo is tuned for a light background,
+              and this panel is the one dark surface it has to sit on. Falls
+              back to the typographic wordmark when no logo is uploaded. */}
+          {logoSrc ? (
+            <span className="inline-flex rounded-[10px] bg-paper px-3.5 py-2.5">
+              <Image src={logoSrc} alt={isAr ? "الدفتر مصر" : "Al Daftar Masr"} width={200} height={60} className="h-[36px] w-auto object-contain" />
+            </span>
+          ) : (
+            <div className={`${fontDisplay} inline-flex items-center rule-accent rule-on-dark ps-3.5 text-[20px] font-extrabold text-header-ink`}>
+              {isAr ? "الدفتر نيوز" : "Al Daftar News"}
+            </div>
+          )}
           <p className="my-4 max-w-[320px] text-[14px] leading-[1.7] text-header-muted">
             {isAr ? "سِجلّ اليوم.. خبراً خبراً" : "Today's record, story by story."}
           </p>
