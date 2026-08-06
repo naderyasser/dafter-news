@@ -7,6 +7,7 @@ from .views import (
     BreakingNewsItemViewSet,
     CommentViewSet,
     DashboardOverviewView,
+    ImportFromUrlView,
     SectionViewSet,
     StoryViewSet,
     TagViewSet,
@@ -22,4 +23,9 @@ router.register("stories", StoryViewSet, basename="story")
 
 urlpatterns = router.urls + [
     path("dashboard/overview/", DashboardOverviewView.as_view(), name="dashboard-overview"),
+    # Not nested under articles/ — the router's slug lookup pattern would
+    # greedily match "import-from-url" as a detail route before this ever
+    # gets a chance, since DRF's default lookup regex accepts anything
+    # without a "/" or ".".
+    path("import-from-url/", ImportFromUrlView.as_view(), name="import-from-url"),
 ]
