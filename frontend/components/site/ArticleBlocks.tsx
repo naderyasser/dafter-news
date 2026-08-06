@@ -19,13 +19,26 @@ const ALIGN_CLASS: Record<ArticleBlock["align"], string> = {
   justify: "text-justify",
 };
 
-/** Renders the editor's inline colour/bold/italic/underline markup as spans. See lib/richtext.ts. */
+/** Renders the editor's inline colour/bold/italic/underline markup as spans,
+ *  and an image dropped mid-paragraph («بدي اقدر اضيف صورة بين الكلام») as an
+ *  actual photo. See lib/richtext.ts. */
 function Rich({ text }: { text: string }) {
   const segments = useMemo(() => parseInline(text), [text]);
   return (
     <>
       {segments.map((s, i) =>
-        s.color || s.background || s.bold || s.italic || s.underline || s.large ? (
+        s.image !== undefined ? (
+          // A plain <img>, not next/image: this sits inside flowing text
+          // rather than a sized figure, so there's no fixed aspect ratio to
+          // give next/image's `fill` mode a positioned box to fill. `block`
+          // display is what actually breaks the paragraph's flow around it —
+          // still a <span> underneath, which (unlike a <div>) stays valid
+          // HTML nested inside this <p>.
+          // eslint-disable-next-line @next/next/no-img-element
+          <span key={i} style={{ display: "block", margin: "1.25em 0" }}>
+            <img src={mediaUrl(s.image) ?? ""} alt="" style={{ display: "block", width: "100%", height: "auto", borderRadius: "8px" }} />
+          </span>
+        ) : s.color || s.background || s.bold || s.italic || s.underline || s.large ? (
           <span
             key={i}
             style={{

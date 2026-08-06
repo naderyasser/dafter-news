@@ -138,6 +138,19 @@ describe("ArticleBlocks", () => {
     expect(container.querySelector("p")).toHaveClass("whitespace-pre-wrap");
   });
 
+  it("renders an image dropped mid-paragraph as an actual photo, not the raw token", () => {
+    const { container } = render(
+      <ArticleBlocks lang="ar" blocks={[block({ text: "اكد الوزير {img:library/x.jpg} ان سيتم رفع الرواتب" })]} />,
+    );
+
+    const img = container.querySelector("img")!;
+    expect(img).toBeTruthy();
+    expect(img.getAttribute("src")).toContain("library/x.jpg");
+    expect(screen.getByText(/اكد الوزير/)).toBeInTheDocument();
+    expect(screen.getByText(/ان سيتم رفع الرواتب/)).toBeInTheDocument();
+    expect(container.textContent).not.toContain("{img:");
+  });
+
   it.each([
     ["left", "text-left"],
     ["center", "text-center"],

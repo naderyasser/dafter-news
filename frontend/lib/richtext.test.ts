@@ -5,6 +5,7 @@ import {
   mergeColorWrap,
   paginateBlocks,
   parseInline,
+  PLACEHOLDER,
   rawOffsetFromVisible,
   serializeSegments,
   splitLongParagraph,
@@ -92,6 +93,15 @@ describe("parseInline", () => {
     // «فقرة» — the client's own word for a line set bigger and bolder than
     // the body around it, marked inline rather than lifted into a new block.
     expect(parseInline("{L|فقرة مميزة}")).toEqual([{ text: "فقرة مميزة", large: true }]);
+  });
+
+  it("pulls out an image embedded mid-paragraph as its own atomic segment", () => {
+    // «بدي اقدر اضيف صورة بين الكلام» — an inline image, not text to style.
+    expect(parseInline("اكد الوزير {img:library/x.jpg} ان سيتم رفع الرواتب")).toEqual([
+      { text: "اكد الوزير " },
+      { text: PLACEHOLDER, image: "library/x.jpg" },
+      { text: " ان سيتم رفع الرواتب" },
+    ]);
   });
 });
 
@@ -186,6 +196,18 @@ describe("rawOffsetFromVisible", () => {
     expect(merged).not.toBeNull();
     expect(merged!.next).toBe("قبل {c:#B01F2E|b|أحمر} بعد");
   });
+
+  it("resolves an offset right before an image to just outside its opening brace, never inside it", () => {
+    // "قبل " (4, stripped) then one PLACEHOLDER character for the image.
+    const withImage = "قبل {img:library/x.jpg} بعد";
+    expect(rawOffsetFromVisible(withImage, 4)).toBe(withImage.indexOf("{img:"));
+  });
+
+  it("resolves an offset right after an image to just past its closing brace", () => {
+    const withImage = "قبل {img:library/x.jpg} بعد";
+    const after = withImage.indexOf("{img:library/x.jpg}") + "{img:library/x.jpg}".length;
+    expect(rawOffsetFromVisible(withImage, 5)).toBe(after);
+  });
 });
 
 describe("stripInline", () => {
@@ -195,6 +217,10 @@ describe("stripInline", () => {
 
   it("drops a stacked colour+highlight token cleanly", () => {
     expect(stripInline("قبل {c:#0E4B7B|h:#FFF3B0|ملوّن} بعد")).toBe("قبل ملوّن بعد");
+  });
+
+  it("collapses an embedded image to its one-character placeholder", () => {
+    expect(stripInline("قبل {img:library/x.jpg} بعد")).toBe(`قبل ${PLACEHOLDER} بعد`);
   });
 });
 
@@ -214,6 +240,11 @@ describe("serializeSegments", () => {
 
   it("round-trips the large flag through parseInline", () => {
     const value = "قبل {L|فقرة} بعد";
+    expect(serializeSegments(parseInline(value))).toBe(value);
+  });
+
+  it("round-trips an embedded image through parseInline", () => {
+    const value = "قبل {img:library/x.jpg} بعد";
     expect(serializeSegments(parseInline(value))).toBe(value);
   });
 });
@@ -246,6 +277,16 @@ describe("clearRangeInSegments", () => {
   it("clears everything when the range spans the whole text", () => {
     const segments = parseInline("{c:#B01F2E|كل النص هنا}");
     expect(serializeSegments(clearRangeInSegments(segments, 0, "كل النص هنا".length))).toBe("كل النص هنا");
+  });
+
+  it("passes an embedded image through untouched even when the clear range spans it", () => {
+    // There's no "half an image" or "an image with its colour cleared" —
+    // clearing formatting across a selection that happens to include one
+    // must never drop the image itself.
+    const value = "قبل {img:library/x.jpg} بعد";
+    const segments = parseInline(value);
+    const cleared = clearRangeInSegments(segments, 0, stripInline(value).length);
+    expect(serializeSegments(cleared)).toBe(value);
   });
 });
 

@@ -122,6 +122,36 @@ describe("RichTextEditor", () => {
     expect(field().querySelector("span")).toBeNull();
   });
 
+  it("refuses to format a selection that spans an embedded image, rather than nesting a style token around it", () => {
+    const alert = vi.fn();
+    vi.stubGlobal("alert", alert);
+    render(<Host initial="قبل {img:library/x.jpg} بعد" />);
+    const el = field();
+
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    const textNodes: Text[] = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) textNodes.push(n as Text);
+    const range = document.createRange();
+    range.setStart(textNodes[0], 0);
+    range.setEnd(textNodes[textNodes.length - 1], textNodes[textNodes.length - 1].length);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    fireEvent.click(screen.getByLabelText("نص غامق"));
+
+    expect(alert).toHaveBeenCalledWith("لا يمكن تنسيق نص يتضمن صورة.");
+    vi.unstubAllGlobals();
+  });
+
+  it("keeps an embedded image when clearing formatting from the whole field", () => {
+    render(<Host initial="{c:#B01F2E|أحمر} قبل {img:library/x.jpg} بعد" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "إزالة التلوين" }));
+
+    expect(field().querySelector("[data-image]")).not.toBeNull();
+  });
+
   it("prevents the browser's own Enter behaviour — a <div>/<br> the serialiser can't read back", () => {
     render(<Host initial="نص" />);
     const event = fireEvent.keyDown(field(), { key: "Enter" });

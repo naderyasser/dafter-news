@@ -128,8 +128,10 @@ export default function ArticleEditorForm({
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [coverUrl, setCoverUrl] = useState<string | null>(mediaUrl(initial?.cover_image ?? null) ?? null);
   const [coverAssetId, setCoverAssetId] = useState<number | null>(null);
-  // Which spot the library picker is choosing for: a block id, or the cover.
-  const [pickerFor, setPickerFor] = useState<number | "cover" | null>(null);
+  // Which spot the library picker is choosing for: a block id (the block's
+  // own image), the cover, or a cursor position inside a block's content
+  // («+ صورة» — an image dropped mid-paragraph rather than the block's own).
+  const [pickerFor, setPickerFor] = useState<number | "cover" | { blockId: number; offset: number } | null>(null);
   // Which block's alignment menu is open.
   const [alignMenuFor, setAlignMenuFor] = useState<number | null>(null);
   // Publishing surfaces: pinning is a stored article field; the two pushes
@@ -245,11 +247,42 @@ export default function ArticleEditorForm({
     });
   };
 
+  /**
+   * «+ صورة» — «بدي اقدر اضيف صورة بين الكلام»: drop an image into the
+   * block's own text at the cursor, so it sits between two sentences
+   * instead of only ever before/after the block as a whole.
+   *
+   * The library picker is a modal, which steals focus the moment it opens —
+   * by the time an editor has picked an asset, the field's own selection is
+   * long gone. So the cursor position is read right now, at click time
+   * (same reasoning as splitBlock/convertSelectionToHeading), and carried in
+   * `pickerFor` for pickAsset to insert at once the picker returns. No
+   * selection at all (field not focused) falls back to the end of the text,
+   * same spirit as "append" rather than a guess at the middle.
+   */
+  const insertInlineImage = (id: number) => {
+    const block = blocks.find((b) => b.id === id);
+    if (!block) return;
+    const el = bodyRefs.current[id];
+    const vis = el ? getVisibleSelection(el) : null;
+    const visibleAt = vis ? vis.start : stripInline(block.text).length;
+    setPickerFor({ blockId: id, offset: rawOffsetFromVisible(block.text, visibleAt) });
+  };
+
   const pickAsset = (asset: MediaAsset) => {
     const url = mediaUrl(asset.image) ?? null;
     if (pickerFor === "cover") {
       setCoverAssetId(asset.id);
       setCoverUrl(url);
+    } else if (typeof pickerFor === "object" && pickerFor !== null) {
+      // «+ صورة» — drop the picked asset into the block's own text as an
+      // `{img:…}` token at the cursor position captured when the button was
+      // clicked (see insertInlineImage), rather than into the block's own
+      // dedicated image field.
+      const { blockId, offset } = pickerFor;
+      setBlocks((bs) =>
+        bs.map((b) => (b.id === blockId ? { ...b, text: b.text.slice(0, offset) + `{img:${asset.image}}` + b.text.slice(offset) } : b)),
+      );
     } else if (pickerFor !== null) {
       setBlocks((bs) =>
         bs.map((b) =>
@@ -448,6 +481,16 @@ export default function ArticleEditorForm({
                       🔤 عنوان فرعي
                     </span>
                   </>
+                ) : null}
+                {b.type === "paragraph" || b.type === "quote" ? (
+                  <span
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => insertInlineImage(b.id)}
+                    title="إضافة صورة عند مكان المؤشر داخل النص"
+                    className="cursor-pointer font-semibold hover:text-accent"
+                  >
+                    🖼 صورة
+                  </span>
                 ) : null}
                 {b.type === "paragraph" ? (
                   <span className="relative">
