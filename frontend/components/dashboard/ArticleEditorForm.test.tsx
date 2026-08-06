@@ -8,9 +8,14 @@ const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 
 const dashMutate = vi.fn();
+const apiMutate = vi.fn();
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
-  return { ...actual, dashMutate: (...args: unknown[]) => dashMutate(...args) };
+  return {
+    ...actual,
+    dashMutate: (...args: unknown[]) => dashMutate(...args),
+    apiMutate: (...args: unknown[]) => apiMutate(...args),
+  };
 });
 
 const sections = [{ id: 1, key: "egypt", label: "شؤون مصر" }];
@@ -238,5 +243,58 @@ describe("ArticleEditorForm review", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("لازم تكتب عنوان الخبر أولاً");
     expect(dashMutate).not.toHaveBeenCalled();
+  });
+});
+
+describe("ArticleEditorForm import from URL", () => {
+  afterEach(() => {
+    push.mockClear();
+    refresh.mockClear();
+    dashMutate.mockReset();
+    apiMutate.mockReset();
+  });
+
+  it("offers the import box only when creating a new article", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    expect(screen.getByText("استيراد خبر من رابط")).toBeInTheDocument();
+  });
+
+  it("hides the import box when editing an existing article", () => {
+    const initial = {
+      id: 9, title: "خبر", slug: "x", kind: "news", section: null, subcategory: "", country: "",
+      author: null, byline: "", tags: [], language: "ar", related_article: null, status: "draft",
+      badge: "none", pinned: false, standfirst: "", cover_image: null, cover_caption: "", cover_credit: "",
+      views: 0, read_minutes: 1, tts_status: "idle", tts_audio: null, tts_duration_seconds: 0,
+      published_at: null, scheduled_for: null, created_at: "", blocks: [], comments: [],
+    } as never;
+
+    render(<ArticleEditorForm initial={initial} articleId={9} sections={sections} />);
+
+    expect(screen.queryByText("استيراد خبر من رابط")).not.toBeInTheDocument();
+  });
+
+  it("loads an imported draft's fields into the form, ready to review and save", async () => {
+    apiMutate.mockResolvedValue({
+      title: "عنوان من الاستيراد",
+      standfirst: "مقدمة من الاستيراد",
+      paragraphs: ["الفقرة الأولى المستوردة.", "الفقرة الثانية المستوردة."],
+      byline: "منقول عن example.com",
+      cover_asset_id: null,
+      cover_image: null,
+    });
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.change(screen.getByLabelText("رابط الخبر"), { target: { value: "https://example.com/news/1" } });
+    await act(async () => fireEvent.click(screen.getByText("استيراد")));
+
+    expect(screen.getByPlaceholderText("عنوان الخبر")).toHaveValue("عنوان من الاستيراد");
+    expect(screen.getByLabelText("اسم الكاتب")).toHaveValue("منقول عن example.com");
+    expect(screen.getByText("الفقرة الأولى المستوردة.")).toBeInTheDocument();
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string }[] }];
+    expect(payload.blocks.map((b) => b.text)).toEqual(["الفقرة الأولى المستوردة.", "الفقرة الثانية المستوردة."]);
   });
 });

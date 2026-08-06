@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
+import ImportFromUrl, { type ImportedDraft } from "@/components/dashboard/ImportFromUrl";
 import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { dashMutate, dashUpload, describeApiError, mediaUrl } from "@/lib/api";
@@ -278,6 +279,26 @@ export default function ArticleEditorForm({
     }
   };
 
+  /**
+   * «استيراد من رابط» hands back a draft's fields, not a saved article —
+   * this loads them into the same state a person typing them in by hand
+   * would produce, so nothing about the save/review/publish flow below
+   * needs to know an import happened at all.
+   */
+  const applyImportedDraft = (draft: ImportedDraft) => {
+    setTitle(draft.title);
+    setStandfirst(draft.standfirst);
+    setByline(draft.byline);
+    let id = nextId;
+    const imported = draft.paragraphs.map((text) => blankBlock(id++, "paragraph", text));
+    setBlocks(imported.length ? imported : [blankBlock(id++, "paragraph")]);
+    setNextId(id);
+    if (draft.cover_asset_id) {
+      setCoverAssetId(draft.cover_asset_id);
+      setCoverUrl(mediaUrl(draft.cover_image) ?? null);
+    }
+  };
+
   const words = wordCount(standfirst) + blocks.filter((b) => b.type === "paragraph").reduce((sum, b) => sum + wordCount(b.text), 0);
   const readMinutes = Math.max(1, Math.ceil(words / 200));
 
@@ -360,6 +381,7 @@ export default function ArticleEditorForm({
     `rounded-pill border px-3.5 py-1.5 text-xs font-semibold ${active ? "border-brand bg-brand text-paper" : "border-line bg-paper text-ink"}`;
 
   return (
+    <>
     <div className="grid grid-cols-[2.2fr_320px] items-start gap-5 max-lg:grid-cols-1">
       {error ? (
         <div role="alert" className="col-span-2 rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down max-lg:col-span-1">
@@ -781,5 +803,9 @@ export default function ArticleEditorForm({
 
       {pickerFor !== null ? <MediaLibraryPicker onPick={pickAsset} onClose={() => setPickerFor(null)} /> : null}
     </div>
+    {/* New-article only — importing into an already-saved/published article
+        doesn't make sense the same way. */}
+    {!articleId ? <ImportFromUrl onImported={applyImportedDraft} /> : null}
+    </>
   );
 }

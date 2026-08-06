@@ -1,6 +1,9 @@
+import logging
+
+from django.core.files.base import ContentFile
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,6 +11,7 @@ from rest_framework.views import APIView
 from aldaftar.permissions import PublicSubmission, ReadOnlyOrStaff, StaffOnly
 from aldaftar.mixins import SlugOrPkLookupMixin
 
+from . import import_url
 from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 from .serializers import (
     ArticleCardSerializer,
@@ -266,3 +270,83 @@ class DashboardOverviewView(APIView):
                 for a in queue
             ],
         })
+
+
+logger = logging.getLogger(__name__)
+
+
+class ImportFromUrlView(APIView):
+    """
+    POST /api/articles/import-from-url/ — «استيراد من رابط».
+
+    Returns a starting draft's fields; it does not create the Article
+    itself, so the normal editor save path (draft/review/published) is
+    still what actually publishes anything. See content/import_url.py for
+    why the source is credited automatically rather than left for someone
+    to remember, and for the SSRF guard on the fetch.
+    """
+
+    permission_classes = [StaffOnly]
+
+    def post(self, request):
+        url = (request.data.get("url") or "").strip()
+        if not url:
+            return Response({"detail": "أدخل رابط الخبر."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            data = import_url.extract_article(url)
+        except import_url.ImportError_ as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        cover_asset = None
+        if data["image_url"]:
+            cover_asset = self._save_cover(data["image_url"], data["title"], data["source_url"], data["source_domain"])
+
+        return Response({
+            "title": data["title"],
+            "standfirst": data["standfirst"],
+            "paragraphs": data["paragraphs"],
+            # Visible by default — clearing it is a deliberate edit an
+            # editor makes themselves, not something this endpoint does.
+            "byline": f"منقول عن {data['source_domain']}" if data["source_domain"] else "",
+            "source_url": data["source_url"],
+            "cover_asset_id": cover_asset.id if cover_asset else None,
+            "cover_image": cover_asset.image.url if cover_asset else None,
+            "cover_credit": data["source_domain"],
+        })
+
+    @staticmethod
+    def _save_cover(image_url, title, source_url, source_domain):
+        """Best-effort: a lead image that fails to download or isn't a real
+        image must not fail the whole import — the text is still useful
+        without it."""
+        import io
+
+        from PIL import Image, UnidentifiedImageError
+
+        from media_library.models import MediaAsset
+
+        try:
+            raw, _content_type = import_url.fetch_image_bytes(image_url)
+        except import_url.ImportError_ as exc:
+            logger.warning("import-from-url: cover fetch failed for %s: %s", image_url, exc)
+            return None
+
+        # Trust nothing from the Content-Type header alone — verify the
+        # bytes actually decode as an image before this ever touches disk.
+        try:
+            img = Image.open(io.BytesIO(raw))
+            img.verify()
+            fmt = (img.format or "").lower()
+        except (UnidentifiedImageError, OSError):
+            logger.warning("import-from-url: downloaded file at %s is not a valid image", image_url)
+            return None
+
+        ext = {"jpeg": "jpg", "png": "png", "webp": "webp", "gif": "gif"}.get(fmt)
+        if ext is None:
+            logger.warning("import-from-url: cover at %s decoded as unsupported format %s", image_url, fmt)
+            return None
+
+        asset = MediaAsset(title=title[:200], source=source_url[:200], credit=source_domain[:120], license=MediaAsset.License.UNKNOWN)
+        asset.image.save(f"imported.{ext}", ContentFile(raw), save=True)
+        return asset
