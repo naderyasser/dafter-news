@@ -46,6 +46,8 @@ class SocialLink(models.Model):
         X = "x", "X"
         INSTAGRAM = "instagram", "إنستغرام"
         YOUTUBE = "youtube", "يوتيوب"
+        TIKTOK = "tiktok", "تيك توك"
+        THREADS = "threads", "Threads"
 
     platform = models.CharField(max_length=20, choices=Platform.choices, unique=True)
     url = models.URLField(blank=True)

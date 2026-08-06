@@ -9,6 +9,8 @@ const SOCIAL_META: Record<string, { glyph: string; label: string }> = {
   x: { glyph: "X", label: "X" },
   instagram: { glyph: "in", label: "إنستغرام" },
   youtube: { glyph: "▶", label: "يوتيوب" },
+  tiktok: { glyph: "🎵", label: "تيك توك" },
+  threads: { glyph: "🧵", label: "Threads" },
 };
 
 export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {

@@ -11,6 +11,8 @@ const SOCIAL_FIELDS: { key: string; label: string; placeholder: string }[] = [
   { key: "x", label: "X", placeholder: "https://x.com/aldaftarnews" },
   { key: "instagram", label: "إنستغرام", placeholder: "https://instagram.com/aldaftarnews" },
   { key: "youtube", label: "يوتيوب", placeholder: "https://youtube.com/@aldaftarnews" },
+  { key: "tiktok", label: "تيك توك", placeholder: "https://www.tiktok.com/@aldaftarnews" },
+  { key: "threads", label: "Threads", placeholder: "https://www.threads.com/@aldaftarnews" },
 ];
 
 export default function SettingsManager({ initial }: { initial: SiteSettings | null }) {
