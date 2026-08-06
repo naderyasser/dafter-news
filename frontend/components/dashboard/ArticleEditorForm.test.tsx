@@ -10,6 +10,7 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 const dashMutate = vi.fn();
 const apiMutate = vi.fn();
 const getMediaAssets = vi.fn();
+const dashUpload = vi.fn();
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
   return {
@@ -17,8 +18,11 @@ vi.mock("@/lib/api", async () => {
     dashMutate: (...args: unknown[]) => dashMutate(...args),
     apiMutate: (...args: unknown[]) => apiMutate(...args),
     getMediaAssets: (...args: unknown[]) => getMediaAssets(...args),
+    dashUpload: (...args: unknown[]) => dashUpload(...args),
   };
 });
+
+const pngFile = (name = "IMG_20260512.png") => new File(["x"], name, { type: "image/png" });
 
 const sections = [{ id: 1, key: "egypt", label: "شؤون مصر" }];
 
@@ -308,7 +312,7 @@ describe("ArticleEditorForm inline image", () => {
     vi.useRealTimers();
   });
 
-  it("«🖼 صورة» inserts the picked asset into the block's own text, not its dedicated image field", async () => {
+  it("«🖼 من المكتبة» inserts the picked asset into the block's own text, not its dedicated image field", async () => {
     vi.useFakeTimers();
     getMediaAssets.mockResolvedValue({
       count: 1,
@@ -334,7 +338,7 @@ describe("ArticleEditorForm inline image", () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
-    fireEvent.click(screen.getByText("🖼 صورة"));
+    fireEvent.click(screen.getByText("🖼 من المكتبة"));
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -345,5 +349,70 @@ describe("ArticleEditorForm inline image", () => {
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string; image: unknown }[] }];
     expect(payload.blocks[0].text).toBe("{img:library/x.jpg}");
+  });
+});
+
+describe("ArticleEditorForm image uploads require a name", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+    dashUpload.mockReset();
+    vi.unstubAllGlobals();
+  });
+
+  it("prompts for a name and uploads under it, not the camera's own filename", async () => {
+    const prompt = vi.fn().mockReturnValue("اجتماع مجلس الوزراء");
+    vi.stubGlobal("prompt", prompt);
+    dashUpload.mockResolvedValue({ id: 7, image: "library/uploaded.jpg", credit: "" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("⬆ رفع صورة"));
+    fireEvent.change(screen.getByLabelText("رفع صورة داخل النص من الجهاز"), { target: { files: [pngFile()] } });
+    await act(async () => {});
+
+    expect(prompt).toHaveBeenCalledWith("اسم الصورة (يساعد على ترتيب المكتبة والبحث عنها لاحقاً):", "IMG_20260512");
+    const form = dashUpload.mock.calls[0][2] as FormData;
+    expect(form.get("title")).toBe("اجتماع مجلس الوزراء");
+  });
+
+  it("inserts the uploaded image's path into the block's text at the captured cursor", async () => {
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("اسم"));
+    dashUpload.mockResolvedValue({ id: 7, image: "library/uploaded.jpg", credit: "" });
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("⬆ رفع صورة"));
+    fireEvent.change(screen.getByLabelText("رفع صورة داخل النص من الجهاز"), { target: { files: [pngFile()] } });
+    await act(async () => {});
+
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string }[] }];
+    expect(payload.blocks[0].text).toBe("{img:library/uploaded.jpg}");
+  });
+
+  it("cancelling the name prompt aborts the upload entirely", async () => {
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue(null));
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("⬆ رفع صورة"));
+    fireEvent.change(screen.getByLabelText("رفع صورة داخل النص من الجهاز"), { target: { files: [pngFile()] } });
+    await act(async () => {});
+
+    expect(dashUpload).not.toHaveBeenCalled();
+  });
+
+  it("prompts for a name when uploading a cover image straight from the device", async () => {
+    const prompt = vi.fn().mockReturnValue("غلاف الخبر");
+    vi.stubGlobal("prompt", prompt);
+    dashUpload.mockResolvedValue({ id: 8, image: "library/cover.jpg", credit: "" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.change(screen.getByLabelText("رفع صورة الغلاف من الجهاز"), { target: { files: [pngFile("cover.png")] } });
+    await act(async () => {});
+
+    expect(prompt).toHaveBeenCalled();
+    const form = dashUpload.mock.calls[0][2] as FormData;
+    expect(form.get("title")).toBe("غلاف الخبر");
   });
 });
