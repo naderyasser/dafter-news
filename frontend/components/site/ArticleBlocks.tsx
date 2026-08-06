@@ -78,7 +78,7 @@ export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blo
       return (
         <p
           key={b.id}
-          className={`mb-5 text-[clamp(1.125rem,1rem+0.3vw,1.1875rem)] leading-[1.95] text-ink ${ALIGN_CLASS[b.align]}`}
+          className={`mb-5 whitespace-pre-wrap text-[clamp(1.125rem,1rem+0.3vw,1.1875rem)] leading-[1.95] text-ink ${ALIGN_CLASS[b.align]}`}
         >
           <Rich text={b.text} />
         </p>
@@ -113,7 +113,7 @@ export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blo
     }
     if (b.type === "quote") {
       return (
-        <blockquote key={b.id} className="rule-accent my-7 ps-5 text-[20px] font-semibold leading-[1.7] text-ink-2">
+        <blockquote key={b.id} className="rule-accent my-7 whitespace-pre-wrap ps-5 text-[20px] font-semibold leading-[1.7] text-ink-2">
           <Rich text={b.text} />
         </blockquote>
       );
