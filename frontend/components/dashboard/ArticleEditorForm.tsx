@@ -198,20 +198,24 @@ export default function ArticleEditorForm({
   };
 
   /**
-   * Lifts the current selection out of a content block into its own block of
-   * `type`, splitting whatever text sits before and after it back into
-   * paragraphs — so the block is a free canvas, not a series of separately
-   * added boxes: type the whole thing in one place, then select a line and
-   * mark it as a heading or as its own standalone paragraph. Mirrors
-   * splitBlock's shape (same id bookkeeping, same "nothing to do without a
-   * real span" guard) but produces up to three blocks instead of two, and
-   * carries the original block's alignment onto every piece.
+   * «تحويل التحديد إلى عنوان فرعي»: lift the selected sentence out of a
+   * content block into its own heading block, splitting whatever text sits
+   * before and after it back into paragraphs. Mirrors splitBlock's shape —
+   * same id bookkeeping, same "nothing to do without a real span" guard —
+   * but produces up to three blocks instead of two.
+   *
+   * There is deliberately no equivalent for "mark this as its own
+   * paragraph": a first version did the same three-way split for a plain
+   * paragraph selection, and it just produced boxes for no reason — a
+   * heading is a different block type on the public page, a paragraph
+   * split from another paragraph isn't. Marking a line as emphasised inside
+   * the same box is what the bold button in the toolbar below is for.
    */
-  const liftSelection = (id: number, type: "paragraph" | "heading", emptyPrompt: string) => {
+  const convertSelectionToHeading = (id: number) => {
     const el = bodyRefs.current[id];
     const vis = el ? getVisibleSelection(el) : null;
     if (!vis || vis.start === vis.end) {
-      window.alert(emptyPrompt);
+      window.alert("حدّد الجملة التي تريد تحويلها إلى عنوان فرعي أولاً.");
       return;
     }
     setBlocks((bs) => {
@@ -223,17 +227,15 @@ export default function ArticleEditorForm({
       const end = rawOffsetFromVisible(text, vis.end);
       const before = text.slice(0, start).trim();
       // Headings render as plain text on the public page (no colour/format
-      // markup support there), so a lifted heading can't carry any along; a
-      // paragraph keeps whatever markup it already had.
-      const raw = text.slice(start, end).trim();
-      const selected = type === "heading" ? stripInline(raw) : raw;
+      // markup support there), so a lifted selection can't carry any along.
+      const selected = stripInline(text.slice(start, end)).trim();
       const after = text.slice(end).trim();
       if (!selected) return bs;
 
       let id2 = nextId;
       const replacement: Block[] = [];
       if (before) replacement.push({ ...blankBlock(id2++, "paragraph", before), align });
-      replacement.push({ ...blankBlock(id2++, type, selected), align });
+      replacement.push(blankBlock(id2++, "heading", selected));
       if (after) replacement.push({ ...blankBlock(id2++, "paragraph", after), align });
 
       const arr = [...bs];
@@ -242,9 +244,6 @@ export default function ArticleEditorForm({
       return arr;
     });
   };
-
-  const convertSelectionToHeading = (id: number) => liftSelection(id, "heading", "حدّد الجملة التي تريد تحويلها إلى عنوان فرعي أولاً.");
-  const convertSelectionToParagraph = (id: number) => liftSelection(id, "paragraph", "حدّد الجزء الذي تريد فصله كفقرة مستقلة أولاً.");
 
   const pickAsset = (asset: MediaAsset) => {
     const url = mediaUrl(asset.image) ?? null;
@@ -425,13 +424,13 @@ export default function ArticleEditorForm({
               <div className="flex items-center gap-2.5 text-xs text-header-muted">
                 {b.type === "paragraph" && b.text.trim() ? (
                   <>
-                    {/* onMouseDown/preventDefault on all three: each reads
-                        the field's live selection at click time, and a bare
+                    {/* onMouseDown/preventDefault on both: each reads the
+                        field's live selection at click time, and a bare
                         mousedown on any element is itself a browser
                         selection gesture that collapses whatever was
                         selected before the click fires. Without this, the
                         selection an editor just made would already be gone
-                        by the time splitBlock/convertSelectionTo* run. */}
+                        by the time splitBlock/convertSelectionToHeading run. */}
                     <span
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => splitBlock(b.id)}
@@ -439,14 +438,6 @@ export default function ArticleEditorForm({
                       className="cursor-pointer font-semibold hover:text-accent"
                     >
                       ✂ تقسيم
-                    </span>
-                    <span
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => convertSelectionToParagraph(b.id)}
-                      title="حدّد جزءاً من النص لفصله كفقرة مستقلة"
-                      className="cursor-pointer font-semibold hover:text-accent"
-                    >
-                      ¶ فقرة مستقلة
                     </span>
                     <span
                       onMouseDown={(e) => e.preventDefault()}
