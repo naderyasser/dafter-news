@@ -1,114 +1,181 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 
 import TextColorToolbar from "@/components/dashboard/TextColorToolbar";
-import { parseInline } from "@/lib/richtext";
+import { domToTokens, getVisibleSelection, renderTokensInto, setVisibleSelection } from "@/lib/richTextDom";
+import { COLOR_OPEN, clearRangeInSegments, mergeColorWrap, parseInline, rawOffsetFromVisible, serializeSegments } from "@/lib/richtext";
 
 /**
- * A body-text field for the block editor that hides the colour/format
- * markup instead of showing it as raw `{c:#hex|…}` syntax while the editor
- * isn't actively typing in it.
+ * A body-text field for the block editor: one box that IS the colour/
+ * format, not raw `{c:#hex|…}` syntax next to a separate preview of it. An
+ * editor selects a word, picks red, and the word in the box they're already
+ * looking at turns red — nothing to parse, nothing to toggle between.
  *
- * The textarea is always mounted — TextColorToolbar's apply() needs a real
- * DOM selection into it, and the block header's «✂ تقسيم» / «عنوان فرعي»
- * read its selectionStart the same way — but it's visually replaced by a
- * rendered, colour-true preview whenever the field isn't the one being
- * typed into (`hidden`, not unmounted, so the selection and the ref both
- * survive the swap). Applying a colour/format flips straight back to that
- * preview, so the change reads as instant instead of as a token the editor
- * has to parse in their head; clicking the preview flips back to plain
- * typing.
- *
- * This is NOT a contentEditable surface — the stored value is still the
- * exact plain-text token grammar the API and the public page already read
- * (see lib/richtext.ts). Nothing about what gets saved changes here.
+ * This is a contentEditable surface, which the rest of the codebase
+ * deliberately avoids (see the old textarea-based version's history) —
+ * that avoidance was about never handing dangerouslySetInnerHTML an
+ * editor-supplied string. Nothing here does that: the DOM this field shows
+ * is built exclusively by renderTokensInto, walking our own validated
+ * Segment list (lib/richtext.ts's parseInline, whose colour regex is a
+ * hex-only allow-list) into real `createElement`/`createTextNode` calls —
+ * never innerHTML, and paste is intercepted to insert plain text only. The
+ * value that leaves this component (and what the API/public page read) is
+ * still the exact same plain-text token grammar as before; only how it's
+ * *shown* while editing changed.
  */
 export default function RichTextEditor({
   value,
   onChange,
   placeholder,
-  registerTextarea,
+  registerField,
   minHeightClassName = "min-h-[70px]",
 }: {
   value: string;
   onChange: (next: string) => void;
   placeholder: string;
-  /** Mirrors the textarea node out — ArticleEditorForm keys its own
-   *  bodyRefs map off this for the split/heading-conversion actions. */
-  registerTextarea?: (el: HTMLTextAreaElement | null) => void;
+  /** Mirrors the editable node out — ArticleEditorForm keys its own field
+   *  map off this for the split/heading-conversion actions. */
+  registerField?: (el: HTMLDivElement | null) => void;
   minHeightClassName?: string;
 }) {
-  const [editing, setEditing] = useState(!value.trim());
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const elRef = useRef<HTMLDivElement | null>(null);
+  // What WE last emitted via onChange — lets the sync effect below tell "the
+  // parent handed our own edit back to us" (DOM is already right, touching
+  // it now would only cost the cursor position) apart from a genuinely
+  // external change (e.g. «✂ تقسيم» handing this field half its old text).
+  const lastEmitted = useRef(value);
 
   useEffect(() => {
-    if (editing) textareaRef.current?.focus();
-  }, [editing]);
+    if (value === lastEmitted.current) return;
+    lastEmitted.current = value;
+    if (elRef.current) renderTokensInto(elRef.current, value);
+  }, [value]);
 
-  const segments = parseInline(value);
-  const fieldClass = `w-full resize-y rounded-lg border border-line p-2.5 text-[14px] leading-[1.9] outline-none focus:border-brand ${minHeightClassName}`;
+  // Paint the initial value once, on mount.
+  useEffect(() => {
+    if (elRef.current) renderTokensInto(elRef.current, value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const commit = (next: string) => {
+    lastEmitted.current = next;
+    onChange(next);
+  };
+
+  const onInput = () => {
+    const el = elRef.current;
+    if (!el) return;
+    const next = domToTokens(el);
+    // A field emptied by deleting all its text can be left holding a stray
+    // <br> in some browsers (added to keep the line height stable) — drop
+    // it so the field is genuinely empty rather than "empty but not really".
+    if (!next && el.childNodes.length) while (el.firstChild) el.removeChild(el.firstChild);
+    commit(next);
+  };
+
+  const onPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const text = e.clipboardData.getData("text/plain");
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || !text) return;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(document.createTextNode(text));
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    onInput();
+  };
+
+  /** The current selection as raw offsets into `value`, or null when
+   *  there's nothing selected in this field. */
+  const rawSelection = () => {
+    const el = elRef.current;
+    if (!el) return null;
+    const vis = getVisibleSelection(el);
+    if (!vis || vis.start === vis.end) return null;
+    return { start: rawOffsetFromVisible(value, vis.start), end: rawOffsetFromVisible(value, vis.end), vis };
+  };
+
+  const applyFormat = (kind: "c" | "h" | "b" | "i" | "u", color?: string) => {
+    const el = elRef.current;
+    const sel = rawSelection();
+    if (!el || !sel) {
+      window.alert(kind === "c" || kind === "h" ? "حدّد النص الذي تريد تلوينه أولاً." : "حدّد النص الذي تريد تنسيقه أولاً.");
+      return;
+    }
+    const merged = mergeColorWrap(value, sel.start, sel.end, kind, color);
+    const next = merged
+      ? merged.next
+      : value.slice(0, sel.start) + COLOR_OPEN(kind, color) + value.slice(sel.start, sel.end) + "}" + value.slice(sel.end);
+
+    renderTokensInto(el, next);
+    // Focus before reselecting, not after: focusing an element that's
+    // already the selection's container can itself collapse the selection
+    // in some engines, which would silently drop the "no need to re-select
+    // before the next format" behaviour this is for.
+    el.focus();
+    // Same visible span, now styled — the reader sees the colour land
+    // exactly where their selection was, and can immediately follow it
+    // with a second format (e.g. bold after colour) without re-selecting.
+    setVisibleSelection(el, sel.vis.start, sel.vis.end);
+    commit(next);
+  };
+
+  const clearFormat = () => {
+    const el = elRef.current;
+    if (!el) return;
+    // Segment-based, not a raw-offset slice: rawOffsetFromVisible lands
+    // *inside* an existing token's payload on purpose (see applyFormat, and
+    // rawOffsetFromVisible's own doc comment) — exactly wrong for clearing,
+    // since slicing there and splicing the same substring back in
+    // reproduces the original token, wrapper included. Working from the
+    // parsed segments has no wrapper to accidentally preserve.
+    const vis = getVisibleSelection(el);
+    const hasSelection = vis && vis.start !== vis.end;
+    const segments = parseInline(value);
+    const cleared = hasSelection
+      ? clearRangeInSegments(segments, vis.start, vis.end)
+      : segments.map((s) => ({ text: s.text }));
+    const next = serializeSegments(cleared);
+
+    renderTokensInto(el, next);
+    el.focus();
+    if (hasSelection) setVisibleSelection(el, vis.start, vis.end);
+    commit(next);
+  };
 
   return (
     <>
-      <textarea
+      <div
         ref={(el) => {
-          textareaRef.current = el;
-          registerTextarea?.(el);
+          elRef.current = el;
+          registerField?.(el);
         }}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        // The native attribute, not a Tailwind class — the textarea has to
-        // stay mounted (see the file doc comment above) but genuinely
-        // invisible and out of the tab order while the preview is showing.
-        hidden={!editing}
-        className={fieldClass}
+        contentEditable
+        suppressContentEditableWarning
+        tabIndex={0}
+        role="textbox"
+        aria-multiline="true"
+        aria-label={placeholder}
+        data-placeholder={placeholder}
+        onInput={onInput}
+        onPaste={onPaste}
+        onKeyDown={(e) => {
+          // Keeps the field's DOM exactly the shape renderTokensInto/
+          // domToTokens agree on — plain text and single-level <span>s.
+          // Enter would insert a browser-invented block element («+ فقرة»
+          // is the real way to start a new paragraph); Ctrl/Cmd+B/I/U would
+          // apply the browser's own bold/italic/underline command outside
+          // applyFormat, which is the only place that keeps this field's
+          // markup and its visible text in sync.
+          if (e.key === "Enter") e.preventDefault();
+          if ((e.metaKey || e.ctrlKey) && ["b", "i", "u"].includes(e.key.toLowerCase())) e.preventDefault();
+        }}
+        className={`w-full resize-y whitespace-pre-wrap rounded-lg border border-line p-2.5 text-[14px] leading-[1.9] outline-none empty:before:text-ink-3 empty:before:content-[attr(data-placeholder)] focus:border-brand ${minHeightClassName}`}
       />
-      {!editing ? (
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          title="اضغط للتحرير"
-          className={`${fieldClass} block whitespace-pre-wrap text-start`}
-        >
-          {value.trim() ? (
-            segments.map((s, i) =>
-              s.color || s.background || s.bold || s.italic || s.underline ? (
-                <span
-                  key={i}
-                  style={{
-                    color: s.color,
-                    backgroundColor: s.background,
-                    fontWeight: s.bold ? 700 : undefined,
-                    fontStyle: s.italic ? "italic" : undefined,
-                    textDecoration: s.underline ? "underline" : undefined,
-                    ...(s.background ? { padding: "0.05em 0.25em", borderRadius: "3px" } : null),
-                  }}
-                >
-                  {s.text}
-                </span>
-              ) : (
-                <span key={i}>{s.text}</span>
-              ),
-            )
-          ) : (
-            <span className="text-ink-3">{placeholder}</span>
-          )}
-        </button>
-      ) : null}
-      {editing ? (
-        <TextColorToolbar
-          value={value}
-          onChange={(next) => {
-            onChange(next);
-            // The whole point: applying a colour/format reads back
-            // instantly as coloured text, never as {c:#hex|…} syntax.
-            setEditing(false);
-          }}
-          textareaRef={textareaRef}
-        />
-      ) : null}
+      <TextColorToolbar value={value} onApply={applyFormat} onClear={clearFormat} />
     </>
   );
 }
