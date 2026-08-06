@@ -425,10 +425,23 @@ export default function ArticleEditorForm({
               <div className="flex items-center gap-2.5 text-xs text-header-muted">
                 {b.type === "paragraph" && b.text.trim() ? (
                   <>
-                    <span onClick={() => splitBlock(b.id)} title="تقسيم المحتوى عند المؤشر" className="cursor-pointer font-semibold hover:text-accent">
+                    {/* onMouseDown/preventDefault on all three: each reads
+                        the field's live selection at click time, and a bare
+                        mousedown on any element is itself a browser
+                        selection gesture that collapses whatever was
+                        selected before the click fires. Without this, the
+                        selection an editor just made would already be gone
+                        by the time splitBlock/convertSelectionTo* run. */}
+                    <span
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => splitBlock(b.id)}
+                      title="تقسيم المحتوى عند المؤشر"
+                      className="cursor-pointer font-semibold hover:text-accent"
+                    >
                       ✂ تقسيم
                     </span>
                     <span
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => convertSelectionToParagraph(b.id)}
                       title="حدّد جزءاً من النص لفصله كفقرة مستقلة"
                       className="cursor-pointer font-semibold hover:text-accent"
@@ -436,6 +449,7 @@ export default function ArticleEditorForm({
                       ¶ فقرة مستقلة
                     </span>
                     <span
+                      onMouseDown={(e) => e.preventDefault()}
                       onClick={() => convertSelectionToHeading(b.id)}
                       title="حدّد جزءاً من النص لتحويله إلى عنوان فرعي مستقل"
                       className="cursor-pointer font-semibold hover:text-accent"
