@@ -28,6 +28,19 @@ describe("renderTokensInto / domToTokens round-trip", () => {
     expect(domToTokens(el)).toBe("سطر أول\nسطر ثانٍ");
   });
 
+  it("paints an embedded image as a non-editable chip, not the raw token or the real photo", () => {
+    const el = box();
+    renderTokensInto(el, "قبل {img:library/x.jpg} بعد");
+
+    const chip = el.querySelector("[data-image]") as HTMLElement;
+    expect(chip).toBeTruthy();
+    expect(chip.dataset.image).toBe("library/x.jpg");
+    expect(chip.contentEditable).toBe("false");
+    expect(el.textContent).not.toContain("{img:");
+
+    expect(domToTokens(el)).toBe("قبل {img:library/x.jpg} بعد");
+  });
+
   it("paints a coloured run as a styled span, not visible markup", () => {
     const el = box();
     renderTokensInto(el, "قبل {c:#B01F2E|أحمر} بعد");

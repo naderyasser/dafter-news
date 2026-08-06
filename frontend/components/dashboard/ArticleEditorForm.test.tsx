@@ -9,12 +9,14 @@ vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 
 const dashMutate = vi.fn();
 const apiMutate = vi.fn();
+const getMediaAssets = vi.fn();
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
   return {
     ...actual,
     dashMutate: (...args: unknown[]) => dashMutate(...args),
     apiMutate: (...args: unknown[]) => apiMutate(...args),
+    getMediaAssets: (...args: unknown[]) => getMediaAssets(...args),
   };
 });
 
@@ -296,5 +298,52 @@ describe("ArticleEditorForm import from URL", () => {
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string }[] }];
     expect(payload.blocks.map((b) => b.text)).toEqual(["الفقرة الأولى المستوردة. الفقرة الثانية المستوردة."]);
+  });
+});
+
+describe("ArticleEditorForm inline image", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+    getMediaAssets.mockReset();
+    vi.useRealTimers();
+  });
+
+  it("«🖼 صورة» inserts the picked asset into the block's own text, not its dedicated image field", async () => {
+    vi.useFakeTimers();
+    getMediaAssets.mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: 5,
+          image: "library/x.jpg",
+          title: "صورة مختارة",
+          alt: "",
+          credit: "",
+          license: "owned",
+          license_label: "",
+          source: "",
+          article: null,
+          article_title: null,
+          article_slug: null,
+          created_at: "",
+        },
+      ],
+    });
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("🖼 صورة"));
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+    fireEvent.click(screen.getByText("صورة مختارة"));
+
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string; image: unknown }[] }];
+    expect(payload.blocks[0].text).toBe("{img:library/x.jpg}");
   });
 });

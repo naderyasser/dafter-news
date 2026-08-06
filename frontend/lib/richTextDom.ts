@@ -7,7 +7,7 @@
  * renderer and this editor share it. Only the editor needs an actual DOM to
  * paint into and read a live selection out of.
  */
-import { parseInline } from "./richtext";
+import { parseInline, PLACEHOLDER } from "./richtext";
 
 /**
  * Paint `text` into `root` as plain Text nodes and styled `<span>`s — one
@@ -23,6 +23,33 @@ import { parseInline } from "./richtext";
 export function renderTokensInto(root: HTMLElement, text: string): void {
   while (root.firstChild) root.removeChild(root.firstChild);
   for (const seg of parseInline(text)) {
+    if (seg.image !== undefined) {
+      // A non-editable chip, not the actual photo — showing the real image
+      // inline here risks a full-size photo blowing out this small box
+      // mid-keystroke, and an editor already saw it once when picking it
+      // from the library. The public page (ArticleBlocks' Rich component)
+      // is where the real `<img>` renders. contentEditable="false" makes
+      // the browser treat it as one atomic unit for arrow-key/backspace
+      // purposes; the PLACEHOLDER text node inside it is what keeps
+      // Range.toString()-based offsets one character wide across it.
+      const span = document.createElement("span");
+      span.contentEditable = "false";
+      span.dataset.image = seg.image;
+      span.style.display = "inline-flex";
+      span.style.alignItems = "center";
+      span.style.gap = "0.3em";
+      span.style.margin = "0 0.15em";
+      span.style.padding = "0.05em 0.5em";
+      span.style.borderRadius = "4px";
+      span.style.border = "1px dashed currentColor";
+      span.style.opacity = "0.7";
+      span.style.fontSize = "0.85em";
+      span.style.userSelect = "none";
+      span.append("🖼 صورة");
+      span.appendChild(document.createTextNode(PLACEHOLDER));
+      root.appendChild(span);
+      continue;
+    }
     if (seg.color || seg.background || seg.bold || seg.italic || seg.underline || seg.large) {
       const span = document.createElement("span");
       if (seg.color) {
@@ -85,6 +112,10 @@ function walk(node: Node, active: ActiveStyle): string {
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
   const el = node as HTMLElement;
   if (el.tagName === "BR") return "";
+  // The image chip's own children (the label text, the <img> if one is ever
+  // added, the PLACEHOLDER text node) are internal to how it's painted —
+  // never walked as if they were ordinary editable content.
+  if (el.dataset.image !== undefined) return `{img:${el.dataset.image}}`;
   const own = styleOf(el);
   const merged: ActiveStyle = {
     color: own.color ?? active.color,

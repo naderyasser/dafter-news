@@ -32,7 +32,22 @@ export type Segment = {
    *  the body around it, picked out inline rather than lifted into its own
    *  heading block. Renders bold even without `bold` also being set. */
   large?: boolean;
+  /**
+   * An image embedded mid-paragraph (MediaAsset.image path) — «بدي اقدر
+   * اضيف صورة بين الكلام». An image segment's `text` is always exactly
+   * PLACEHOLDER: one real character, so it occupies the same one visible
+   * slot everywhere offsets are measured (Range.toString() in the editor,
+   * clearRangeInSegments here) as an atomic, unstylable unit — there is no
+   * "inside" an inline image the way there is inside a styled run.
+   */
+  image?: string;
 };
+
+/** Unicode's own "there is an embedded object here" character — what an
+ *  image segment's `text` holds. Rendered as an actual `<img>` (public page)
+ *  or a small non-editable chip (the dashboard's contentEditable box); see
+ *  lib/richTextDom.ts and ArticleBlocks.tsx's Rich component. */
+export const PLACEHOLDER = "\uFFFC";
 
 /**
  * One prefix segment inside a token: either a coloured pair (`c:#hex|` /
@@ -55,6 +70,20 @@ const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\||([biuL])
  * as literal text.
  */
 const INLINE = new RegExp(`\\{((?:${PAIR_SRC})+)([^{}]*)\\}`, "g");
+
+/**
+ * `{img:library/x.jpg}` — an embedded image, self-contained rather than
+ * wrapping text like every other token here. Kept as its own regex (not
+ * folded into PAIR_SRC) because it carries no text payload for INLINE's
+ * `([^{}]*)` group to capture: TOKEN below matches either shape.
+ */
+const IMAGE_SRC = "img:([^{}]*)";
+
+/** Either an image token or a styled-text token — the one pass parseInline,
+ *  stripInline and rawOffsetFromVisible all scan with. Group 1 is the image
+ *  path; groups 2/3 are the styled-token prefix/inner text, mirroring
+ *  INLINE's own groups 1/2. */
+const TOKEN = new RegExp(`\\{(?:${IMAGE_SRC}|((?:${PAIR_SRC})+)([^{}]*))\\}`, "g");
 
 /**
  * One level of `{kind:color|{kind:color|text}}` nesting — the shape a stale
@@ -130,11 +159,13 @@ export function parseInline(text: string): Segment[] {
   const normalised = unnestTokens(text);
   const out: Segment[] = [];
   let last = 0;
-  for (const m of normalised.matchAll(INLINE)) {
+  for (const m of normalised.matchAll(TOKEN)) {
     const at = m.index ?? 0;
     if (at > last) out.push({ text: normalised.slice(last, at) });
-    const [, prefix, inner] = m;
-    if (inner) {
+    const [, imagePath, prefix, inner] = m;
+    if (imagePath !== undefined) {
+      out.push({ text: PLACEHOLDER, image: imagePath });
+    } else if (inner) {
       const seg: Segment = { text: inner };
       for (const p of prefix.matchAll(PAIR)) {
         if (p[1] === "c") seg.color = p[2];
@@ -152,15 +183,20 @@ export function parseInline(text: string): Segment[] {
   return out.length ? out : [{ text: normalised }];
 }
 
-/** Markup-free length, for word counts that shouldn't see the tokens. */
+/** Markup-free length, for word counts that shouldn't see the tokens. An
+ *  image collapses to PLACEHOLDER's one character, same as everywhere else
+ *  an image segment's visible footprint is measured. */
 export function stripInline(text: string): string {
-  return unnestTokens(text).replace(INLINE, "$2");
+  return unnestTokens(text).replace(TOKEN, (_m, imagePath: string | undefined, _prefix: string, inner: string) =>
+    imagePath !== undefined ? PLACEHOLDER : inner,
+  );
 }
 
 /** The inverse of parseInline: segments back to the token grammar. */
 export function serializeSegments(segments: Segment[]): string {
   return segments
     .map((s) => {
+      if (s.image !== undefined) return `{img:${s.image}}`;
       let prefix = "";
       if (s.color) prefix += `c:${s.color}|`;
       if (s.background) prefix += `h:${s.background}|`;
@@ -186,6 +222,12 @@ export function serializeSegments(segments: Segment[]): string {
  * same substring back in reproduces the original token unchanged, wrapper
  * and all. Working from the already-parsed segments sidesteps that: there's
  * no wrapper to accidentally preserve, only styled-or-not runs of text.
+ *
+ * An image segment is never split or stripped, whatever the range does to
+ * it — there's no "half an image" or "an image with its colour cleared", so
+ * it always passes through unchanged. It still advances `pos` by its one
+ * PLACEHOLDER character, so segments after it keep the offsets their real
+ * one-character-wide DOM slot actually has.
  */
 export function clearRangeInSegments(segments: Segment[], start: number, end: number): Segment[] {
   const out: Segment[] = [];
@@ -194,6 +236,10 @@ export function clearRangeInSegments(segments: Segment[], start: number, end: nu
     const segStart = pos;
     const segEnd = pos + seg.text.length;
     pos = segEnd;
+    if (seg.image !== undefined) {
+      out.push(seg);
+      continue;
+    }
     const overlapStart = Math.max(segStart, start);
     const overlapEnd = Math.min(segEnd, end);
     if (overlapStart >= overlapEnd) {
@@ -220,19 +266,30 @@ export function clearRangeInSegments(segments: Segment[], start: number, end: nu
  * closing `}` for an end-offset is deliberate too: it's exactly what
  * mergeColorWrap's `value[end] !== "}"` check needs to recognise the
  * selection as sitting inside an existing token.
+ *
+ * An image token is the one exception to "landing inside": it's exactly one
+ * visible character (PLACEHOLDER) wide with no payload to land inside the
+ * way a styled run has, so every offset touching it resolves to just before
+ * or just after the whole `{img:…}` span, never partway through it.
  */
 export function rawOffsetFromVisible(value: string, visibleOffset: number): number {
   const normalised = unnestTokens(value);
   let visPos = 0;
   let last = 0;
-  for (const m of normalised.matchAll(INLINE)) {
+  for (const m of normalised.matchAll(TOKEN)) {
     const at = m.index ?? 0;
     const plainLen = at - last;
     if (visibleOffset < visPos + plainLen) return last + (visibleOffset - visPos);
     visPos += plainLen;
     last = at;
 
-    const [, prefix, inner] = m;
+    const [, imagePath, prefix, inner] = m;
+    if (imagePath !== undefined) {
+      if (visibleOffset <= visPos) return at;
+      visPos += 1;
+      last = at + m[0].length;
+      continue;
+    }
     if (visibleOffset <= visPos + inner.length) {
       const innerRawStart = at + 1 + prefix.length; // "{" + prefix, then the payload
       return innerRawStart + (visibleOffset - visPos);

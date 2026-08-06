@@ -126,6 +126,14 @@ export default function RichTextEditor({
       window.alert(kind === "c" || kind === "h" ? "حدّد النص الذي تريد تلوينه أولاً." : "حدّد النص الذي تريد تنسيقه أولاً.");
       return;
     }
+    // An embedded image is atomic — there's no colouring or bolding "part
+    // of" one, and a plain wrap around a selection that happens to span one
+    // would nest a style token around `{img:…}`, which nothing downstream
+    // (parseInline, this field's own DOM renderer) is built to read back.
+    if (value.slice(sel.start, sel.end).includes("{img:")) {
+      window.alert("لا يمكن تنسيق نص يتضمن صورة.");
+      return;
+    }
     const merged = mergeColorWrap(value, sel.start, sel.end, kind, color);
     const next = merged
       ? merged.next
@@ -156,9 +164,12 @@ export default function RichTextEditor({
     const vis = getVisibleSelection(el);
     const hasSelection = vis && vis.start !== vis.end;
     const segments = parseInline(value);
+    // Same rule as clearRangeInSegments: an image segment is never stripped
+    // down to its bare PLACEHOLDER text, which would silently drop the
+    // image it refers to.
     const cleared = hasSelection
       ? clearRangeInSegments(segments, vis.start, vis.end)
-      : segments.map((s) => ({ text: s.text }));
+      : segments.map((s) => (s.image !== undefined ? s : { text: s.text }));
     const next = serializeSegments(cleared);
 
     renderTokensInto(el, next);
