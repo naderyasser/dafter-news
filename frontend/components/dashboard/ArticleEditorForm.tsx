@@ -142,9 +142,9 @@ export default function ArticleEditorForm({
   const [pickerFor, setPickerFor] = useState<number | "cover" | { blockId: number; offset: number } | null>(null);
   // Which block's alignment menu is open.
   const [alignMenuFor, setAlignMenuFor] = useState<number | null>(null);
-  // Publishing surfaces: pinning is a stored article field; the two pushes
-  // are one-shot actions the server performs on this save (published only).
-  const [pinned, setPinned] = useState(initial?.pinned ?? false);
+  // Publishing surfaces: the two pushes are one-shot actions the server
+  // performs on this save (published only). Homepage pinning used to be a
+  // third checkbox here; removed on request, keeping these two.
   const [pushBreaking, setPushBreaking] = useState(false);
   const [pushStory, setPushStory] = useState(false);
   // Publish-later. datetime-local wants "YYYY-MM-DDTHH:mm" in the editor's
@@ -471,7 +471,6 @@ export default function ArticleEditorForm({
         ...(b.assetId ? { asset_id: b.assetId } : b.imageName ? { keep_image: b.imageName } : {}),
       })),
       tag_names: tags,
-      pinned,
       ...(pushBreaking ? { push_breaking: true } : {}),
       ...(pushStory ? { push_story: true } : {}),
       // Blank slug is omitted so Article.save() derives one from the title —
@@ -891,13 +890,6 @@ export default function ArticleEditorForm({
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">النشر والإبراز</div>
-          <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
-            <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
-            <span>
-              <span className="block text-[13px] font-semibold text-ink">تثبيت في الرئيسية</span>
-              <span className="block text-[11px] leading-relaxed text-ink-3">يتصدّر الخبر واجهة الموقع حتى تلغي التثبيت.</span>
-            </span>
-          </label>
           <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
             <input type="checkbox" checked={pushBreaking} onChange={(e) => setPushBreaking(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
             <span>
