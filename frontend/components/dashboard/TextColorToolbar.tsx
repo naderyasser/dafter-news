@@ -46,6 +46,13 @@ export default function TextColorToolbar({
   const [open, setOpen] = useState(false);
   const hasFormatting = parseInline(value).some((s) => s.color || s.background || s.bold || s.italic || s.underline);
 
+  // Every control here reads the editor's live text selection at click time
+  // (see RichTextEditor's applyFormat) — but a bare mousedown on any element
+  // is itself a browser selection gesture, and by default collapses whatever
+  // was selected to the click point before the click (and onApply) ever
+  // fires. preventDefault on mousedown stops that collapse without stopping
+  // the click, so the selection an editor just made is still there to act on.
+
   return (
     <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -54,6 +61,7 @@ export default function TextColorToolbar({
             the panel behind a toggle. */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onApply("b")}
           title="غامق (Bold)"
           aria-label="نص غامق"
@@ -63,6 +71,7 @@ export default function TextColorToolbar({
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onApply("i")}
           title="مائل (Italic)"
           aria-label="نص مائل"
@@ -72,6 +81,7 @@ export default function TextColorToolbar({
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onApply("u")}
           title="تحته خط (Underline)"
           aria-label="نص تحته خط"
@@ -82,6 +92,7 @@ export default function TextColorToolbar({
         <span className="h-5 w-px bg-line" aria-hidden />
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
           className="flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-surface-2"
@@ -91,6 +102,7 @@ export default function TextColorToolbar({
         {hasFormatting ? (
           <button
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={onClear}
             className="rounded-pill border border-line px-3 py-1.5 text-[12px] font-semibold text-ink-3 hover:text-down"
           >
@@ -110,6 +122,7 @@ export default function TextColorToolbar({
                   type="button"
                   title={s.label}
                   aria-label={`لون النص: ${s.label}`}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => onApply("c", s.color)}
                   className="h-7 w-7 rounded-full border border-line-strong"
                   style={{ backgroundColor: s.color }}
@@ -134,6 +147,7 @@ export default function TextColorToolbar({
                   type="button"
                   title={s.label}
                   aria-label={`تظليل: ${s.label}`}
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => onApply("h", s.color)}
                   className="h-7 w-7 rounded-full border border-line-strong"
                   style={{ backgroundColor: s.color }}
