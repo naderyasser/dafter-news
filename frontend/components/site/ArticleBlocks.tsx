@@ -9,18 +9,21 @@ import { paginateBlocks, parseInline, splitLongParagraph } from "@/lib/richtext"
 import { toEasternNumerals } from "@/lib/format";
 import type { ArticleBlock } from "@/lib/types";
 
-/** Renders the editor's inline colour markup as spans. See lib/richtext.ts. */
+/** Renders the editor's inline colour/bold/italic/underline markup as spans. See lib/richtext.ts. */
 function Rich({ text }: { text: string }) {
   const segments = useMemo(() => parseInline(text), [text]);
   return (
     <>
       {segments.map((s, i) =>
-        s.color || s.background ? (
+        s.color || s.background || s.bold || s.italic || s.underline ? (
           <span
             key={i}
             style={{
               color: s.color,
               backgroundColor: s.background,
+              fontWeight: s.bold ? 700 : undefined,
+              fontStyle: s.italic ? "italic" : undefined,
+              textDecoration: s.underline ? "underline" : undefined,
               // Highlights need room to breathe or the colour clips the
               // glyphs; text-only runs get neither padding nor a radius.
               ...(s.background ? { padding: "0.05em 0.25em", borderRadius: "3px" } : null),
@@ -61,7 +64,10 @@ export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blo
   const render = (b: ArticleBlock) => {
     if (b.type === "paragraph") {
       return (
-        <p key={b.id} className="mb-5 text-[clamp(1.125rem,1rem+0.3vw,1.1875rem)] leading-[1.95] text-ink">
+        <p
+          key={b.id}
+          className={`mb-5 text-[clamp(1.125rem,1rem+0.3vw,1.1875rem)] leading-[1.95] text-ink ${b.justify ? "text-justify" : ""}`}
+        >
           <Rich text={b.text} />
         </p>
       );

@@ -19,6 +19,7 @@ const block = (over: Partial<ArticleBlock> = {}): ArticleBlock =>
     order: 0,
     type: "paragraph",
     text: "",
+    justify: false,
     image: null,
     caption: "",
     credit: "",
@@ -110,5 +111,24 @@ describe("ArticleBlocks", () => {
 
     expect(container.querySelector("img")).toBeNull();
     expect(screen.getByText("<img src=x onerror=alert(1)>")).toBeInTheDocument();
+  });
+
+  it("renders the editor's bold/italic/underline markup", () => {
+    render(
+      <ArticleBlocks
+        lang="ar"
+        blocks={[block({ text: "عادي {b|غامق} و{i|مائل} و{u|تحته خط}" })]}
+      />,
+    );
+
+    expect(screen.getByText("غامق")).toHaveStyle({ fontWeight: "700" });
+    expect(screen.getByText("مائل")).toHaveStyle({ fontStyle: "italic" });
+    expect(screen.getByText("تحته خط")).toHaveStyle({ textDecoration: "underline" });
+  });
+
+  it("justifies a paragraph the editor marked «ضبط النص»", () => {
+    const { container } = render(<ArticleBlocks lang="ar" blocks={[block({ text: sentence(1), justify: true })]} />);
+
+    expect(container.querySelector("p")).toHaveClass("text-justify");
   });
 });

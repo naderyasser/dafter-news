@@ -34,7 +34,7 @@ class ArticleBlockSerializer(serializers.ModelSerializer):
     class Meta:
         model = ArticleBlock
         fields = [
-            "id", "order", "type", "text", "image", "caption", "credit",
+            "id", "order", "type", "text", "justify", "image", "caption", "credit",
             "related_article", "related_article_slug", "asset_id", "image_name", "keep_image",
         ]
 

@@ -20,22 +20,34 @@
  * literal text.
  */
 
-/** A run of body text, optionally coloured. */
-export type Segment = { text: string; color?: string; background?: string };
-
-/** One `kind:#hex|` prefix segment — the building block of a token. */
-const PAIR_SRC = "[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\|";
-const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\|`, "g");
+/** A run of body text, optionally coloured and/or bold/italic/underlined. */
+export type Segment = {
+  text: string;
+  color?: string;
+  background?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+};
 
 /**
- * `{c:#RRGGBB|…}` = text colour, `{h:#RRGGBB|…}` = highlight, and the two can
- * stack on the same run as `{c:#RRGGBB|h:#RRGGBB|…}` — one token, one or more
- * `kind:color|` prefixes, then the text. Stacking is what lets an editor
- * colour a word and then highlight it without re-selecting (see
- * TextColorToolbar's apply()); it has to be one token rather than a nested
- * `{c:…|{h:…|…}}` pair because the inner group below (`[^{}]*`) — deliberately,
- * so stray braces in body text can't be mistaken for markup — cannot match
- * across a nested brace, which used to leak the outer wrapper as literal text.
+ * One prefix segment inside a token: either a coloured pair (`c:#hex|` /
+ * `h:#hex|`) or a bare style flag (`b|` / `i|` / `u|` — bold/italic/
+ * underline, which carry no value of their own).
+ */
+const PAIR_SRC = "(?:[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\||[biu]\\|)";
+const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\||([biu])\\|`, "g");
+
+/**
+ * `{c:#RRGGBB|…}` = text colour, `{h:#RRGGBB|…}` = highlight, `{b|…}` /
+ * `{i|…}` / `{u|…}` = bold / italic / underline, and any of these can stack
+ * on the same run as `{c:#RRGGBB|b|…}` — one token, one or more prefix
+ * segments, then the text. Stacking is what lets an editor colour a word and
+ * then bold it without re-selecting (see TextColorToolbar's apply()); it has
+ * to be one token rather than a nested `{c:…|{h:…|…}}` pair because the inner
+ * group below (`[^{}]*`) — deliberately, so stray braces in body text can't
+ * be mistaken for markup — cannot match across a nested brace, which used to
+ * leak the outer wrapper as literal text.
  */
 const INLINE = new RegExp(`\\{((?:${PAIR_SRC})+)([^{}]*)\\}`, "g");
 
@@ -58,32 +70,41 @@ function unnestTokens(text: string): string {
   return out;
 }
 
-export const COLOR_OPEN = (kind: "c" | "h", color: string) => `{${kind}:${color}|`;
+/**
+ * Opening prefix for a token. `color` is omitted for the flag kinds (bold/
+ * italic/underline), which carry no value of their own.
+ */
+export const COLOR_OPEN = (kind: "c" | "h" | "b" | "i" | "u", color?: string) =>
+  `{${kind}${color ? `:${color}` : ""}|`;
 
 /**
- * Re-applying a colour/highlight to a selection that a previous apply() left
- * selected (TextColorToolbar re-selects the just-wrapped text so a colour can
- * be followed by a highlight without re-selecting) used to wrap a brand-new
- * `{kind:color|…}` *inside* that existing token. Detects that case — the text
+ * Re-applying a style to a selection that a previous apply() left selected
+ * (TextColorToolbar re-selects the just-wrapped text so a colour can be
+ * followed by bold without re-selecting) used to wrap a brand-new
+ * `{kind:…|…}` *inside* that existing token. Detects that case — the text
  * right before `start` ends an open token and the text right after `end` is
- * its closing brace — and folds the new kind/colour into the same token
- * instead of nesting a second one. Returns null when the selection isn't
- * sitting inside an existing token, so the caller falls back to a plain wrap.
+ * its closing brace — and folds the new kind (and colour, if it has one)
+ * into the same token instead of nesting a second one. Returns null when the
+ * selection isn't sitting inside an existing token, so the caller falls back
+ * to a plain wrap.
  */
 export function mergeColorWrap(
   value: string,
   start: number,
   end: number,
-  kind: "c" | "h",
-  color: string,
+  kind: "c" | "h" | "b" | "i" | "u",
+  color?: string,
 ): { next: string; selStart: number; selEnd: number } | null {
   const openAt = new RegExp(`\\{((?:${PAIR_SRC})+)$`).exec(value.slice(0, start));
   if (!openAt || value[end] !== "}") return null;
 
-  const pairs = new Map<string, string>();
-  for (const p of openAt[1].matchAll(PAIR)) pairs.set(p[1], p[2]);
+  const pairs = new Map<string, string | undefined>();
+  for (const p of openAt[1].matchAll(PAIR)) {
+    if (p[1]) pairs.set(p[1], p[2]);
+    else if (p[3]) pairs.set(p[3], undefined);
+  }
   pairs.set(kind, color);
-  const newPrefix = Array.from(pairs, ([k, c]) => `${k}:${c}|`).join("");
+  const newPrefix = Array.from(pairs, ([k, c]) => (c ? `${k}:${c}|` : `${k}|`)).join("");
 
   const openStart = start - openAt[0].length;
   const selected = value.slice(start, end);
@@ -112,7 +133,10 @@ export function parseInline(text: string): Segment[] {
       const seg: Segment = { text: inner };
       for (const p of prefix.matchAll(PAIR)) {
         if (p[1] === "c") seg.color = p[2];
-        else seg.background = p[2];
+        else if (p[1] === "h") seg.background = p[2];
+        else if (p[3] === "b") seg.bold = true;
+        else if (p[3] === "i") seg.italic = true;
+        else if (p[3] === "u") seg.underline = true;
       }
       out.push(seg);
     }

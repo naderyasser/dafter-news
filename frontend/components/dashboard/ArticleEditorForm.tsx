@@ -5,7 +5,7 @@ import { useRef, useState } from "react";
 
 import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
 import TextColorToolbar from "@/components/dashboard/TextColorToolbar";
-import { dashMutate, describeApiError, mediaUrl } from "@/lib/api";
+import { dashMutate, dashUpload, describeApiError, mediaUrl } from "@/lib/api";
 import type { ArticleBlock, ArticleDetail, Badge, MediaAsset } from "@/lib/types";
 
 type Block = {
@@ -14,6 +14,8 @@ type Block = {
   text: string;
   caption: string;
   credit: string;
+  /** «ضبط النص» — justified alignment, paragraph blocks only. */
+  justify: boolean;
   /** Library asset chosen in this session — sent as asset_id. */
   assetId: number | null;
   /** Stored file name of an image the block already had — echoed as keep_image. */
@@ -21,6 +23,19 @@ type Block = {
   /** Preview URL for whichever of the two above is set. */
   imageUrl: string | null;
 };
+
+/** A freshly created block, defaults filled in. */
+const blankBlock = (id: number, type: Block["type"], text = ""): Block => ({
+  id,
+  type,
+  text,
+  caption: "",
+  credit: "",
+  justify: false,
+  assetId: null,
+  imageName: "",
+  imageUrl: null,
+});
 export type EditorSection = { id: number; key: string; label: string };
 
 const BADGES: { key: Badge; label: string }[] = [
@@ -54,14 +69,17 @@ export default function ArticleEditorForm({
       text: b.text,
       caption: b.caption,
       credit: b.credit,
+      justify: b.justify ?? false,
       assetId: null,
       imageName: b.image_name ?? "",
       imageUrl: mediaUrl(b.image) ?? null,
-    })) ?? [{ id: 1, type: "paragraph", text: "", caption: "", credit: "", assetId: null, imageName: "", imageUrl: null }],
+    })) ?? [blankBlock(1, "paragraph")],
   );
   const [nextId, setNextId] = useState((blocks.at(-1)?.id ?? 0) + 1);
   // Keyed by block id, not index, so reordering a block keeps its textarea.
   const bodyRefs = useRef<Record<number, HTMLTextAreaElement | null>>({});
+  // Keyed the same way, for the "upload from device" file input on each image block.
+  const imageFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const [section, setSection] = useState(initial?.section?.key ?? sections[0]?.key ?? "egypt");
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
   const [country, setCountry] = useState(initial?.country ?? "");
@@ -105,7 +123,7 @@ export default function ArticleEditorForm({
       return arr;
     });
   const addBlock = (type: Block["type"]) => {
-    setBlocks((bs) => [...bs, { id: nextId, type, text: "", caption: "", credit: "", assetId: null, imageName: "", imageUrl: null }]);
+    setBlocks((bs) => [...bs, blankBlock(nextId, type)]);
     setNextId((n) => n + 1);
   };
   const removeBlock = (id: number) => setBlocks((bs) => bs.filter((b) => b.id !== id));
@@ -127,10 +145,47 @@ export default function ArticleEditorForm({
       if (!before || !after) return bs;
       const arr = [...bs];
       arr[i] = { ...arr[i], text: before };
-      arr.splice(i + 1, 0, { id: nextId, type: "paragraph", text: after, caption: "", credit: "", assetId: null, imageName: "", imageUrl: null });
+      // The new half keeps whatever alignment the original paragraph had —
+      // splitting a justified paragraph shouldn't un-justify its second half.
+      arr.splice(i + 1, 0, { ...blankBlock(nextId, "paragraph", after), justify: arr[i].justify });
       return arr;
     });
     setNextId((n) => n + 1);
+  };
+
+  /**
+   * «تحويل التحديد إلى عنوان فرعي»: lift the selected sentence out of a
+   * paragraph into its own heading block, splitting whatever text sits
+   * before and after it back into paragraphs. Mirrors splitBlock's shape —
+   * same id bookkeeping, same "nothing to do without a real span" guard —
+   * but produces up to three blocks instead of two.
+   */
+  const convertSelectionToHeading = (id: number) => {
+    const el = bodyRefs.current[id];
+    if (!el || el.selectionStart === el.selectionEnd) {
+      window.alert("حدّد الجملة التي تريد تحويلها إلى عنوان فرعي أولاً.");
+      return;
+    }
+    const { selectionStart: start, selectionEnd: end } = el;
+    setBlocks((bs) => {
+      const i = bs.findIndex((b) => b.id === id);
+      if (i === -1) return bs;
+      const before = bs[i].text.slice(0, start).trim();
+      const selected = bs[i].text.slice(start, end).trim();
+      const after = bs[i].text.slice(end).trim();
+      if (!selected) return bs;
+
+      let id2 = nextId;
+      const replacement: Block[] = [];
+      if (before) replacement.push(blankBlock(id2++, "paragraph", before));
+      replacement.push({ ...blankBlock(id2++, "heading", selected) });
+      if (after) replacement.push(blankBlock(id2++, "paragraph", after));
+
+      const arr = [...bs];
+      arr.splice(i, 1, ...replacement);
+      setNextId(id2);
+      return arr;
+    });
   };
 
   const pickAsset = (asset: MediaAsset) => {
@@ -148,6 +203,31 @@ export default function ArticleEditorForm({
       );
     }
     setPickerFor(null);
+  };
+
+  /**
+   * «رفع صورة من الجهاز» for an in-body image block. Uploads straight to the
+   * media library (same endpoint MediaManager's own uploader uses) and then
+   * points the block at the created asset — so a photo dropped mid-article
+   * also becomes a reusable library asset rather than a one-off file only
+   * this block can see.
+   */
+  const uploadBlockImage = async (id: number, file: File) => {
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("image", file);
+      form.append("title", file.name.replace(/\.[^.]+$/, ""));
+      const created = await dashUpload<MediaAsset>("/media/", "POST", form);
+      updateBlock(id, {
+        assetId: created.id,
+        imageName: "",
+        imageUrl: mediaUrl(created.image) ?? null,
+        credit: created.credit,
+      });
+    } catch {
+      setError("تعذّر رفع الصورة. تأكد من نوع الملف وحاول مرة أخرى.");
+    }
   };
 
   const words = wordCount(standfirst) + blocks.filter((b) => b.type === "paragraph").reduce((sum, b) => sum + wordCount(b.text), 0);
@@ -191,6 +271,7 @@ export default function ArticleEditorForm({
         order: i,
         type: b.type,
         text: b.text,
+        justify: b.justify,
         caption: b.caption,
         credit: b.credit,
         ...(b.assetId ? { asset_id: b.assetId } : b.imageName ? { keep_image: b.imageName } : {}),
@@ -256,8 +337,26 @@ export default function ArticleEditorForm({
               <span className="text-[11px] font-extrabold text-brand">{BLOCK_LABELS[b.type]}</span>
               <div className="flex items-center gap-2.5 text-xs text-header-muted">
                 {b.type === "paragraph" && b.text.trim() ? (
-                  <span onClick={() => splitBlock(b.id)} title="تقسيم الفقرة عند المؤشر" className="cursor-pointer font-semibold hover:text-accent">
-                    ✂ تقسيم
+                  <>
+                    <span onClick={() => splitBlock(b.id)} title="تقسيم الفقرة عند المؤشر" className="cursor-pointer font-semibold hover:text-accent">
+                      ✂ تقسيم
+                    </span>
+                    <span
+                      onClick={() => convertSelectionToHeading(b.id)}
+                      title="حدّد جزءاً من النص لتحويله إلى عنوان فرعي مستقل"
+                      className="cursor-pointer font-semibold hover:text-accent"
+                    >
+                      🔤 عنوان فرعي
+                    </span>
+                  </>
+                ) : null}
+                {b.type === "paragraph" ? (
+                  <span
+                    onClick={() => updateBlock(b.id, { justify: !b.justify })}
+                    title="ضبط النص (Justify) — يمتد الفقرة على عرض الهامشين"
+                    className={`cursor-pointer font-semibold ${b.justify ? "text-accent" : "hover:text-accent"}`}
+                  >
+                    ≣ ضبط
                   </span>
                 ) : null}
                 <span onClick={() => moveBlock(b.id, -1)} className="cursor-pointer">
@@ -317,6 +416,31 @@ export default function ArticleEditorForm({
                     </span>
                   ) : null}
                 </button>
+                {/* Upload a new file straight from the device — an
+                    alternative to picking an existing library asset, for the
+                    common case of a photo that isn't in the library yet. */}
+                <button
+                  type="button"
+                  onClick={() => imageFileRefs.current[b.id]?.click()}
+                  title="رفع صورة من الجهاز"
+                  className="flex h-[100px] w-[90px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-surface text-[11px] text-header-muted hover:border-accent hover:text-accent"
+                >
+                  <span aria-hidden>⬆</span>
+                  من الجهاز
+                </button>
+                <input
+                  ref={(el) => {
+                    imageFileRefs.current[b.id] = el;
+                  }}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) uploadBlockImage(b.id, f);
+                    e.target.value = "";
+                  }}
+                />
                 <div className="flex min-w-[180px] flex-1 flex-col gap-2">
                   <input
                     value={b.caption}

@@ -196,6 +196,9 @@ class ArticleBlock(models.Model):
     order = models.PositiveSmallIntegerField(default=0)
     type = models.CharField(max_length=10, choices=Type.choices)
     text = models.TextField(blank=True)
+    # Paragraph text alignment — the editor's «ضبط النص» toggle. Only
+    # meaningful for paragraph/quote blocks; harmless (and unread) on the rest.
+    justify = models.BooleanField(default=False, help_text="ضبط النص (Justify) على هذه الفقرة")
     image = models.ImageField(upload_to="article_blocks/", blank=True, null=True)
     caption = models.CharField(max_length=240, blank=True)
     credit = models.CharField(max_length=120, blank=True)
