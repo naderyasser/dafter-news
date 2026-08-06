@@ -19,7 +19,7 @@ const block = (over: Partial<ArticleBlock> = {}): ArticleBlock =>
     order: 0,
     type: "paragraph",
     text: "",
-    justify: false,
+    align: "right",
     image: null,
     caption: "",
     credit: "",
@@ -126,9 +126,14 @@ describe("ArticleBlocks", () => {
     expect(screen.getByText("تحته خط")).toHaveStyle({ textDecoration: "underline" });
   });
 
-  it("justifies a paragraph the editor marked «ضبط النص»", () => {
-    const { container } = render(<ArticleBlocks lang="ar" blocks={[block({ text: sentence(1), justify: true })]} />);
+  it.each([
+    ["left", "text-left"],
+    ["center", "text-center"],
+    ["right", "text-right"],
+    ["justify", "text-justify"],
+  ] as const)("renders align=%s as %s — physical, not logical", (align, expectedClass) => {
+    const { container } = render(<ArticleBlocks lang="ar" blocks={[block({ text: sentence(1), align })]} />);
 
-    expect(container.querySelector("p")).toHaveClass("text-justify");
+    expect(container.querySelector("p")).toHaveClass(expectedClass);
   });
 });

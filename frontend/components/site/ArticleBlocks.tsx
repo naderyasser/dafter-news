@@ -9,6 +9,16 @@ import { paginateBlocks, parseInline, splitLongParagraph } from "@/lib/richtext"
 import { toEasternNumerals } from "@/lib/format";
 import type { ArticleBlock } from "@/lib/types";
 
+/** Physical, not logical — the editor's alignment menu means "this literal
+ *  side", the same as a word processor's, regardless of the article's own
+ *  reading direction. */
+const ALIGN_CLASS: Record<ArticleBlock["align"], string> = {
+  left: "text-left",
+  center: "text-center",
+  right: "text-right",
+  justify: "text-justify",
+};
+
 /** Renders the editor's inline colour/bold/italic/underline markup as spans. See lib/richtext.ts. */
 function Rich({ text }: { text: string }) {
   const segments = useMemo(() => parseInline(text), [text]);
@@ -66,7 +76,7 @@ export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blo
       return (
         <p
           key={b.id}
-          className={`mb-5 text-[clamp(1.125rem,1rem+0.3vw,1.1875rem)] leading-[1.95] text-ink ${b.justify ? "text-justify" : ""}`}
+          className={`mb-5 text-[clamp(1.125rem,1rem+0.3vw,1.1875rem)] leading-[1.95] text-ink ${ALIGN_CLASS[b.align]}`}
         >
           <Rich text={b.text} />
         </p>

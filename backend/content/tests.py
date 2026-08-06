@@ -424,21 +424,34 @@ class ArticleWriteAPITests(APITestCase):
         self.assertEqual(article.blocks.count(), 1)
         self.assertEqual(article.blocks.first().text, "جديد")
 
-    def test_block_justify_flag_round_trips(self):
-        """The editor's «ضبط النص» toggle — a plain boolean per block, passed
-        straight through _sync_blocks like any other block field."""
+    def test_block_align_round_trips(self):
+        """The editor's alignment menu — a plain choice field per block,
+        passed straight through _sync_blocks like any other block field."""
         res = self.client.post(
             "/api/articles/",
             {
-                "title": "مقال مضبوط النص",
-                "blocks": [{"order": 0, "type": "paragraph", "text": "فقرة", "justify": True}],
+                "title": "مقال بفقرة مضبوطة",
+                "blocks": [{"order": 0, "type": "paragraph", "text": "فقرة", "align": "justify"}],
             },
             format="json",
         )
         self.assertEqual(res.status_code, 201, res.data)
 
         article = Article.objects.get(pk=res.json()["id"])
-        self.assertTrue(article.blocks.first().justify)
+        self.assertEqual(article.blocks.first().align, "justify")
+
+    def test_block_align_defaults_to_right(self):
+        """Unset in the payload, a new block still gets an explicit value —
+        the same default a reader's unstyled RTL paragraph already reads as."""
+        res = self.client.post(
+            "/api/articles/",
+            {"title": "مقال بلا محاذاة محددة", "blocks": [{"order": 0, "type": "paragraph", "text": "فقرة"}]},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+
+        article = Article.objects.get(pk=res.json()["id"])
+        self.assertEqual(article.blocks.first().align, "right")
 
     def test_patch_status_by_id(self):
         article = Article.objects.create(title="مقال", slug="a2", status=Article.Status.DRAFT)

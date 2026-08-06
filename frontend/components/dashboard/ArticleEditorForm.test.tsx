@@ -172,3 +172,42 @@ describe("ArticleEditorForm byline", () => {
     expect(payload.byline).toBe("فريق التحرير");
   });
 });
+
+describe("ArticleEditorForm paragraph alignment", () => {
+  afterEach(() => {
+    push.mockClear();
+    refresh.mockClear();
+    dashMutate.mockReset();
+  });
+
+  it("defaults a new paragraph to right — the same default an unstyled RTL paragraph already reads as", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر بلا محاذاة مخصصة" } });
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { align: string }[] }];
+    expect(payload.blocks[0].align).toBe("right");
+  });
+
+  it("opens the alignment menu, offers all four options, and saves the one picked", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر مضبوط النص" } });
+
+    fireEvent.click(screen.getByLabelText("محاذاة الفقرة"));
+    expect(screen.getByText("محاذاة اليسار")).toBeInTheDocument();
+    expect(screen.getByText("محاذاة الوسط")).toBeInTheDocument();
+    expect(screen.getByText("ضبط")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("ضبط"));
+    // Picking an option closes the menu — it's a one-shot choice, not a toggle.
+    expect(screen.queryByText("محاذاة اليسار")).not.toBeInTheDocument();
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { align: string }[] }];
+    expect(payload.blocks[0].align).toBe("justify");
+  });
+});
