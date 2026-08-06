@@ -23,7 +23,7 @@ import { parseInline } from "./richtext";
 export function renderTokensInto(root: HTMLElement, text: string): void {
   while (root.firstChild) root.removeChild(root.firstChild);
   for (const seg of parseInline(text)) {
-    if (seg.color || seg.background || seg.bold || seg.italic || seg.underline) {
+    if (seg.color || seg.background || seg.bold || seg.italic || seg.underline || seg.large) {
       const span = document.createElement("span");
       if (seg.color) {
         span.style.color = seg.color;
@@ -38,6 +38,16 @@ export function renderTokensInto(root: HTMLElement, text: string): void {
       if (seg.bold) span.style.fontWeight = "700";
       if (seg.italic) span.style.fontStyle = "italic";
       if (seg.underline) span.style.textDecorationLine = "underline";
+      if (seg.large) {
+        // Reads bold+bigger visually the same as `bold` sets fontWeight —
+        // a data attribute (like colour's) is what makes this one
+        // distinguishable on the way back out in styleOf(), rather than
+        // large-without-bold being indistinguishable from plain bold once
+        // painted.
+        span.dataset.large = "1";
+        span.style.fontSize = "1.2em";
+        span.style.fontWeight = "700";
+      }
       span.appendChild(document.createTextNode(seg.text));
       root.appendChild(span);
     } else if (seg.text) {
@@ -46,7 +56,7 @@ export function renderTokensInto(root: HTMLElement, text: string): void {
   }
 }
 
-type ActiveStyle = { color?: string; background?: string; bold?: boolean; italic?: boolean; underline?: boolean };
+type ActiveStyle = { color?: string; background?: string; bold?: boolean; italic?: boolean; underline?: boolean; large?: boolean };
 
 function styleOf(el: HTMLElement): ActiveStyle {
   return {
@@ -55,6 +65,7 @@ function styleOf(el: HTMLElement): ActiveStyle {
     bold: el.style.fontWeight === "700" || el.style.fontWeight === "bold" || el.tagName === "B" || el.tagName === "STRONG",
     italic: el.style.fontStyle === "italic" || el.tagName === "I" || el.tagName === "EM",
     underline: el.style.textDecorationLine === "underline" || el.tagName === "U",
+    large: el.dataset.large === "1",
   };
 }
 
@@ -68,6 +79,7 @@ function walk(node: Node, active: ActiveStyle): string {
     if (active.bold) prefix += "b|";
     if (active.italic) prefix += "i|";
     if (active.underline) prefix += "u|";
+    if (active.large) prefix += "L|";
     return prefix ? `{${prefix}${text}}` : text;
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
@@ -80,6 +92,7 @@ function walk(node: Node, active: ActiveStyle): string {
     bold: own.bold || active.bold,
     italic: own.italic || active.italic,
     underline: own.underline || active.underline,
+    large: own.large || active.large,
   };
   let out = "";
   for (const child of Array.from(el.childNodes)) out += walk(child, merged);

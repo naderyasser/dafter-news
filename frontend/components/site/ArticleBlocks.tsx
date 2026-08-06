@@ -25,13 +25,15 @@ function Rich({ text }: { text: string }) {
   return (
     <>
       {segments.map((s, i) =>
-        s.color || s.background || s.bold || s.italic || s.underline ? (
+        s.color || s.background || s.bold || s.italic || s.underline || s.large ? (
           <span
             key={i}
             style={{
               color: s.color,
               backgroundColor: s.background,
-              fontWeight: s.bold ? 700 : undefined,
+              // «فقرة» reads bold+bigger even when `bold` isn't separately set.
+              fontWeight: s.bold || s.large ? 700 : undefined,
+              fontSize: s.large ? "1.2em" : undefined,
               fontStyle: s.italic ? "italic" : undefined,
               textDecoration: s.underline ? "underline" : undefined,
               // Highlights need room to breathe or the colour clips the

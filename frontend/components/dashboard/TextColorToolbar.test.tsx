@@ -46,6 +46,15 @@ describe("TextColorToolbar", () => {
     expect(onApply).toHaveBeenNthCalledWith(3, "u");
   });
 
+  it("forwards «فقرة» with kind \"L\", no colour value, no panel needed", () => {
+    const onApply = vi.fn();
+    render(<TextColorToolbar value="نص" onApply={onApply} onClear={vi.fn()} />);
+
+    fireEvent.click(screen.getByLabelText("فقرة"));
+
+    expect(onApply).toHaveBeenCalledWith("L");
+  });
+
   it("passes a custom picker colour straight through", () => {
     const onApply = vi.fn();
     render(<TextColorToolbar value="نص" onApply={onApply} onClear={vi.fn()} />);

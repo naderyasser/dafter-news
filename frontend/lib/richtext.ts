@@ -28,26 +28,31 @@ export type Segment = {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
+  /** «فقرة» — the client's own word for a line set larger and bolder than
+   *  the body around it, picked out inline rather than lifted into its own
+   *  heading block. Renders bold even without `bold` also being set. */
+  large?: boolean;
 };
 
 /**
  * One prefix segment inside a token: either a coloured pair (`c:#hex|` /
- * `h:#hex|`) or a bare style flag (`b|` / `i|` / `u|` — bold/italic/
- * underline, which carry no value of their own).
+ * `h:#hex|`) or a bare style flag (`b|` / `i|` / `u|` / `L|` — bold/italic/
+ * underline/large, which carry no value of their own).
  */
-const PAIR_SRC = "(?:[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\||[biu]\\|)";
-const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\||([biu])\\|`, "g");
+const PAIR_SRC = "(?:[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\||[biuL]\\|)";
+const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\||([biuL])\\|`, "g");
 
 /**
  * `{c:#RRGGBB|…}` = text colour, `{h:#RRGGBB|…}` = highlight, `{b|…}` /
- * `{i|…}` / `{u|…}` = bold / italic / underline, and any of these can stack
- * on the same run as `{c:#RRGGBB|b|…}` — one token, one or more prefix
- * segments, then the text. Stacking is what lets an editor colour a word and
- * then bold it without re-selecting (see TextColorToolbar's apply()); it has
- * to be one token rather than a nested `{c:…|{h:…|…}}` pair because the inner
- * group below (`[^{}]*`) — deliberately, so stray braces in body text can't
- * be mistaken for markup — cannot match across a nested brace, which used to
- * leak the outer wrapper as literal text.
+ * `{i|…}` / `{u|…}` / `{L|…}` = bold / italic / underline / large, and any
+ * of these can stack on the same run as `{c:#RRGGBB|b|…}` — one token, one
+ * or more prefix segments, then the text. Stacking is what lets an editor
+ * colour a word and then bold it without re-selecting (see
+ * TextColorToolbar's apply()); it has to be one token rather than a nested
+ * `{c:…|{h:…|…}}` pair because the inner group below (`[^{}]*`) —
+ * deliberately, so stray braces in body text can't be mistaken for markup —
+ * cannot match across a nested brace, which used to leak the outer wrapper
+ * as literal text.
  */
 const INLINE = new RegExp(`\\{((?:${PAIR_SRC})+)([^{}]*)\\}`, "g");
 
@@ -74,7 +79,7 @@ function unnestTokens(text: string): string {
  * Opening prefix for a token. `color` is omitted for the flag kinds (bold/
  * italic/underline), which carry no value of their own.
  */
-export const COLOR_OPEN = (kind: "c" | "h" | "b" | "i" | "u", color?: string) =>
+export const COLOR_OPEN = (kind: "c" | "h" | "b" | "i" | "u" | "L", color?: string) =>
   `{${kind}${color ? `:${color}` : ""}|`;
 
 /**
@@ -92,7 +97,7 @@ export function mergeColorWrap(
   value: string,
   start: number,
   end: number,
-  kind: "c" | "h" | "b" | "i" | "u",
+  kind: "c" | "h" | "b" | "i" | "u" | "L",
   color?: string,
 ): { next: string; selStart: number; selEnd: number } | null {
   const openAt = new RegExp(`\\{((?:${PAIR_SRC})+)$`).exec(value.slice(0, start));
@@ -137,6 +142,7 @@ export function parseInline(text: string): Segment[] {
         else if (p[3] === "b") seg.bold = true;
         else if (p[3] === "i") seg.italic = true;
         else if (p[3] === "u") seg.underline = true;
+        else if (p[3] === "L") seg.large = true;
       }
       out.push(seg);
     }
@@ -161,6 +167,7 @@ export function serializeSegments(segments: Segment[]): string {
       if (s.bold) prefix += "b|";
       if (s.italic) prefix += "i|";
       if (s.underline) prefix += "u|";
+      if (s.large) prefix += "L|";
       return prefix ? `{${prefix}${s.text}}` : s.text;
     })
     .join("");

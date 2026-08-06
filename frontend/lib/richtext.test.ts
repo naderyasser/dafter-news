@@ -87,6 +87,12 @@ describe("parseInline", () => {
   it("stacks bold with a text colour on the same run", () => {
     expect(parseInline("{c:#B01F2E|b|عاجل}")).toEqual([{ text: "عاجل", color: "#B01F2E", bold: true }]);
   });
+
+  it("reads a large flag, which carries no colour value of its own", () => {
+    // «فقرة» — the client's own word for a line set bigger and bolder than
+    // the body around it, marked inline rather than lifted into a new block.
+    expect(parseInline("{L|فقرة مميزة}")).toEqual([{ text: "فقرة مميزة", large: true }]);
+  });
 });
 
 describe("mergeColorWrap", () => {
@@ -204,6 +210,11 @@ describe("serializeSegments", () => {
 
   it("orders a segment's stacked flags the same way COLOR_OPEN/mergeColorWrap do — c, h, b, i, u", () => {
     expect(serializeSegments([{ text: "س", color: "#111111", underline: true, bold: true }])).toBe("{c:#111111|b|u|س}");
+  });
+
+  it("round-trips the large flag through parseInline", () => {
+    const value = "قبل {L|فقرة} بعد";
+    expect(serializeSegments(parseInline(value))).toBe(value);
   });
 });
 
