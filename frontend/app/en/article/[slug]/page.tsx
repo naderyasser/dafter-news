@@ -64,7 +64,14 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
           {article.standfirst && <p className="mb-4 text-[clamp(1.0625rem,1rem+0.3vw,1.1875rem)] font-medium leading-[1.6] text-ink-2">{article.standfirst}</p>}
 
           <div className="mb-2 flex flex-wrap items-center gap-2 border-y border-line py-3 text-[14px] text-ink-3">
-            {article.author && <span className="font-bold text-ink-2">{article.author.name}</span>}
+            {/* A manual byline is a deliberate override — same priority as
+                ArticleCardSerializer.get_author_name — so it wins even when
+                an account also happens to be linked. */}
+            {article.byline ? (
+              <span className="font-bold text-ink-2">{article.byline}</span>
+            ) : article.author ? (
+              <span className="font-bold text-ink-2">{article.author.name}</span>
+            ) : null}
             <span>•</span>
             <span>{formatDate(article.published_at, "en")}</span>
             <span>•</span>

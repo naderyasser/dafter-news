@@ -238,6 +238,35 @@ class ArticleAPITests(APITestCase):
         self.assertEqual(row["author_username"], "m.eladawy")
         self.assertEqual(row["status"], "published")
 
+    def test_manual_byline_wins_over_the_linked_author(self):
+        """A typed byline is a deliberate override, not a fallback — it must
+        win even when a real account is also linked."""
+        self.published.byline = "فريق التحرير"
+        self.published.save(update_fields=["byline"])
+
+        row = self.client.get("/api/articles/?status=published").json()["results"][0]
+
+        self.assertEqual(row["author_name"], "فريق التحرير")
+        self.assertEqual(row["author_initial"], "ف")
+        # No account is linked to this byline, so there is nothing to link
+        # to or show a photo for — these correctly stay empty rather than
+        # keeping the (now-overridden) account's own username/avatar.
+        self.assertIsNone(row["author_username"])
+
+    def test_byline_falls_back_to_the_linked_author_when_blank(self):
+        row = self.client.get("/api/articles/?status=published").json()["results"][0]
+
+        self.assertEqual(row["author_name"], "محمد العدوي")
+        self.assertEqual(row["author_initial"], self.author.initial)
+
+    def test_article_with_neither_byline_nor_author_reports_no_author(self):
+        Article.objects.create(title="بلا كاتب", slug="no-author", status=Article.Status.PUBLISHED, published_at=timezone.now())
+
+        row = next(a for a in self.client.get("/api/articles/").json()["results"] if a["slug"] == "no-author")
+
+        self.assertIsNone(row["author_name"])
+        self.assertIsNone(row["author_initial"])
+
     def test_comment_count_is_annotated_and_orderable(self):
         Comment.objects.create(article=self.published, user_name="سارة", text="تعليق")
         Comment.objects.create(article=self.published, user_name="عمر", text="تعليق آخر")
@@ -320,6 +349,22 @@ class ArticleWriteAPITests(APITestCase):
 
         card = next(a for a in self.client.get("/api/articles/").json()["results"] if a["id"] == res.json()["id"])
         self.assertEqual(card["country"], "الكويت")
+
+    def test_byline_round_trips_editor_to_card(self):
+        """The manual byline field: typed in the editor, shown on the public
+        card as author_name — with no account required for either end."""
+        res = self.client.post(
+            "/api/articles/",
+            {"title": "بيان صادر عن فريق التحرير", "status": "published", "byline": "فريق التحرير", "language": "ar"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201)
+
+        article = Article.objects.get(pk=res.json()["id"])
+        self.assertEqual(article.byline, "فريق التحرير")
+
+        card = next(a for a in self.client.get("/api/articles/").json()["results"] if a["id"] == res.json()["id"])
+        self.assertEqual(card["author_name"], "فريق التحرير")
 
     def test_create_with_blocks_and_tags(self):
         res = self.client.post(

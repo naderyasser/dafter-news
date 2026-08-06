@@ -142,38 +142,33 @@ describe("ArticleEditorForm scheduling", () => {
   });
 });
 
-describe("ArticleEditorForm author", () => {
+describe("ArticleEditorForm byline", () => {
   afterEach(() => {
     push.mockClear();
     refresh.mockClear();
     dashMutate.mockReset();
   });
 
-  const authors = [
-    { id: 5, name: "سامية فاروق" },
-    { id: 6, name: "أحمد لبيب" },
-  ];
-
-  it("saves with no author at all — the field is optional", async () => {
+  it("saves with an empty byline when nothing is typed — the field is optional", async () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
-    render(<ArticleEditorForm initial={null} sections={sections} authors={authors} />);
+    render(<ArticleEditorForm initial={null} sections={sections} />);
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر بلا كاتب" } });
 
     await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
-    expect(payload.author).toBeNull();
+    expect(payload.byline).toBe("");
   });
 
-  it("saves the picked author's id", async () => {
+  it("saves whatever name was typed, with no list to pick from", async () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
-    render(<ArticleEditorForm initial={null} sections={sections} authors={authors} />);
-    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر لسامية" } });
-    fireEvent.change(screen.getByLabelText("اسم الكاتب"), { target: { value: "5" } });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "بيان صادر" } });
+    fireEvent.change(screen.getByLabelText("اسم الكاتب"), { target: { value: "فريق التحرير" } });
 
     await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
-    expect(payload.author).toBe(5);
+    expect(payload.byline).toBe("فريق التحرير");
   });
 });

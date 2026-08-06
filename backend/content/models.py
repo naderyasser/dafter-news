@@ -115,6 +115,16 @@ class Article(models.Model):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="articles", null=True, blank=True
     )
+    # Manual byline — free text, typed in the editor rather than picked from
+    # the account list. Deliberately separate from `author`: that FK is what
+    # the columnist system (bio page, portrait, «بالعقل والمنطق») is built
+    # on, and a news byline shouldn't have to be a real account just to
+    # exist — a guest contributor or "فريق التحرير" credit has nowhere else
+    # to go. Wins over the linked author's name when both are set (see
+    # ArticleCardSerializer.get_author_name) — a manual credit is a deliberate
+    # override, not a fallback that should lose to whatever account happens
+    # to be linked.
+    byline = models.CharField(max_length=120, blank=True, help_text="اسم الكاتب يُكتب يدوياً — يظهر تحت العنوان")
     tags = models.ManyToManyField(Tag, blank=True, related_name="articles")
     language = models.CharField(max_length=2, choices=Language.choices, default=Language.AR)
     related_article = models.ForeignKey(
