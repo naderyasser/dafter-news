@@ -765,6 +765,14 @@ export default function ArticleEditorForm({
           <button onClick={() => save("draft")} disabled={saving} className="flex-1 rounded-lg border border-line-strong bg-paper py-2.5 text-[13px] font-bold text-ink disabled:opacity-60">
             حفظ كأرشفة
           </button>
+          <button
+            onClick={() => save("review")}
+            disabled={saving}
+            title="يظهر الخبر في طابور المراجعة بالنظرة العامة حتى يراجعه أحد فريق التحرير وينشره"
+            className="flex-1 rounded-lg border border-brand bg-paper py-2.5 text-[13px] font-bold text-brand hover:bg-brand-tint disabled:opacity-60"
+          >
+            إرسال للمراجعة
+          </button>
           <button onClick={() => save("published")} disabled={saving} className="flex-1 rounded-lg bg-brand py-2.5 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-60">
             حفظ ونشر
           </button>

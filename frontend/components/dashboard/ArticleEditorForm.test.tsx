@@ -211,3 +211,32 @@ describe("ArticleEditorForm paragraph alignment", () => {
     expect(payload.blocks[0].align).toBe("justify");
   });
 });
+
+describe("ArticleEditorForm review", () => {
+  afterEach(() => {
+    push.mockClear();
+    refresh.mockClear();
+    dashMutate.mockReset();
+  });
+
+  it("sends the article to the review queue instead of publishing or archiving it", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر جاهز للمراجعة" } });
+
+    await act(async () => fireEvent.click(screen.getByText("إرسال للمراجعة")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
+    expect(payload.status).toBe("review");
+    expect(push).toHaveBeenCalledWith("/dashboard/articles");
+  });
+
+  it("still requires a title, same as the other save paths", async () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("إرسال للمراجعة"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("لازم تكتب عنوان الخبر أولاً");
+    expect(dashMutate).not.toHaveBeenCalled();
+  });
+});
