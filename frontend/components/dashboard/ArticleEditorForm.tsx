@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
-import TextColorToolbar from "@/components/dashboard/TextColorToolbar";
+import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { dashMutate, dashUpload, describeApiError, mediaUrl } from "@/lib/api";
 import type { ArticleBlock, ArticleDetail, Badge, MediaAsset } from "@/lib/types";
 
@@ -371,22 +371,14 @@ export default function ArticleEditorForm({
               </div>
             </div>
             {(b.type === "paragraph" || b.type === "quote") && (
-              <>
-                <textarea
-                  ref={(el) => {
-                    bodyRefs.current[b.id] = el;
-                  }}
-                  value={b.text}
-                  onChange={(e) => updateBlock(b.id, { text: e.target.value })}
-                  placeholder={b.type === "paragraph" ? "نص الفقرة" : "نص الاقتباس"}
-                  className="min-h-[70px] w-full resize-y rounded-lg border border-line p-2.5 text-[14px] outline-none focus:border-brand"
-                />
-                <TextColorToolbar
-                  value={b.text}
-                  onChange={(text: string) => updateBlock(b.id, { text })}
-                  textareaRef={{ current: bodyRefs.current[b.id] ?? null }}
-                />
-              </>
+              <RichTextEditor
+                value={b.text}
+                onChange={(text) => updateBlock(b.id, { text })}
+                placeholder={b.type === "paragraph" ? "نص الفقرة" : "نص الاقتباس"}
+                registerTextarea={(el) => {
+                  bodyRefs.current[b.id] = el;
+                }}
+              />
             )}
             {b.type === "heading" && (
               <input
