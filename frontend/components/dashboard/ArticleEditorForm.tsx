@@ -382,6 +382,9 @@ export default function ArticleEditorForm({
 
   return (
     <>
+    {/* New-article only — importing into an already-saved/published article
+        doesn't make sense the same way. */}
+    {!articleId ? <ImportFromUrl onImported={applyImportedDraft} /> : null}
     <div className="grid grid-cols-[2.2fr_320px] items-start gap-5 max-lg:grid-cols-1">
       {error ? (
         <div role="alert" className="col-span-2 rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down max-lg:col-span-1">
@@ -803,9 +806,6 @@ export default function ArticleEditorForm({
 
       {pickerFor !== null ? <MediaLibraryPicker onPick={pickAsset} onClose={() => setPickerFor(null)} /> : null}
     </div>
-    {/* New-article only — importing into an already-saved/published article
-        doesn't make sense the same way. */}
-    {!articleId ? <ImportFromUrl onImported={applyImportedDraft} /> : null}
     </>
   );
 }

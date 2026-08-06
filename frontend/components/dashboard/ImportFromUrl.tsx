@@ -46,7 +46,7 @@ export default function ImportFromUrl({ onImported }: { onImported: (draft: Impo
   };
 
   return (
-    <div className="mt-6 rounded-card border border-dashed border-line-strong bg-paper p-5">
+    <div className="mb-5 rounded-card border border-dashed border-line-strong bg-paper p-5">
       <div className="mb-1.5 flex items-center gap-2 text-[14px] font-extrabold text-ink">
         <span aria-hidden>🔗</span> استيراد خبر من رابط
       </div>
