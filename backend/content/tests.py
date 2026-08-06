@@ -379,6 +379,22 @@ class ArticleWriteAPITests(APITestCase):
         self.assertEqual(article.blocks.count(), 1)
         self.assertEqual(article.blocks.first().text, "جديد")
 
+    def test_block_justify_flag_round_trips(self):
+        """The editor's «ضبط النص» toggle — a plain boolean per block, passed
+        straight through _sync_blocks like any other block field."""
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": "مقال مضبوط النص",
+                "blocks": [{"order": 0, "type": "paragraph", "text": "فقرة", "justify": True}],
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+
+        article = Article.objects.get(pk=res.json()["id"])
+        self.assertTrue(article.blocks.first().justify)
+
     def test_patch_status_by_id(self):
         article = Article.objects.create(title="مقال", slug="a2", status=Article.Status.DRAFT)
 

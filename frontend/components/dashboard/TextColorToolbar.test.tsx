@@ -168,4 +168,51 @@ describe("TextColorToolbar", () => {
     expect(screen.getByLabelText("لون النص: أحمر الهوية")).toBeInTheDocument();
     expect(screen.getAllByLabelText(/^لون النص: /)).toHaveLength(6);
   });
+
+  it("wraps the selection in a bold flag with no colour value, no panel needed", async () => {
+    const { onChange } = harness("أسعار الفائدة ترتفع", [0, 13]);
+
+    await act(async () => screen.getByLabelText("نص غامق").click());
+
+    expect(onChange).toHaveBeenCalledWith("{b|أسعار الفائدة} ترتفع");
+  });
+
+  it("applies italic and underline with the same grammar, one flag each", async () => {
+    const { onChange: onChangeItalic, view: viewItalic } = harness("كلمة", [0, 4]);
+    await act(async () => screen.getByLabelText("نص مائل").click());
+    expect(onChangeItalic).toHaveBeenCalledWith("{i|كلمة}");
+    viewItalic.unmount();
+
+    const { onChange: onChangeUnderline } = harness("كلمة", [0, 4]);
+    await act(async () => screen.getByLabelText("نص تحته خط").click());
+    expect(onChangeUnderline).toHaveBeenCalledWith("{u|كلمة}");
+  });
+
+  it("refuses to bold an empty selection, naming what to do instead", async () => {
+    const alert = vi.fn();
+    vi.stubGlobal("alert", alert);
+    const { onChange } = harness("أسعار الفائدة", [4, 4]);
+
+    await act(async () => screen.getByLabelText("نص غامق").click());
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledWith("حدّد النص الذي تريد تنسيقه أولاً.");
+  });
+
+  it("folds bold into a colour token already open on the reselected text", async () => {
+    const value = "{c:#B01F2E|أسعار الفائدة} ترتفع";
+    const { onChange } = harness(value, [value.indexOf("أسعار"), value.indexOf("}")]);
+
+    await act(async () => screen.getByLabelText("نص غامق").click());
+
+    expect(onChange).toHaveBeenCalledWith("{c:#B01F2E|b|أسعار الفائدة} ترتفع");
+  });
+
+  it("shows the bold run in the preview without leaking the token", () => {
+    harness("{b|عاجل} — بقية الخبر", [0, 0]);
+
+    expect(screen.getByText("عاجل")).toHaveStyle({ fontWeight: "700" });
+    const preview = screen.getByText("معاينة").parentElement!;
+    expect(preview.textContent).toBe("معاينةعاجل — بقية الخبر");
+  });
 });

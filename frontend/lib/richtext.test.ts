@@ -65,6 +65,19 @@ describe("parseInline", () => {
       { text: " foo" },
     ]);
   });
+
+  it("reads a bold flag, which carries no colour value of its own", () => {
+    expect(parseInline("{b|غامق}")).toEqual([{ text: "غامق", bold: true }]);
+  });
+
+  it("reads italic and underline the same way", () => {
+    expect(parseInline("{i|مائل}")).toEqual([{ text: "مائل", italic: true }]);
+    expect(parseInline("{u|تحته خط}")).toEqual([{ text: "تحته خط", underline: true }]);
+  });
+
+  it("stacks bold with a text colour on the same run", () => {
+    expect(parseInline("{c:#B01F2E|b|عاجل}")).toEqual([{ text: "عاجل", color: "#B01F2E", bold: true }]);
+  });
 });
 
 describe("mergeColorWrap", () => {
@@ -99,6 +112,20 @@ describe("mergeColorWrap", () => {
 
     const merged = mergeColorWrap(value, start, end, "c", "#B01F2E");
     expect(merged!.next).toBe("hi {c:#B01F2E|word} bye");
+  });
+
+  it("folds a bold flag (no colour) into an existing coloured token", () => {
+    const value = "hi {c:#0E4B7B|word} bye";
+    const start = value.indexOf("word");
+    const end = start + "word".length;
+
+    const merged = mergeColorWrap(value, start, end, "b");
+    expect(merged!.next).toBe("hi {c:#0E4B7B|b|word} bye");
+    expect(parseInline(merged!.next)).toEqual([
+      { text: "hi " },
+      { text: "word", color: "#0E4B7B", bold: true },
+      { text: " bye" },
+    ]);
   });
 });
 

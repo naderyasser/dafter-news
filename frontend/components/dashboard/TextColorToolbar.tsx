@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 
-import { COLOR_OPEN, mergeColorWrap, parseInline } from "@/lib/richtext";
+import { COLOR_OPEN, mergeColorWrap, parseInline, stripInline } from "@/lib/richtext";
 
 /**
- * Text-colour and highlight controls for a body block — «فين لو عايز الون خبر
- * او كلام».
+ * Text-colour, highlight and bold/italic/underline controls for a body block
+ * — «فين لو عايز الون خبر او كلام» plus the basic B/I/U formatting an editor
+ * expects from any text tool.
  *
  * It drives a plain <textarea> rather than a contentEditable surface. That is
  * a deliberate trade: a contentEditable produces HTML, and article bodies are
@@ -50,23 +51,24 @@ export default function TextColorToolbar({
 
   /**
    * Wrap whatever is selected. With an empty selection there is nothing to
-   * colour, so the toolbar says so instead of inserting an empty token the
+   * style, so the toolbar says so instead of inserting an empty token the
    * editor would then have to type inside — the failure mode of every
-   * "apply to cursor" implementation.
+   * "apply to cursor" implementation. `color` is omitted for bold/italic/
+   * underline, which carry no value of their own.
    */
-  const apply = (kind: "c" | "h", color: string) => {
+  const apply = (kind: "c" | "h" | "b" | "i" | "u", color?: string) => {
     const el = textareaRef.current;
     if (!el) return;
     const { selectionStart: start, selectionEnd: end } = el;
     if (start === end) {
-      window.alert("حدّد النص الذي تريد تلوينه أولاً.");
+      window.alert(kind === "c" || kind === "h" ? "حدّد النص الذي تريد تلوينه أولاً." : "حدّد النص الذي تريد تنسيقه أولاً.");
       return;
     }
     // If this exact selection is what a previous apply() left selected — the
-    // whole point of the reselect below is letting a colour be followed by a
-    // highlight without re-selecting — fold the new kind/colour into that
-    // same token instead of wrapping a second one inside it. Nesting like
-    // that produces a token the shared parser can't read (see
+    // whole point of the reselect below is letting a colour be followed by
+    // bold without re-selecting — fold the new kind (and colour, if any)
+    // into that same token instead of wrapping a second one inside it.
+    // Nesting like that produces a token the shared parser can't read (see
     // lib/richtext.ts), which used to leak as literal markup on the public
     // article page.
     const merged = mergeColorWrap(value, start, end, kind, color);
@@ -83,7 +85,7 @@ export default function TextColorToolbar({
     const next = value.slice(0, start) + COLOR_OPEN(kind, color) + selected + "}" + value.slice(end);
     onChange(next);
     // Keep the same words selected after the rewrite so a colour can be
-    // followed by a highlight without re-selecting.
+    // followed by a highlight or a bold without re-selecting.
     const offset = COLOR_OPEN(kind, color).length;
     requestAnimationFrame(() => {
       el.focus();
@@ -91,22 +93,53 @@ export default function TextColorToolbar({
     });
   };
 
-  /** Strip every colour token overlapping the selection (or all of them). */
+  /** Strip every style token overlapping the selection (or all of them). */
   const clear = () => {
     const el = textareaRef.current;
     if (!el) return;
     const { selectionStart: start, selectionEnd: end } = el;
     const target = start === end ? value : value.slice(start, end);
-    const stripped = target.replace(/\{(?:[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\|)+([^{}]*)\}/g, "$1");
+    const stripped = stripInline(target);
     onChange(start === end ? stripped : value.slice(0, start) + stripped + value.slice(end));
   };
 
   const segments = parseInline(value);
-  const hasColour = segments.some((s) => s.color || s.background);
+  const hasFormatting = segments.some((s) => s.color || s.background || s.bold || s.italic || s.underline);
 
   return (
     <div className="mt-2">
       <div className="flex flex-wrap items-center gap-2">
+        {/* Bold/italic/underline act on the selection immediately — unlike
+            colour, there's no palette to choose from, so these don't need
+            the panel behind a toggle. */}
+        <button
+          type="button"
+          onClick={() => apply("b")}
+          title="غامق (Bold)"
+          aria-label="نص غامق"
+          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[13px] font-extrabold text-ink hover:bg-surface-2"
+        >
+          B
+        </button>
+        <button
+          type="button"
+          onClick={() => apply("i")}
+          title="مائل (Italic)"
+          aria-label="نص مائل"
+          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[13px] font-bold italic text-ink hover:bg-surface-2"
+        >
+          I
+        </button>
+        <button
+          type="button"
+          onClick={() => apply("u")}
+          title="تحته خط (Underline)"
+          aria-label="نص تحته خط"
+          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[13px] font-bold text-ink underline hover:bg-surface-2"
+        >
+          U
+        </button>
+        <span className="h-5 w-px bg-line" aria-hidden />
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -115,7 +148,7 @@ export default function TextColorToolbar({
         >
           <span aria-hidden>🎨</span> تلوين النص
         </button>
-        {hasColour ? (
+        {hasFormatting ? (
           <button
             type="button"
             onClick={clear}
@@ -183,7 +216,7 @@ export default function TextColorToolbar({
         </div>
       ) : null}
 
-      {hasColour ? (
+      {hasFormatting ? (
         <div className="mt-2 rounded-lg border border-dashed border-line bg-paper p-2.5">
           <div className="mb-1 text-[11px] font-bold text-ink-3">معاينة</div>
           <p className="m-0 text-[14px] leading-[1.9] text-ink">
@@ -193,6 +226,9 @@ export default function TextColorToolbar({
                 style={{
                   color: s.color,
                   backgroundColor: s.background,
+                  fontWeight: s.bold ? 700 : undefined,
+                  fontStyle: s.italic ? "italic" : undefined,
+                  textDecoration: s.underline ? "underline" : undefined,
                   ...(s.background ? { padding: "0.05em 0.25em", borderRadius: "3px" } : null),
                 }}
               >
