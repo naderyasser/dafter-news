@@ -88,6 +88,27 @@ export default function RichTextEditor({
     onInput();
   };
 
+  // A plain "\n" text character, not a browser-invented <div>/<br> — the
+  // field's `whitespace-pre-wrap` already renders that as a real line break,
+  // and (unlike a <br> element) a Text node's "\n" is one character to
+  // Range.toString(), so every offset-by-string-length trick in this file
+  // and rawOffsetFromVisible keeps working across it with no special case.
+  // This is a soft break *inside* the block — starting an actual new block
+  // is still «✂ تقسيم»'s job, deliberately a separate action from Enter.
+  const insertLineBreak = () => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const node = document.createTextNode("\n");
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+    onInput();
+  };
+
   /** The current selection as raw offsets into `value`, or null when
    *  there's nothing selected in this field. */
   const rawSelection = () => {
@@ -165,12 +186,16 @@ export default function RichTextEditor({
         onKeyDown={(e) => {
           // Keeps the field's DOM exactly the shape renderTokensInto/
           // domToTokens agree on — plain text and single-level <span>s.
-          // Enter would insert a browser-invented block element («+ فقرة»
-          // is the real way to start a new paragraph); Ctrl/Cmd+B/I/U would
+          // The browser's own Enter behaviour would insert a <div>/<br> that
+          // walk() doesn't understand, so it's replaced with a plain "\n"
+          // character instead (see insertLineBreak). Ctrl/Cmd+B/I/U would
           // apply the browser's own bold/italic/underline command outside
           // applyFormat, which is the only place that keeps this field's
           // markup and its visible text in sync.
-          if (e.key === "Enter") e.preventDefault();
+          if (e.key === "Enter") {
+            e.preventDefault();
+            insertLineBreak();
+          }
           if ((e.metaKey || e.ctrlKey) && ["b", "i", "u"].includes(e.key.toLowerCase())) e.preventDefault();
         }}
         className={`w-full resize-y whitespace-pre-wrap rounded-lg border border-line p-2.5 text-[14px] leading-[1.9] outline-none empty:before:text-ink-3 empty:before:content-[attr(data-placeholder)] focus:border-brand ${minHeightClassName}`}

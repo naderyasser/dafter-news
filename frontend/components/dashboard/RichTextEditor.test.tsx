@@ -122,10 +122,30 @@ describe("RichTextEditor", () => {
     expect(field().querySelector("span")).toBeNull();
   });
 
-  it("prevents Enter from inserting a block element the serialiser can't read back", () => {
+  it("prevents the browser's own Enter behaviour — a <div>/<br> the serialiser can't read back", () => {
     render(<Host initial="نص" />);
     const event = fireEvent.keyDown(field(), { key: "Enter" });
     expect(event).toBe(false); // fireEvent returns false when preventDefault() was called
+  });
+
+  it("inserts a soft line break inside the same block on Enter, rather than doing nothing", () => {
+    const onChange = vi.fn();
+    render(<RichTextEditor value="قبل بعد" onChange={onChange} placeholder="نص الفقرة" />);
+    const el = field();
+    const node = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!;
+    const at = (node.textContent ?? "").indexOf("بعد");
+    const range = document.createRange();
+    range.setStart(node, at);
+    range.collapse(true);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    fireEvent.keyDown(el, { key: "Enter" });
+
+    // A plain "\n" character, not a structural split — «✂ تقسيم» is still
+    // the only thing that creates an actual new block.
+    expect(onChange).toHaveBeenCalledWith("قبل \nبعد");
   });
 
   it("blocks the native bold/italic/underline shortcuts — formatting only ever goes through applyFormat", () => {

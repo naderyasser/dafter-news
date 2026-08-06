@@ -132,6 +132,12 @@ describe("ArticleBlocks", () => {
     expect(screen.getByText("فقرة بارزة")).toHaveStyle({ fontWeight: "700", fontSize: "1.2em" });
   });
 
+  it("preserves a manual line break inside a paragraph", () => {
+    const { container } = render(<ArticleBlocks lang="ar" blocks={[block({ text: "سطر أول\nسطر ثانٍ" })]} />);
+
+    expect(container.querySelector("p")).toHaveClass("whitespace-pre-wrap");
+  });
+
   it.each([
     ["left", "text-left"],
     ["center", "text-center"],

@@ -17,6 +17,17 @@ describe("renderTokensInto / domToTokens round-trip", () => {
     expect(domToTokens(el)).toBe("نص عادي بلا تنسيق");
   });
 
+  it("carries a soft line break through as a plain character, not a <br>", () => {
+    // RichTextEditor's Enter handler inserts this same "\n" text character
+    // (see insertLineBreak) instead of a browser <br> — round-tripping it as
+    // ordinary text is what keeps Range.toString()-based offsets accurate
+    // across it, with no special case anywhere in this file.
+    const el = box();
+    renderTokensInto(el, "سطر أول\nسطر ثانٍ");
+    expect(el.querySelector("br")).toBeNull();
+    expect(domToTokens(el)).toBe("سطر أول\nسطر ثانٍ");
+  });
+
   it("paints a coloured run as a styled span, not visible markup", () => {
     const el = box();
     renderTokensInto(el, "قبل {c:#B01F2E|أحمر} بعد");
