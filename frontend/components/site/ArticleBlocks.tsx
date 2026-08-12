@@ -4,8 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import ArticleCard from "@/components/site/ArticleCard";
+import Rich from "@/components/site/RichText";
+import type { SectionBlockCard } from "@/components/site/SectionBlock";
 import { mediaUrl } from "@/lib/api";
-import { paginateBlocks, parseInline, splitLongParagraph } from "@/lib/richtext";
+import { paginateBlocks, splitLongParagraph } from "@/lib/richtext";
 import { toEasternNumerals } from "@/lib/format";
 import type { ArticleBlock } from "@/lib/types";
 
@@ -19,52 +22,41 @@ const ALIGN_CLASS: Record<ArticleBlock["align"], string> = {
   justify: "text-justify",
 };
 
-/** Renders the editor's inline colour/bold/italic/underline markup as spans,
- *  and an image dropped mid-paragraph («بدي اقدر اضيف صورة بين الكلام») as an
- *  actual photo. See lib/richtext.ts. */
-function Rich({ text }: { text: string }) {
-  const segments = useMemo(() => parseInline(text), [text]);
+/**
+ * The client's «الأخبار ذات الصلة» ask, taken literally: related stories
+ * shown IN the body's own white space, not only stacked below the byline's
+ * manual «اقرأ أيضاً» block or in the end-of-article list. Placed at the
+ * midpoint of the first page only — a paginated «ملف خاص» piece already gets
+ * its own natural breaks between pages, so a second injected box there would
+ * be redundant.
+ */
+function MidArticleRelated({ lang, cards }: { lang: "ar" | "en"; cards: SectionBlockCard[] }) {
+  const isAr = lang === "ar";
   return (
-    <>
-      {segments.map((s, i) =>
-        s.image !== undefined ? (
-          // A plain <img>, not next/image: this sits inside flowing text
-          // rather than a sized figure, so there's no fixed aspect ratio to
-          // give next/image's `fill` mode a positioned box to fill. `block`
-          // display is what actually breaks the paragraph's flow around it —
-          // still a <span> underneath, which (unlike a <div>) stays valid
-          // HTML nested inside this <p>.
-          // eslint-disable-next-line @next/next/no-img-element
-          <span key={i} style={{ display: "block", margin: "1.25em 0" }}>
-            <img src={mediaUrl(s.image) ?? ""} alt="" style={{ display: "block", width: "100%", height: "auto", borderRadius: "8px" }} />
-          </span>
-        ) : s.color || s.background || s.bold || s.italic || s.underline || s.large ? (
-          <span
-            key={i}
-            style={{
-              color: s.color,
-              backgroundColor: s.background,
-              // «فقرة» reads bold+bigger even when `bold` isn't separately set.
-              fontWeight: s.bold || s.large ? 700 : undefined,
-              fontSize: s.large ? "1.2em" : undefined,
-              fontStyle: s.italic ? "italic" : undefined,
-              textDecoration: s.underline ? "underline" : undefined,
-              // Highlights need room to breathe or the colour clips the
-              // glyphs; text-only runs get neither padding nor a radius.
-              ...(s.background ? { padding: "0.05em 0.25em", borderRadius: "3px" } : null),
-            }}
-          >
-            {s.text}
-          </span>
-        ) : (
-          <span key={i}>{s.text}</span>
-        ),
-      )}
-    </>
+    <aside className="my-7 rounded-card border border-line bg-surface p-4">
+      <div className={`${isAr ? "font-display-ar" : "font-display-en"} rule-accent mb-3 ps-3.5 text-[13px] font-extrabold text-ink`}>
+        {isAr ? "أخبار ذات صلة" : "Related news"}
+      </div>
+      <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
+        {cards.map((c, i) => (
+          <ArticleCard key={c.href + i} lang={lang} variant="compact" href={c.href} title={c.title} time={c.time} badge={c.badge} imageSrc={c.imageSrc} />
+        ))}
+      </div>
+    </aside>
   );
 }
 
-export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blocks: ArticleBlock[] }) {
+export default function ArticleBlocks({
+  lang,
+  blocks,
+  relatedCards,
+}: {
+  lang: "ar" | "en";
+  blocks: ArticleBlock[];
+  /** Fed by the same /related/ call the end-of-article list uses; omitted
+   *  (or empty) simply skips the inline box. */
+  relatedCards?: SectionBlockCard[];
+}) {
   const isAr = lang === "ar";
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
   const [page, setPage] = useState(0);
@@ -146,6 +138,20 @@ export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blo
     return null;
   };
 
+  /**
+   * Page 0's blocks, rendered, with the related-news box spliced in at the
+   * midpoint — a short article (under 4 blocks) has no real "middle white
+   * space" to speak of, so it's skipped there and the box only ever shows up
+   * once, never once per page.
+   */
+  const renderPage = (blocksOnPage: ArticleBlock[], pageIndex: number) => {
+    const nodes = blocksOnPage.map(render);
+    if (pageIndex === 0 && relatedCards && relatedCards.length > 0 && blocksOnPage.length >= 4) {
+      nodes.splice(Math.ceil(blocksOnPage.length / 2), 0, <MidArticleRelated key="mid-article-related" lang={lang} cards={relatedCards} />);
+    }
+    return nodes;
+  };
+
   return (
     <>
       {/*
@@ -157,7 +163,7 @@ export default function ArticleBlocks({ lang, blocks }: { lang: "ar" | "en"; blo
       */}
       {pages.map((blocksOnPage, i) => (
         <div key={i} hidden={paginated && i !== current}>
-          {blocksOnPage.map(render)}
+          {renderPage(blocksOnPage, i)}
         </div>
       ))}
 
