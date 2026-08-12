@@ -9,6 +9,7 @@ import LatestNewsTabs from "@/components/site/LatestNewsTabs";
 import MatchesRail from "@/components/site/MatchesRail";
 import MostReadList from "@/components/site/MostReadList";
 import OpinionCarousel from "@/components/site/OpinionCarousel";
+import EgyptHomeBlock from "@/components/site/EgyptHomeBlock";
 import SectionBlock from "@/components/site/SectionBlock";
 import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
@@ -227,7 +228,7 @@ async function HomeContent() {
         </>
       ) : null}
 
-      <SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={egypt.results.map(toSectionCard)} initialCount={4} sectionKey="egypt" />
+      <EgyptHomeBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" sectionKey="egypt" cards={egypt.results.map(toSectionCard)} />
       <SectionDivider />
 
       {gulf.results.length ? (
