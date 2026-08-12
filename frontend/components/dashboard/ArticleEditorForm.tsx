@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
+import AiDraftGenerator from "@/components/dashboard/AiDraftGenerator";
 import ImportFromUrl, { type ImportedDraft } from "@/components/dashboard/ImportFromUrl";
 import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
@@ -34,7 +35,9 @@ const blankBlock = (id: number, type: Block["type"], text = ""): Block => ({
   text,
   caption: "",
   credit: "",
-  align: "right",
+  // Justify — a consistent right-and-left edge reads as typeset rather
+  // than ragged, matching the client's "avoid random line lengths" ask.
+  align: "justify",
   assetId: null,
   imageName: "",
   imageUrl: null,
@@ -78,6 +81,18 @@ const BADGES: { key: Badge; label: string }[] = [
 ];
 const BLOCK_LABELS: Record<Block["type"], string> = { paragraph: "المحتوى", heading: "عنوان فرعي", image: "صورة", quote: "اقتباس", related: "اقرأ أيضاً" };
 
+/**
+ * The per-block toolbar controls. These were `<span onClick>` in muted
+ * 12px grey — invisible to the keyboard, unannounced by assistive tech,
+ * and visually indistinguishable from the block's own caption text.
+ * `PRIMARY` is the filled variant the in-body image actions use so they
+ * read as the buttons they are.
+ */
+const BLOCK_TOOL_CLASS =
+  "rounded-md border border-line px-2 py-1 text-[12.5px] font-semibold text-ink-2 transition-colors duration-fast hover:border-accent hover:text-accent";
+const BLOCK_TOOL_PRIMARY_CLASS =
+  "rounded-md border border-accent bg-accent-tint px-2 py-1 text-[12.5px] font-bold text-accent transition-colors duration-fast hover:bg-accent hover:text-paper";
+
 function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -101,7 +116,7 @@ export default function ArticleEditorForm({
       text: b.text,
       caption: b.caption,
       credit: b.credit,
-      align: b.align ?? "right",
+      align: b.align ?? "justify",
       assetId: null,
       imageName: b.image_name ?? "",
       imageUrl: mediaUrl(b.image) ?? null,
@@ -540,10 +555,11 @@ export default function ArticleEditorForm({
     <>
     {/* New-article only — importing into an already-saved/published article
         doesn't make sense the same way. */}
+    {!articleId ? <AiDraftGenerator lang={lang} onGenerated={applyImportedDraft} /> : null}
     {!articleId ? <ImportFromUrl onImported={applyImportedDraft} /> : null}
     <div className="grid grid-cols-[2.2fr_320px] items-start gap-5 max-lg:grid-cols-1">
       {error ? (
-        <div role="alert" className="col-span-2 rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down max-lg:col-span-1">
+        <div role="alert" className="col-span-2 rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down max-lg:col-span-1">
           {error}
         </div>
       ) : null}
@@ -564,7 +580,7 @@ export default function ArticleEditorForm({
         {blocks.map((b) => (
           <div key={b.id} className="rounded-card border border-line p-3.5">
             <div className="mb-2.5 flex items-center justify-between">
-              <span className="text-[11px] font-extrabold text-brand">{BLOCK_LABELS[b.type]}</span>
+              <span className="text-[12px] font-extrabold text-brand">{BLOCK_LABELS[b.type]}</span>
               <div className="flex items-center gap-2.5 text-xs text-header-muted">
                 {b.type === "paragraph" && b.text.trim() ? (
                   <>
@@ -575,42 +591,53 @@ export default function ArticleEditorForm({
                         selected before the click fires. Without this, the
                         selection an editor just made would already be gone
                         by the time splitBlock/convertSelectionToHeading run. */}
-                    <span
+                    <button
+                      type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => splitBlock(b.id)}
                       title="تقسيم المحتوى عند المؤشر"
-                      className="cursor-pointer font-semibold hover:text-accent"
+                      className={BLOCK_TOOL_CLASS}
                     >
                       ✂ تقسيم
-                    </span>
-                    <span
+                    </button>
+                    <button
+                      type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => convertSelectionToHeading(b.id)}
                       title="حدّد جزءاً من النص لتحويله إلى عنوان فرعي مستقل"
-                      className="cursor-pointer font-semibold hover:text-accent"
+                      className={BLOCK_TOOL_CLASS}
                     >
                       🔤 عنوان فرعي
-                    </span>
+                    </button>
                   </>
                 ) : null}
                 {b.type === "paragraph" || b.type === "quote" ? (
                   <>
-                    <span
+                    {/* The two in-body image controls. Styled as filled
+                        accent chips rather than the muted text the rest of
+                        this row uses: as plain 12px grey spans they read as
+                        captions, not controls, and the client concluded the
+                        editor could only set a cover image — that one has a
+                        big obvious button, so these looked like labels
+                        beside it. Same actions as before, visible now. */}
+                    <button
+                      type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => insertInlineImage(b.id)}
                       title="إضافة صورة من المكتبة عند مكان المؤشر داخل النص"
-                      className="cursor-pointer font-semibold hover:text-accent"
+                      className={BLOCK_TOOL_PRIMARY_CLASS}
                     >
-                      🖼 من المكتبة
-                    </span>
-                    <span
+                      🖼 صورة من المكتبة
+                    </button>
+                    <button
+                      type="button"
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => insertInlineImageFromDevice(b.id)}
                       title="رفع صورة من الجهاز عند مكان المؤشر داخل النص"
-                      className="cursor-pointer font-semibold hover:text-accent"
+                      className={BLOCK_TOOL_PRIMARY_CLASS}
                     >
-                      ⬆ رفع صورة
-                    </span>
+                      ⬆ صورة داخل المقال
+                    </button>
                     <input
                       ref={(el) => {
                         inlineImageFileRefs.current[b.id] = el;
@@ -651,7 +678,7 @@ export default function ArticleEditorForm({
                               updateBlock(b.id, { align: opt.key });
                               setAlignMenuFor(null);
                             }}
-                            className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-[12.5px] hover:bg-surface ${
+                            className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-[13.5px] hover:bg-surface ${
                               b.align === opt.key ? "font-bold text-brand" : "text-ink"
                             }`}
                           >
@@ -707,7 +734,7 @@ export default function ArticleEditorForm({
                     <span>🖼 من المكتبة</span>
                   )}
                   {b.imageUrl ? (
-                    <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1 text-center text-[10.5px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+                    <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1 text-center text-[11.5px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
                       تغيير الصورة
                     </span>
                   ) : null}
@@ -719,7 +746,7 @@ export default function ArticleEditorForm({
                   type="button"
                   onClick={() => imageFileRefs.current[b.id]?.click()}
                   title="رفع صورة من الجهاز"
-                  className="flex h-[100px] w-[90px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-surface text-[11px] text-header-muted hover:border-accent hover:text-accent"
+                  className="flex h-[100px] w-[90px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-surface text-[12px] text-header-muted hover:border-accent hover:text-accent"
                 >
                   <span aria-hidden>⬆</span>
                   من الجهاز
@@ -742,13 +769,13 @@ export default function ArticleEditorForm({
                     value={b.caption}
                     onChange={(e) => updateBlock(b.id, { caption: e.target.value })}
                     placeholder="التعليق على الصورة"
-                    className="rounded-lg border border-line px-2.5 py-2 text-[13px] outline-none focus:border-brand"
+                    className="rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
                   />
                   <input
                     value={b.credit}
                     onChange={(e) => updateBlock(b.id, { credit: e.target.value })}
                     placeholder="المصدر / الحقوق"
-                    className="rounded-lg border border-line px-2.5 py-2 text-[13px] outline-none focus:border-brand"
+                    className="rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
                   />
                 </div>
               </div>
@@ -758,7 +785,7 @@ export default function ArticleEditorForm({
                 value={b.text}
                 onChange={(e) => updateBlock(b.id, { text: e.target.value })}
                 placeholder="عنوان المقال المرتبط (اقرأ أيضاً)"
-                className="w-full rounded-lg border border-line p-2.5 text-[14px] outline-none focus:border-brand"
+                className="w-full rounded-lg border border-line p-2.5 text-[15px] outline-none focus:border-brand"
               />
             )}
           </div>
@@ -766,7 +793,7 @@ export default function ArticleEditorForm({
 
         <div className="flex flex-wrap gap-2 pt-1.5">
           {(Object.keys(BLOCK_LABELS) as Block["type"][]).map((type) => (
-            <button key={type} onClick={() => addBlock(type)} className="rounded-pill bg-surface px-4 py-2 text-[12.5px] font-semibold text-ink hover:bg-surface-2">
+            <button key={type} onClick={() => addBlock(type)} className="rounded-pill bg-surface px-4 py-2 text-[13.5px] font-semibold text-ink hover:bg-surface-2">
               + {BLOCK_LABELS[type]}
             </button>
           ))}
@@ -775,7 +802,7 @@ export default function ArticleEditorForm({
 
       <div className="flex flex-col gap-4">
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">القسم</div>
+          <div className="mb-2.5 text-[14px] font-bold">القسم</div>
           <div className="flex flex-wrap gap-1.5">
             {sections.map((s) => (
               <button key={s.key} onClick={() => setSection(s.key)} className={chip(section === s.key)}>
@@ -785,7 +812,7 @@ export default function ArticleEditorForm({
           </div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">
+          <div className="mb-2.5 text-[14px] font-bold">
             اسم الكاتب <span className="font-normal text-ink-3">(اختياري)</span>
           </div>
           <input
@@ -794,12 +821,12 @@ export default function ArticleEditorForm({
             maxLength={120}
             placeholder="اسم الكاتب، أو فريق التحرير…"
             aria-label="اسم الكاتب"
-            className="w-full rounded-lg border border-line px-2.5 py-2 text-[13px] outline-none focus:border-brand"
+            className="w-full rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
           />
-          <div className="mt-2 text-[11px] leading-relaxed text-ink-3">يظهر تحت العنوان — اكتب أي اسم بلا حاجة لحساب.</div>
+          <div className="mt-2 text-[12px] leading-relaxed text-ink-3">يظهر تحت العنوان — اكتب أي اسم بلا حاجة لحساب.</div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">صورة الغلاف</div>
+          <div className="mb-2.5 text-[14px] font-bold">صورة الغلاف</div>
           <button
             type="button"
             onClick={() => setPickerFor("cover")}
@@ -812,7 +839,7 @@ export default function ArticleEditorForm({
               <span>🖼 اختيار من مكتبة الصور</span>
             )}
             {coverUrl ? (
-              <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1.5 text-center text-[11px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+              <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1.5 text-center text-[12px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
                 تغيير الغلاف
               </span>
             ) : null}
@@ -823,7 +850,7 @@ export default function ArticleEditorForm({
           <button
             type="button"
             onClick={() => coverFileRef.current?.click()}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface py-2 text-[12px] font-semibold text-header-muted hover:border-accent hover:text-accent"
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface py-2 text-[13px] font-semibold text-header-muted hover:border-accent hover:text-accent"
           >
             <span aria-hidden>⬆</span> رفع صورة من الجهاز
           </button>
@@ -839,12 +866,12 @@ export default function ArticleEditorForm({
               e.target.value = "";
             }}
           />
-          <div className="mt-2 text-[11px] leading-relaxed text-ink-3">
+          <div className="mt-2 text-[12px] leading-relaxed text-ink-3">
             ابحث باسم الصورة أو الشخصية — الصور المرفوعة سابقاً تُعاد بلا رفع جديد وبحقوقها المسجلة.
           </div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">الرابط الدائم (Permalink)</div>
+          <div className="mb-2.5 text-[14px] font-bold">الرابط الدائم (Permalink)</div>
           <input
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
@@ -852,11 +879,11 @@ export default function ArticleEditorForm({
             placeholder="يتولّد تلقائياً من العنوان"
             className="w-full rounded-lg border border-line px-2.5 py-2 text-left text-xs outline-none focus:border-brand"
           />
-          <div dir="ltr" className="mt-2 truncate text-left text-[11px] text-ink-3">
+          <div dir="ltr" className="mt-2 truncate text-left text-[12px] text-ink-3">
             /article/{slug.trim() || "…"}
           </div>
           {articleId && initial?.slug && slug.trim() !== initial.slug ? (
-            <div className="mt-1.5 text-[11px] font-semibold leading-relaxed text-down">
+            <div className="mt-1.5 text-[12px] font-semibold leading-relaxed text-down">
               تغيير الرابط بعد النشر يكسر أي رابط قديم متداول للخبر.
             </div>
           ) : null}
@@ -864,7 +891,7 @@ export default function ArticleEditorForm({
         {/* The red tag on the card grids. Optional — a card with no
             subcategory just falls back to its section name. */}
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">التصنيف الفرعي</div>
+          <div className="mb-2.5 text-[14px] font-bold">التصنيف الفرعي</div>
           <input
             value={subcategory}
             onChange={(e) => setSubcategory(e.target.value)}
@@ -872,14 +899,14 @@ export default function ArticleEditorForm({
             placeholder="سياسة / ثقافة وفنون / اقتصاد"
             className="w-full rounded-lg border border-line px-2.5 py-2 text-xs outline-none focus:border-brand"
           />
-          <div className="mt-2 text-[11px] leading-relaxed text-ink-3">يظهر كوسم أحمر فوق عنوان البطاقة في الصفحة الرئيسية.</div>
+          <div className="mt-2 text-[12px] leading-relaxed text-ink-3">يظهر كوسم أحمر فوق عنوان البطاقة في الصفحة الرئيسية.</div>
         </div>
         {/* The country chip on «الخليج» / «عرب وعالم» photos. The datalist
             offers the GCC six because the gulf desk uses the same handful
             daily, but it stays free text — عرب وعالم needs الجزائر, فلسطين,
             and whatever tomorrow's map brings. */}
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">الدولة</div>
+          <div className="mb-2.5 text-[14px] font-bold">الدولة</div>
           <input
             value={country}
             onChange={(e) => setCountry(e.target.value)}
@@ -893,10 +920,10 @@ export default function ArticleEditorForm({
               <option key={c} value={c} />
             ))}
           </datalist>
-          <div className="mt-2 text-[11px] leading-relaxed text-ink-3">تظهر كشارة على صورة الخبر في قسمي «الخليج العربي» و«عرب وعالم» فقط.</div>
+          <div className="mt-2 text-[12px] leading-relaxed text-ink-3">تظهر كشارة على صورة الخبر في قسمي «الخليج العربي» و«عرب وعالم» فقط.</div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">الوسوم</div>
+          <div className="mb-2.5 text-[14px] font-bold">الوسوم</div>
           <div className="mb-2.5 flex flex-wrap gap-1.5">
             {tags.map((t) => (
               <span key={t} className="flex items-center gap-1.5 rounded-pill bg-brand-tint px-2.5 py-1 text-xs font-semibold text-brand">
@@ -922,12 +949,12 @@ export default function ArticleEditorForm({
           />
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">النشر والإبراز</div>
+          <div className="mb-2.5 text-[14px] font-bold">النشر والإبراز</div>
           <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
             <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
             <span>
-              <span className="block text-[13px] font-semibold text-ink">الظهور في الرئيسية</span>
-              <span className="block text-[11px] leading-relaxed text-ink-3">
+              <span className="block text-[14px] font-semibold text-ink">الظهور في الرئيسية</span>
+              <span className="block text-[12px] leading-relaxed text-ink-3">
                 يتصدّر شريط الرئيسية الرئيسي وقسمه الخاص، بغض النظر عن وقت النشر.
               </span>
             </span>
@@ -935,15 +962,15 @@ export default function ArticleEditorForm({
           <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
             <input type="checkbox" checked={pushBreaking} onChange={(e) => setPushBreaking(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
             <span>
-              <span className="block text-[13px] font-semibold text-ink">إرسال إلى شريط «عاجل»</span>
-              <span className="block text-[11px] leading-relaxed text-ink-3">يظهر العنوان في الشريط الأحمر فور الحفظ والنشر.</span>
+              <span className="block text-[14px] font-semibold text-ink">إرسال إلى شريط «عاجل»</span>
+              <span className="block text-[12px] leading-relaxed text-ink-3">يظهر العنوان في الشريط الأحمر فور الحفظ والنشر.</span>
             </span>
           </label>
           <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
             <input type="checkbox" checked={pushStory} onChange={(e) => setPushStory(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
             <span>
-              <span className="block text-[13px] font-semibold text-ink">إضافة إلى «قصص اليوم»</span>
-              <span className="block text-[11px] leading-relaxed text-ink-3">ينضم لشريط القصص أعلى الرئيسية بصورة غلافه.</span>
+              <span className="block text-[14px] font-semibold text-ink">إضافة إلى «قصص اليوم»</span>
+              <span className="block text-[12px] leading-relaxed text-ink-3">ينضم لشريط القصص أعلى الرئيسية بصورة غلافه.</span>
             </span>
           </label>
           <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
@@ -954,8 +981,8 @@ export default function ArticleEditorForm({
               className="mt-0.5 h-4 w-4 accent-brand"
             />
             <span>
-              <span className="block text-[13px] font-semibold text-ink">إشعار عاجل</span>
-              <span className="block text-[11px] leading-relaxed text-ink-3">
+              <span className="block text-[14px] font-semibold text-ink">إشعار عاجل</span>
+              <span className="block text-[12px] leading-relaxed text-ink-3">
                 مربع عائم يظهر في كل صفحات الموقع لمدة 24 ساعة، ويختفي فوراً إذا نشرت إشعاراً عاجلاً أحدث منه.
               </span>
             </span>
@@ -963,20 +990,20 @@ export default function ArticleEditorForm({
           {notifyUrgent && (
             <div className="mt-1.5 ps-6.5">
               <label className="flex flex-col gap-1">
-                <span className="text-[11px] font-semibold text-ink-3">العنوان الفرعي للإشعار</span>
+                <span className="text-[12px] font-semibold text-ink-3">العنوان الفرعي للإشعار</span>
                 <input
                   value={notifyLabel}
                   onChange={(e) => setNotifyLabel(e.target.value)}
                   maxLength={40}
                   placeholder="يحدث الآن"
-                  className="w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px] outline-none focus:border-brand"
+                  className="w-full rounded-lg border border-line px-2.5 py-1.5 text-[14px] outline-none focus:border-brand"
                 />
               </label>
             </div>
           )}
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">الشارة</div>
+          <div className="mb-2.5 text-[14px] font-bold">الشارة</div>
           <div className="flex flex-wrap gap-1.5">
             {BADGES.map((b) => (
               <button key={b.key} onClick={() => setBadge(b.key)} className={chip(badge === b.key)}>
@@ -986,7 +1013,7 @@ export default function ArticleEditorForm({
           </div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">اللغة</div>
+          <div className="mb-2.5 text-[14px] font-bold">اللغة</div>
           <div className="flex gap-1.5">
             <button onClick={() => setLang("ar")} className={chip(lang === "ar")}>
               عربي
@@ -997,12 +1024,12 @@ export default function ArticleEditorForm({
           </div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[13px] font-bold">النسخة الصوتية (TTS)</div>
+          <div className="mb-2.5 text-[14px] font-bold">النسخة الصوتية (TTS)</div>
           {articleId ? (
             <button
               onClick={generateTts}
               disabled={ttsStatus === "generating"}
-              className={`w-full rounded-lg py-2.5 text-[13px] font-bold ${
+              className={`w-full rounded-lg py-2.5 text-[14px] font-bold ${
                 ttsStatus === "done" ? "bg-up-tint text-up" : ttsStatus === "generating" ? "bg-surface-2 text-ink-3" : "bg-brand text-paper"
               }`}
             >
@@ -1011,18 +1038,18 @@ export default function ArticleEditorForm({
               {ttsStatus === "done" && `✓ تم التوليد — ${Math.floor(ttsDuration / 60)}:${String(ttsDuration % 60).padStart(2, "0")}`}
             </button>
           ) : (
-            <p className="m-0 text-[12px] text-ink-3">احفظ المقال أولاً — التوليد يحتاج النص كما هو محفوظ على الخادم.</p>
+            <p className="m-0 text-[13px] text-ink-3">احفظ المقال أولاً — التوليد يحتاج النص كما هو محفوظ على الخادم.</p>
           )}
         </div>
         <div className="flex items-center gap-2.5 rounded-card border border-line bg-brand-tint p-4">
           <span className="text-[20px]">◔</span>
           <div>
             <div className="text-[15px] font-extrabold text-brand-strong">{readMinutes} دقائق قراءة</div>
-            <div className="text-[11px] text-brand-strong">يُحسب تلقائياً (كلمات ÷ 200)</div>
+            <div className="text-[12px] text-brand-strong">يُحسب تلقائياً (كلمات ÷ 200)</div>
           </div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
-          <label htmlFor="schedule-at" className="mb-1.5 block text-[12px] font-bold text-ink-3">
+          <label htmlFor="schedule-at" className="mb-1.5 block text-[13px] font-bold text-ink-3">
             جدولة النشر (اختياري)
           </label>
           <input
@@ -1030,36 +1057,36 @@ export default function ArticleEditorForm({
             type="datetime-local"
             value={scheduledFor}
             onChange={(e) => setScheduledFor(e.target.value)}
-            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-brand"
+            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand"
           />
           {scheduledFor ? (
             <button
               onClick={() => save("scheduled")}
               disabled={saving}
-              className="mt-2.5 w-full rounded-lg bg-accent py-2.5 text-[13px] font-bold text-paper hover:bg-accent-strong disabled:opacity-60"
+              className="mt-2.5 w-full rounded-lg bg-accent py-2.5 text-[14px] font-bold text-paper hover:bg-accent-strong disabled:opacity-60"
             >
               ⏰ جدولة النشر
             </button>
           ) : (
-            <p className="m-0 mt-1.5 text-[11px] leading-relaxed text-ink-3">
+            <p className="m-0 mt-1.5 text-[12px] leading-relaxed text-ink-3">
               اختر وقتاً وسيُنشر الخبر تلقائياً في موعده — تتحقق اللوحة من المواعيد كل دقيقة.
             </p>
           )}
         </div>
 
         <div className="flex gap-2.5">
-          <button onClick={() => save("draft")} disabled={saving} className="flex-1 rounded-lg border border-line-strong bg-paper py-2.5 text-[13px] font-bold text-ink disabled:opacity-60">
+          <button onClick={() => save("draft")} disabled={saving} className="flex-1 rounded-lg border border-line-strong bg-paper py-2.5 text-[14px] font-bold text-ink disabled:opacity-60">
             حفظ كأرشفة
           </button>
           <button
             onClick={() => save("review")}
             disabled={saving}
             title="يظهر الخبر في طابور المراجعة بالنظرة العامة حتى يراجعه أحد فريق التحرير وينشره"
-            className="flex-1 rounded-lg border border-brand bg-paper py-2.5 text-[13px] font-bold text-brand hover:bg-brand-tint disabled:opacity-60"
+            className="flex-1 rounded-lg border border-brand bg-paper py-2.5 text-[14px] font-bold text-brand hover:bg-brand-tint disabled:opacity-60"
           >
             إرسال للمراجعة
           </button>
-          <button onClick={() => save("published")} disabled={saving} className="flex-1 rounded-lg bg-brand py-2.5 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-60">
+          <button onClick={() => save("published")} disabled={saving} className="flex-1 rounded-lg bg-brand py-2.5 text-[14px] font-bold text-paper hover:bg-brand-strong disabled:opacity-60">
             حفظ ونشر
           </button>
         </div>

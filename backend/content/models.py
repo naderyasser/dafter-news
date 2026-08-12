@@ -235,7 +235,12 @@ class ArticleBlock(models.Model):
     # deliberate override an editor reaches for, same posture as a word
     # processor's — it should mean the same side regardless of the
     # article's own language/direction.
-    align = models.CharField(max_length=10, choices=Align.choices, default=Align.RIGHT, help_text="محاذاة الفقرة")
+    # Justify by default — matches the justified-column look of Sky News
+    # Arabia / Al Hadath rather than the ragged edge a single-side alignment
+    # leaves, so a freshly written paragraph doesn't look like it has
+    # randomly different line lengths. Only the DEFAULT changed: existing
+    # rows keep whatever alignment they were saved with.
+    align = models.CharField(max_length=10, choices=Align.choices, default=Align.JUSTIFY, help_text="محاذاة الفقرة")
     image = models.ImageField(upload_to="article_blocks/", blank=True, null=True)
     caption = models.CharField(max_length=240, blank=True)
     credit = models.CharField(max_length=120, blank=True)

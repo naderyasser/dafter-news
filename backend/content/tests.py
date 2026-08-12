@@ -455,9 +455,9 @@ class ArticleWriteAPITests(APITestCase):
         article = Article.objects.get(pk=res.json()["id"])
         self.assertEqual(article.blocks.first().align, "justify")
 
-    def test_block_align_defaults_to_right(self):
+    def test_block_align_defaults_to_justify(self):
         """Unset in the payload, a new block still gets an explicit value —
-        the same default a reader's unstyled RTL paragraph already reads as."""
+        justified, so its line lengths read as typeset rather than random."""
         res = self.client.post(
             "/api/articles/",
             {"title": "مقال بلا محاذاة محددة", "blocks": [{"order": 0, "type": "paragraph", "text": "فقرة"}]},
@@ -466,7 +466,7 @@ class ArticleWriteAPITests(APITestCase):
         self.assertEqual(res.status_code, 201, res.data)
 
         article = Article.objects.get(pk=res.json()["id"])
-        self.assertEqual(article.blocks.first().align, "right")
+        self.assertEqual(article.blocks.first().align, "justify")
 
     def test_patch_status_by_id(self):
         article = Article.objects.create(title="مقال", slug="a2", status=Article.Status.DRAFT)
