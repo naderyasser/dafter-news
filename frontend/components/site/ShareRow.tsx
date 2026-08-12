@@ -1,34 +1,55 @@
 "use client";
 
+import { FacebookGlyph, ShareGlyph, ThreadsGlyph, WhatsAppGlyph, XGlyph } from "@/components/ui/BrandIcons";
+
+type Network = "facebook" | "x" | "threads" | "whatsapp" | "copy";
+
+const PLATFORMS: { key: Network; label: { ar: string; en: string }; Icon: typeof FacebookGlyph; bg: string }[] = [
+  { key: "facebook", label: { ar: "فيسبوك", en: "Facebook" }, Icon: FacebookGlyph, bg: "bg-[#1877F2]" },
+  { key: "x", label: { ar: "منصة X", en: "X" }, Icon: XGlyph, bg: "bg-ink" },
+  { key: "threads", label: { ar: "ثريدز", en: "Threads" }, Icon: ThreadsGlyph, bg: "bg-ink" },
+  { key: "whatsapp", label: { ar: "واتساب", en: "WhatsApp" }, Icon: WhatsAppGlyph, bg: "bg-[#25D366]" },
+];
+
 export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: string }) {
   const isAr = lang === "ar";
-  const iconClass =
-    "flex h-7 w-7 flex-shrink-0 cursor-pointer items-center justify-center rounded-full border border-line-strong text-xs font-bold text-ink-3 hover:border-brand hover:bg-brand hover:text-paper";
+  const btnClass = "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-paper transition-opacity duration-fast hover:opacity-85";
 
-  const share = (network: "facebook" | "x" | "copy") => {
+  const share = (network: Network) => {
     if (typeof window === "undefined") return;
     const url = window.location.href;
     if (network === "copy") {
       navigator.clipboard?.writeText(url);
       return;
     }
-    const shareUrl =
-      network === "facebook"
-        ? `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
-        : `https://x.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`;
+    const shareUrl = {
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      x: `https://x.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+      // Threads' documented intent takes one `text` param — url and title
+      // both go in it, there is no separate `url` field like X's.
+      threads: `https://www.threads.net/intent/post?text=${encodeURIComponent(`${title} ${url}`)}`,
+      // No phone number — this opens WhatsApp letting the reader pick who
+      // to send it to, unlike the footer's fixed-number "advertise" link.
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`,
+    }[network];
     window.open(shareUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
     <span className="ms-auto flex items-center gap-2">
-      <span className={iconClass} title={isAr ? "فيسبوك" : "Facebook"} onClick={() => share("facebook")}>
-        f
-      </span>
-      <span className={iconClass} title="X" onClick={() => share("x")}>
-        X
-      </span>
-      <span className={iconClass} title={isAr ? "نسخ الرابط" : "Copy link"} onClick={() => share("copy")}>
-        ↗
+      {PLATFORMS.map(({ key, label, Icon, bg }) => (
+        <span key={key} className={`${btnClass} ${bg}`} title={label[lang]} onClick={() => share(key)}>
+          <Icon className="h-4 w-4" />
+        </span>
+      ))}
+      {/* The generic share/copy-link action — unchanged behaviour, just
+          restyled to match the platform buttons beside it. */}
+      <span
+        className={`${btnClass} bg-ink-2`}
+        title={isAr ? "نسخ الرابط" : "Copy link"}
+        onClick={() => share("copy")}
+      >
+        <ShareGlyph className="h-4 w-4" />
       </span>
     </span>
   );
