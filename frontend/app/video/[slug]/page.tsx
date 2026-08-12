@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import ArticleCard from "@/components/site/ArticleCard";
+import Rich from "@/components/site/RichText";
 import SiteShell from "@/components/site/SiteShell";
 import VideoComments from "@/components/site/VideoComments";
 import VideoPlayer from "@/components/site/VideoPlayer";
@@ -59,7 +60,24 @@ export default async function VideoPage({ params }: { params: { slug: string } }
             <span>•</span>
             <span className="tnum">👁 {video.views.toLocaleString("en-US")} مشاهدة</span>
           </div>
-          {video.description && <p className="mb-7 text-[16px] leading-[1.8] text-ink-2">{video.description}</p>}
+          {video.description && (
+            // Blank-line-separated paragraphs, each its own <p> — a plain
+            // single <p> collapsed every line break in the stored text
+            // (normal HTML whitespace handling), which is what ran the
+            // whole description together into one wall of text. A single
+            // newline inside a paragraph still breaks visually via
+            // whitespace-pre-wrap. Rich also renders the same {L|…}/{b|…}
+            // markup the dashboard's description field now offers, so an
+            // editor can pick out a subheading the same way they do in an
+            // article body.
+            <div className="mb-7 flex flex-col gap-4">
+              {video.description.split(/\n{2,}/).map((para, i) => (
+                <p key={i} className="whitespace-pre-wrap text-[16px] leading-[1.8] text-ink-2">
+                  <Rich text={para} />
+                </p>
+              ))}
+            </div>
+          )}
 
           <VideoComments lang="ar" videoId={video.id} initial={video.comments} />
         </main>

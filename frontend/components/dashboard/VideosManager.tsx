@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 
+import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
 import type { Section, Video } from "@/lib/types";
 
-const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-brand";
+const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand";
 
 export default function VideosManager({
   videos: initial,
@@ -65,7 +66,7 @@ export default function VideosManager({
   };
 
   const chip = (active: boolean, color: "live" | "gold") =>
-    `rounded-pill border px-3 py-1 text-[11.5px] font-bold ${
+    `rounded-pill border px-3 py-1 text-[12.5px] font-bold ${
       active
         ? color === "live"
           ? "border-badge-breaking bg-badge-breaking text-paper"
@@ -76,17 +77,17 @@ export default function VideosManager({
   return (
     <>
       <div className="flex items-center justify-between">
-        <span className="text-[13px] text-ink-3">{videos.length} فيديو</span>
+        <span className="text-[14px] text-ink-3">{videos.length} فيديو</span>
         <button
           onClick={() => setAdding(true)}
-          className="rounded-lg bg-brand px-4.5 py-2.5 text-[13px] font-bold text-paper hover:bg-brand-strong"
+          className="rounded-lg bg-brand px-4.5 py-2.5 text-[14px] font-bold text-paper hover:bg-brand-strong"
         >
           ⬆ رفع فيديو جديد
         </button>
       </div>
 
       {error && (
-        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down">
           {error}
         </div>
       )}
@@ -108,7 +109,7 @@ export default function VideosManager({
             <div className="p-3.5">
               <Link
                 href={`/video/${v.slug}`}
-                className="mb-2 line-clamp-2 block text-[13.5px] font-bold leading-[1.5] text-ink no-underline hover:text-brand"
+                className="mb-2 line-clamp-2 block text-[14.5px] font-bold leading-[1.5] text-ink no-underline hover:text-brand"
               >
                 {v.title}
               </Link>
@@ -129,7 +130,7 @@ export default function VideosManager({
                     className="tnum flex items-center gap-1 font-bold text-ink hover:text-brand"
                   >
                     👁 {v.views.toLocaleString("en-US")}
-                    <span aria-hidden className="text-[10px]">
+                    <span aria-hidden className="text-[11px]">
                       ✎
                     </span>
                   </button>
@@ -233,17 +234,21 @@ function UploadDialog({
 
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">العنوان</span>
+            <span className="text-[13px] font-bold text-ink-3">العنوان</span>
             <input value={title} onChange={(e) => setTitle(e.target.value)} className={input} />
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">الوصف</span>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} className={`${input} min-h-[64px] resize-y`} />
+            <span className="text-[13px] font-bold text-ink-3">الوصف</span>
+            {/* Same rich box the article editor uses — Enter twice starts a
+                new paragraph, and «فقرة» (L) picks out a subheading, so the
+                description can be broken up instead of landing as one run of
+                text with no visual structure. */}
+            <RichTextEditor value={description} onChange={setDescription} placeholder="وصف الفيديو..." minHeightClassName="min-h-[64px]" />
           </label>
 
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">القسم</span>
+            <span className="text-[13px] font-bold text-ink-3">القسم</span>
             <select value={sectionId} onChange={(e) => setSectionId(e.target.value)} className={input}>
               <option value="">— بدون قسم —</option>
               {sections.map((s) => (
@@ -255,11 +260,11 @@ function UploadDialog({
           </label>
 
           <div className="rounded-lg border border-line p-3">
-            <div className="mb-2 text-[12px] font-bold text-ink-3">مصدر الفيديو — ارفع ملفاً أو ضع رابطاً</div>
+            <div className="mb-2 text-[13px] font-bold text-ink-3">مصدر الفيديو — ارفع ملفاً أو ضع رابطاً</div>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="mb-2 w-full rounded-lg border border-dashed border-line-strong bg-surface px-3 py-3 text-[12.5px] text-ink-3 hover:border-brand hover:text-brand"
+              className="mb-2 w-full rounded-lg border border-dashed border-line-strong bg-surface px-3 py-3 text-[13.5px] text-ink-3 hover:border-brand hover:text-brand"
             >
               {file ? `📼 ${file.name}` : "اختر ملف فيديو"}
             </button>
@@ -285,7 +290,7 @@ function UploadDialog({
           <button
             type="button"
             onClick={() => coverRef.current?.click()}
-            className="rounded-lg border border-dashed border-line-strong bg-surface px-3 py-2.5 text-[12.5px] text-ink-3 hover:border-brand hover:text-brand"
+            className="rounded-lg border border-dashed border-line-strong bg-surface px-3 py-2.5 text-[13.5px] text-ink-3 hover:border-brand hover:text-brand"
           >
             {cover ? `🖼 ${cover.name}` : "صورة الغلاف (اختياري)"}
           </button>
@@ -302,7 +307,7 @@ function UploadDialog({
 
           <div className="flex items-end gap-3">
             <label className="flex flex-1 flex-col gap-1.5">
-              <span className="text-[12px] font-bold text-ink-3">المدة</span>
+              <span className="text-[13px] font-bold text-ink-3">المدة</span>
               <div className="flex items-center gap-2">
                 <input
                   value={minutes}
@@ -321,7 +326,7 @@ function UploadDialog({
                 />
               </div>
             </label>
-            <label className="flex items-center gap-2 pb-2 text-[13px] font-semibold">
+            <label className="flex items-center gap-2 pb-2 text-[14px] font-semibold">
               <input type="checkbox" checked={isExclusive} onChange={(e) => setIsExclusive(e.target.checked)} />
               خاص
             </label>
@@ -329,13 +334,13 @@ function UploadDialog({
         </div>
 
         <div className="mt-5 flex justify-end gap-2.5">
-          <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-surface">
+          <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[14px] font-semibold text-ink hover:bg-surface">
             إلغاء
           </button>
           <button
             onClick={submit}
             disabled={!canSave}
-            className="rounded-lg bg-brand px-4.5 py-2 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
+            className="rounded-lg bg-brand px-4.5 py-2 text-[14px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
           >
             {busy ? "جارٍ الرفع…" : "رفع ونشر"}
           </button>

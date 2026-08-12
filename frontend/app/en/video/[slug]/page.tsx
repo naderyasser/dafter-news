@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import ArticleCard from "@/components/site/ArticleCard";
+import Rich from "@/components/site/RichText";
 import SiteShell from "@/components/site/SiteShell";
 import VideoComments from "@/components/site/VideoComments";
 import VideoPlayer from "@/components/site/VideoPlayer";
@@ -75,7 +76,15 @@ export default async function VideoEnPage({ params }: { params: { slug: string }
             <span>•</span>
             <span className="tnum">👁 {video.views.toLocaleString("en-US")} views</span>
           </div>
-          {video.description && <p className="mb-7 text-[16px] leading-[1.8] text-ink-2">{video.description}</p>}
+          {video.description && (
+            <div className="mb-7 flex flex-col gap-4">
+              {video.description.split(/\n{2,}/).map((para, i) => (
+                <p key={i} className="whitespace-pre-wrap text-[16px] leading-[1.8] text-ink-2">
+                  <Rich text={para} />
+                </p>
+              ))}
+            </div>
+          )}
 
           <VideoComments lang="en" videoId={video.id} initial={video.comments} />
         </main>
