@@ -14,6 +14,7 @@ from aldaftar.mixins import SlugOrPkLookupMixin
 
 from . import import_url
 from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
+from .tts import TtsError, generate_for_article
 from .serializers import (
     ArticleCardSerializer,
     ArticleDetailSerializer,
@@ -148,6 +149,23 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
 
         data = ArticleCardSerializer(picked, many=True, context=self.get_serializer_context()).data
         return Response({"count": len(data), "results": data})
+
+    @action(detail=True, methods=["post"], permission_classes=[StaffOnly])
+    def generate_tts(self, request, slug=None):
+        """
+        /api/articles/<slug>/generate_tts/ — the dashboard's «توليد النسخة
+        الصوتية» button. Was previously a `setTimeout` in the editor that
+        flipped a status flag with nothing behind it — «استمع للمقال» never
+        had real audio to play. Runs synchronously (a few seconds for a
+        typical article) rather than queuing a job, so the editor's spinner
+        resolves to a real result in one request.
+        """
+        article = self.get_object()
+        try:
+            seconds = generate_for_article(article)
+        except TtsError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        return Response({"tts_status": article.tts_status, "tts_audio": article.tts_audio.name, "tts_duration_seconds": seconds})
 
 
 class CommentViewSet(viewsets.ModelViewSet):

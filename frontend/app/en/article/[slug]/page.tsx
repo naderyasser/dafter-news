@@ -11,7 +11,7 @@ import SectionBlock from "@/components/site/SectionBlock";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getArticles, getRelatedArticles, mediaUrl } from "@/lib/api";
-import { formatDate, relativeTime } from "@/lib/format";
+import { clockTime, formatDate, relativeTime } from "@/lib/format";
 import { articleJsonLd, articleMetadata } from "@/lib/seo";
 
 export const revalidate = 30;
@@ -75,7 +75,7 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
             <span>•</span>
             <span>{formatDate(article.published_at, "en")}</span>
             <span>•</span>
-            <span>◔ {article.read_minutes} min read</span>
+            <span className="tnum">◔ {clockTime(article.published_at, "en")}</span>
             <ShareRow lang="en" title={article.title} />
           </div>
 

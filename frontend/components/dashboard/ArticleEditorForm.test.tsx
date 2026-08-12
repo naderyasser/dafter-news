@@ -483,3 +483,52 @@ describe("ArticleEditorForm urgent notification", () => {
     expect(screen.getByPlaceholderText("يحدث الآن")).toHaveValue("يحدث الآن");
   });
 });
+
+describe("ArticleEditorForm TTS narration", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+  });
+
+  const savedArticle = (over: Record<string, unknown> = {}) =>
+    ({
+      id: 9, title: "خبر", slug: "x", kind: "news", section: null, subcategory: "", country: "",
+      author: null, byline: "", tags: [], language: "ar", related_article: null, status: "published",
+      badge: "none", pinned: false, notify_urgent: false, notify_label: "خبر عاجل", standfirst: "",
+      cover_image: null, cover_caption: "", cover_credit: "",
+      views: 0, read_minutes: 1, tts_status: "idle", tts_audio: null, tts_duration_seconds: 0,
+      published_at: null, scheduled_for: null, created_at: "", blocks: [], comments: [],
+      ...over,
+    }) as never;
+
+  it("asks to save the article first when there is no id yet", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    expect(screen.getByText(/احفظ المقال أولاً/)).toBeInTheDocument();
+    expect(screen.queryByText("🎙 توليد النسخة الصوتية")).not.toBeInTheDocument();
+  });
+
+  it("calls the real generation endpoint and shows the actual duration returned, not a hardcoded one", async () => {
+    dashMutate.mockResolvedValue({ tts_status: "done", tts_duration_seconds: 137 });
+    render(<ArticleEditorForm initial={savedArticle()} articleId={9} sections={sections} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("🎙 توليد النسخة الصوتية"));
+    });
+
+    expect(dashMutate).toHaveBeenCalledWith("/articles/9/generate_tts/", "POST");
+    expect(screen.getByText("✓ تم التوليد — 2:17")).toBeInTheDocument();
+  });
+
+  it("reports a real failure instead of quietly showing done", async () => {
+    const { ApiError } = await import("@/lib/api");
+    dashMutate.mockRejectedValue(new ApiError("/articles/9/generate_tts/", 422, "Unprocessable", { detail: "لا يوجد نص كافٍ" }));
+    render(<ArticleEditorForm initial={savedArticle()} articleId={9} sections={sections} />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("🎙 توليد النسخة الصوتية"));
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("لا يوجد نص كافٍ");
+    expect(screen.getByText("🎙 توليد النسخة الصوتية")).toBeInTheDocument();
+  });
+});
