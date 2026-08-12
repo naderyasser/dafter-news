@@ -7,7 +7,7 @@ import ArticleComments from "@/components/site/ArticleComments";
 import AudioPlayer from "@/components/site/AudioPlayer";
 import AuthorProfileCard from "@/components/site/AuthorProfileCard";
 import MostReadList from "@/components/site/MostReadList";
-import SectionBlock from "@/components/site/SectionBlock";
+import RelatedArticlesList from "@/components/site/RelatedArticlesList";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getArticles, getRelatedArticles, mediaUrl } from "@/lib/api";
@@ -139,7 +139,7 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
         </aside>
       </div>
 
-      {relatedCards.length > 0 && <SectionBlock lang="en" title="Related News" seeAllHref="#" cards={relatedCards} />}
+      <RelatedArticlesList lang="en" title="Related News" cards={relatedCards} />
     </SiteShell>
   );
 }

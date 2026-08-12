@@ -7,7 +7,7 @@ import ArticleComments from "@/components/site/ArticleComments";
 import AuthorProfileCard from "@/components/site/AuthorProfileCard";
 import InfiniteSections from "@/components/site/InfiniteSections";
 import AudioPlayer from "@/components/site/AudioPlayer";
-import SectionBlock from "@/components/site/SectionBlock";
+import RelatedArticlesList from "@/components/site/RelatedArticlesList";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getRelatedArticles, getSections, mediaUrl } from "@/lib/api";
@@ -160,9 +160,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
         </main>
       </div>
 
-      {relatedCards.length > 0 && (
-        <SectionBlock lang="ar" title="أخبار ذات صلة" seeAllHref={article.section ? `/section/${article.section.key}` : "/"} cards={relatedCards} />
-      )}
+      <RelatedArticlesList lang="ar" title="أخبار ذات صلة" cards={relatedCards} />
 
       <InfiniteSections lang="ar" sections={feedSections} excludeSlug={article.slug} />
     </SiteShell>
