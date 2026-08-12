@@ -6,11 +6,13 @@ Several tests here are REGRESSIONS for defects found during end-to-end
 verification — they are marked with `regression:` in the docstring so it's
 obvious why an apparently-odd assertion matters.
 """
+import datetime
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
 
 from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 
@@ -88,6 +90,55 @@ class ArticleSlugTests(TestCase):
         article = Article.objects.create(title="!!! ???")
 
         self.assertTrue(article.slug.startswith("article"))
+
+
+class ArticlePublishedAtStampingTests(TestCase):
+    """regression: the dashboard's direct «نشر الآن» button PATCHes
+    status=published with no published_at in the payload — nothing else
+    ever set it, so the field stayed NULL forever. That silently broke the
+    urgent-notification popup, whose query filters on
+    `published_at__gte=cutoff` (NULL never satisfies a >= comparison): a
+    freshly published, notify_urgent=True article never appeared as a
+    site-wide alert, reported live as "the notification button does
+    nothing". Mirrors the "stamped only if empty" policy
+    publish_scheduled.py already applies on the scheduled-publish path."""
+
+    def test_publishing_stamps_published_at_when_it_was_never_set(self):
+        article = Article.objects.create(title="خبر عاجل", status=Article.Status.PUBLISHED)
+
+        self.assertIsNotNone(article.published_at)
+
+    def test_a_draft_is_not_stamped(self):
+        article = Article.objects.create(title="مسودة")
+
+        self.assertIsNone(article.published_at)
+
+    def test_an_earlier_published_at_is_never_overwritten_on_resave(self):
+        original = timezone.now() - datetime.timedelta(days=3)
+        article = Article.objects.create(title="خبر قديم", status=Article.Status.PUBLISHED, published_at=original)
+
+        article.views = 10
+        article.save()
+
+        self.assertEqual(Article.objects.get(pk=article.pk).published_at, original)
+
+    def test_editing_a_published_article_via_the_api_keeps_its_stamp(self):
+        """The bug's actual shape: a PATCH that never mentions published_at
+        at all must not blank out — or re-stamp — a date that's already
+        there."""
+        section = Section.objects.create(key="egypt", name_ar="شؤون مصر")
+        original = timezone.now() - datetime.timedelta(hours=5)
+        article = Article.objects.create(
+            title="خبر", section=section, status=Article.Status.PUBLISHED, published_at=original
+        )
+        client = APIClient()
+        client.force_authenticate(User.objects.create_user(username="editor", password="pw", is_staff=True))
+
+        res = client.patch(f"/api/articles/{article.slug}/", {"title": "خبر معدّل"}, format="json")
+
+        self.assertEqual(res.status_code, 200, res.data)
+        article.refresh_from_db()
+        self.assertEqual(article.published_at, original)
 
 
 class ArticleReadTimeTests(TestCase):

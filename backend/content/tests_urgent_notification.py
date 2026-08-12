@@ -98,3 +98,33 @@ class UrgentNotificationTests(TestCase):
         data = self.get("en").json()
 
         self.assertEqual(data["href"], "/en/article/Flood-warning-issued")
+
+    def test_publishing_with_notify_urgent_through_the_editor_shows_up_here(self):
+        """End-to-end regression, the client's exact report: publish a new
+        article from the dashboard editor with «إشعار عاجل» ticked. The
+        editor's save PATCH never sends published_at — nothing did, until
+        Article.save() started stamping it — so this is the actual path
+        that silently broke: a real publish, through the real API, with
+        nothing but status and notify_urgent set by hand."""
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        client = APIClient()
+        client.force_authenticate(User.objects.create_user(username="editor", password="pw", is_staff=True))
+
+        res = client.post(
+            "/api/articles/",
+            {
+                "title": "خبر عاجل من غرفة الأخبار",
+                "section": self.section.id,
+                "status": "published",
+                "notify_urgent": True,
+                "notify_label": "عاجل",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+
+        data = self.get("ar").json()
+
+        self.assertEqual(data.get("title"), "خبر عاجل من غرفة الأخبار")

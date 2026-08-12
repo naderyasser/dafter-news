@@ -182,10 +182,15 @@ describe("ArticleBlocks", () => {
       expect(screen.getByText("خبر ثانٍ ذو صلة")).toBeInTheDocument();
     });
 
-    it("skips the box on a short article with no real middle to sit in", () => {
+    it("still shows the box on a one-block article — inside the body, never pushed down to the end-of-article list", () => {
+      // regression: this used to require >= 4 blocks, which skipped the box
+      // on most of the site's actual articles (a typical news brief is one
+      // or two blocks) — the client only ever saw it on long features and
+      // reported the box as missing everywhere else, landing only in the
+      // end-of-article list after the comment thread.
       render(<ArticleBlocks lang="ar" blocks={[block({ text: sentence(1) })]} relatedCards={cards} />);
 
-      expect(screen.queryByText("أخبار ذات صلة")).not.toBeInTheDocument();
+      expect(screen.getByText("أخبار ذات صلة")).toBeInTheDocument();
     });
 
     it("skips the box entirely when there's nothing related to show", () => {

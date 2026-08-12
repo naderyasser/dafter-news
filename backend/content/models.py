@@ -181,7 +181,21 @@ class Article(models.Model):
     def save(self, *args, **kwargs):
         """Derive a unique slug from the title when the caller didn't supply
         one (the dashboard editor doesn't — it can't slugify Arabic in the
-        browser without stripping it to nothing)."""
+        browser without stripping it to nothing).
+
+        Also stamps `published_at` the first time an article becomes
+        PUBLISHED, if nothing set it already — the same "only if empty"
+        policy `publish_scheduled` already applies to the scheduled-publish
+        path. Without this, the dashboard's direct «نشر الآن» button (a
+        plain PATCH to status=published, no published_at in the payload)
+        left the field NULL forever. That silently broke everything that
+        reads it: the urgent-notification popup filters on
+        `published_at__gte=cutoff`, which a NULL never satisfies, so a
+        freshly published, notify_urgent=True article never appeared as a
+        site-wide alert — the exact "the notification button doesn't do
+        anything" report. Only stamped once, so an already-published
+        article being edited and re-saved keeps its original date.
+        """
         if not self.slug:
             base = slugify(self.title, allow_unicode=True) or "article"
             slug = base[:290]
@@ -190,6 +204,8 @@ class Article(models.Model):
                 slug = f"{base[:285]}-{n}"
                 n += 1
             self.slug = slug
+        if self.status == self.Status.PUBLISHED and not self.published_at:
+            self.published_at = timezone.now()
         super().save(*args, **kwargs)
 
     def __str__(self):
