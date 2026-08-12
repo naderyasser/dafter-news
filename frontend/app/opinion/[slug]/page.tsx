@@ -6,7 +6,7 @@ import AuthorProfileCard from "@/components/site/AuthorProfileCard";
 import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticle, getArticles, mediaUrl } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { clockTime, formatDate } from "@/lib/format";
 import { articleJsonLd, articleMetadata } from "@/lib/seo";
 import Link from "next/link";
 
@@ -51,7 +51,7 @@ export default async function ArticleOpinionPage({ params }: { params: { slug: s
           <div className="mb-6 flex items-center gap-2 border-y border-line py-3 text-[14px] text-ink-3">
             <span>{formatDate(article.published_at, "ar")}</span>
             <span>•</span>
-            <span>◔ {article.read_minutes} دقائق قراءة</span>
+            <span className="tnum">◔ {clockTime(article.published_at, "ar")}</span>
           </div>
 
           <ArticleBlocks lang="ar" blocks={article.blocks} />

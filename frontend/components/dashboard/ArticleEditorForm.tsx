@@ -163,6 +163,7 @@ export default function ArticleEditorForm({
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
   const [ttsStatus, setTtsStatus] = useState<"idle" | "generating" | "done">(initial?.tts_status ?? "idle");
+  const [ttsDuration, setTtsDuration] = useState(initial?.tts_duration_seconds ?? 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -432,9 +433,28 @@ export default function ArticleEditorForm({
   const words = wordCount(standfirst) + blocks.filter((b) => b.type === "paragraph").reduce((sum, b) => sum + wordCount(b.text), 0);
   const readMinutes = Math.max(1, Math.ceil(words / 200));
 
-  const generateTts = () => {
+  /**
+   * Was a `setTimeout` that flipped `ttsStatus` to "done" after 1.4s with
+   * nothing behind it — «استمع للمقال» never had real audio, it just looked
+   * generated. Runs the real narration synchronously (a few seconds for a
+   * typical article) against the article as already saved on the server —
+   * which is why the button is disabled until the article has an id.
+   */
+  const generateTts = async () => {
+    if (!articleId) return;
+    setError("");
     setTtsStatus("generating");
-    setTimeout(() => setTtsStatus("done"), 1400);
+    try {
+      const res = await dashMutate<{ tts_status: "idle" | "generating" | "done"; tts_duration_seconds: number }>(
+        `/articles/${articleId}/generate_tts/`,
+        "POST",
+      );
+      setTtsStatus("done");
+      setTtsDuration(res.tts_duration_seconds);
+    } catch (err) {
+      setTtsStatus("idle");
+      setError(describeApiError(err, "تعذّر توليد الصوت. تأكد أن المقال فيه نص كافٍ وحاول مرة أخرى."));
+    }
   };
 
   const save = async (status: "draft" | "review" | "published" | "scheduled") => {
@@ -964,17 +984,21 @@ export default function ArticleEditorForm({
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">النسخة الصوتية (TTS)</div>
-          <button
-            onClick={generateTts}
-            disabled={ttsStatus === "generating"}
-            className={`w-full rounded-lg py-2.5 text-[13px] font-bold ${
-              ttsStatus === "done" ? "bg-up-tint text-up" : ttsStatus === "generating" ? "bg-surface-2 text-ink-3" : "bg-brand text-paper"
-            }`}
-          >
-            {ttsStatus === "idle" && "🎙 توليد النسخة الصوتية"}
-            {ttsStatus === "generating" && "جارِ التوليد..."}
-            {ttsStatus === "done" && "✓ تم التوليد — 4:15"}
-          </button>
+          {articleId ? (
+            <button
+              onClick={generateTts}
+              disabled={ttsStatus === "generating"}
+              className={`w-full rounded-lg py-2.5 text-[13px] font-bold ${
+                ttsStatus === "done" ? "bg-up-tint text-up" : ttsStatus === "generating" ? "bg-surface-2 text-ink-3" : "bg-brand text-paper"
+              }`}
+            >
+              {ttsStatus === "idle" && "🎙 توليد النسخة الصوتية"}
+              {ttsStatus === "generating" && "جارِ التوليد..."}
+              {ttsStatus === "done" && `✓ تم التوليد — ${Math.floor(ttsDuration / 60)}:${String(ttsDuration % 60).padStart(2, "0")}`}
+            </button>
+          ) : (
+            <p className="m-0 text-[12px] text-ink-3">احفظ المقال أولاً — التوليد يحتاج النص كما هو محفوظ على الخادم.</p>
+          )}
         </div>
         <div className="flex items-center gap-2.5 rounded-card border border-line bg-brand-tint p-4">
           <span className="text-[20px]">◔</span>
