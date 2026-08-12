@@ -3,9 +3,15 @@
  * in, so a caller supplies its own colour via `className` (text-*) and
  * whatever container shape/background it wants (a circle, a square...).
  *
- * Each path was rasterized and checked by eye before use — a hand-typed
- * path is easy to get subtly wrong (see the Threads icon's first draft in
- * the footer, which rendered as the letter "e").
+ * Each path is rasterized (`convert path.svg path.png`) and checked by eye
+ * before use, not just visually skimmed in an editor — a hand-typed path is
+ * easy to get subtly wrong, and the previous ThreadsGlyph is exactly that
+ * lesson: it read as plausible SVG and even carried a comment claiming it
+ * had been checked, but it actually rendered as an unrecognizable blob (a
+ * client screenshot is what caught it — not this project's own review).
+ * The current path is Meta's official Threads mark via Simple Icons
+ * (github.com/simple-icons/simple-icons, icons/threads.svg), re-rasterized
+ * here and confirmed as the real "@" pretzel glyph before landing.
  */
 
 type IconProps = { className?: string };
@@ -33,7 +39,7 @@ export function ThreadsGlyph({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <path
-        d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.594 12c.022 3.086.713 5.496 2.05 7.164 1.43 1.783 3.63 2.697 6.54 2.717 2.623-.02 4.358-.63 5.8-2.04 1.64-1.605 1.611-3.594 1.088-4.798-.31-.71-.873-1.3-1.629-1.74-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.75-2.964-.065-1.19.36-2.335 1.187-3.202.796-.834 1.945-1.325 3.317-1.416.87-.06 1.7.008 2.472.203-.107-1.045-.463-1.867-1.06-2.451-.573-.56-1.396-.844-2.446-.844-.048 0-.096 0-.144.002-1.284.037-2.184.42-2.837 1.204l-1.65-1.294c.951-1.14 2.36-1.797 4.19-1.845.048-.002.096-.002.144-.002 1.616 0 2.926.489 3.9 1.454.933.925 1.475 2.211 1.61 3.822.058.014.116.03.174.045 1.484.394 2.66 1.135 3.395 2.14.977 1.34 1.132 3.34.394 5.062-.848 1.97-2.545 3.226-5.045 3.734l-.004.001z"
+        d="M18.263 11.097c-.03-3.486-1.92-5.586-5.111-5.586-2.13 0-3.922.963-4.863 2.499l2.062 1.438c.535-.843 1.272-1.543 2.628-1.543 1.528 0 2.318.85 2.544 2.431a15 15 0 0 0-2.236-.173c-4.125 0-6.068 1.867-6.068 4.336s1.943 3.99 4.804 3.99c3.139 0 5.013-2.115 5.781-4.735.798.361 1.348 1.204 1.348 2.47 0 3.387-3.907 5.232-7.22 5.232-4.885 0-8.077-3.207-8.077-8.424 0-6.392 4.223-10.487 9.9-10.487 3.808 0 5.69 1.671 6.97 3.914l2.108-1.475C21.44 2.078 18.331 0 13.663 0 6.227 0 1.168 5.277 1.168 12.934c0 7 4.953 11.066 10.856 11.066 4.878 0 9.809-2.846 9.809-7.716 0-2.545-1.46-4.231-3.569-5.187m-6.33 4.855c-1.077 0-2.026-.512-2.026-1.453 0-1.483 1.822-1.934 3.606-1.934.678 0 1.34.045 1.927.173-.422 1.927-1.671 3.215-3.508 3.214Z"
         fill="currentColor"
       />
     </svg>
