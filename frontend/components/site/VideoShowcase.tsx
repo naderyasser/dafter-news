@@ -8,6 +8,7 @@ import Chevron from "@/components/ui/Chevron";
 import SectionHeading from "@/components/site/SectionHeading";
 import VideoPlayer from "@/components/site/VideoPlayer";
 import { sectionArtUrl } from "@/lib/sections";
+import { stripInline } from "@/lib/richtext";
 
 export type ShowcaseVideo = {
   id: number;
@@ -215,7 +216,12 @@ export default function VideoShowcase({
             </Link>
 
             {active.description ? (
-              <p className="m-0 line-clamp-3 text-[14px] leading-[1.85] text-header-muted">{active.description}</p>
+              // Plain text here, not <Rich>: this is a 3-line truncated teaser
+              // on a dark navy surface, and a colour/highlight token meant for
+              // the full white-background description page could land
+              // unreadable against it — stripInline keeps the words, drops
+              // the markup.
+              <p className="m-0 line-clamp-3 text-[14px] leading-[1.85] text-header-muted">{stripInline(active.description)}</p>
             ) : null}
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12.5px] text-header-muted">

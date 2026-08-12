@@ -207,7 +207,14 @@ describe("VideosManager — upload", () => {
     await openDialog();
 
     type("العنوان", "  عنوان جديد  ");
-    type("الوصف", "  وصف  ");
+    // The description field is now the same contentEditable RichTextEditor
+    // the article body uses (so an editor can mark a subheading) — jsdom
+    // doesn't simulate native contentEditable typing, so mutate its DOM the
+    // way a keystroke would and fire the same event the browser does, per
+    // RichTextEditor.test.tsx.
+    const descField = screen.getByRole("textbox", { name: "وصف الفيديو..." });
+    descField.textContent = "  وصف  ";
+    fireEvent.input(descField);
     fireEvent.change(screen.getByPlaceholderText(/رابط خارجي/), { target: { value: "  https://youtu.be/x  " } });
     fireEvent.change(screen.getByPlaceholderText("دقائق"), { target: { value: "7" } });
     fireEvent.change(screen.getByPlaceholderText("ثوانٍ"), { target: { value: "20" } });
