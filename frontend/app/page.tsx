@@ -32,7 +32,7 @@ export const revalidate = 60;
  * the dashboard puts it on the home page instead of stranding it on a
  * /section/… page no reader navigates to.
  */
-const CURATED_KEYS = ["egypt", "gulf", "world", "economy", "art", "tech", "video", "sports", "opinion", "special"];
+const CURATED_KEYS = ["pol", "egypt", "gulf", "world", "economy", "art", "tech", "video", "sports", "opinion", "special"];
 
 function toSectionCard(a: ArticleCardType) {
   return {
@@ -69,10 +69,11 @@ const sectionFeed = (key: string, size = 6) =>
   getArticles(`?language=ar&section__key=${key}&ordering=-published_at&page_size=${size}`);
 
 async function HomeContent() {
-  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, matches, sections, breaking, streams] =
+  const [pinnedRes, recent, politics, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, matches, sections, breaking, streams] =
     await Promise.all([
       getArticles("?language=ar&pinned=true&ordering=-published_at&page_size=5"),
       getArticles("?language=ar&ordering=-published_at&page_size=12"),
+      sectionFeed("pol"),
       sectionFeed("egypt"),
       sectionFeed("gulf"),
       sectionFeed("world", 7),
@@ -215,6 +216,16 @@ async function HomeContent() {
 
       <VerticalNewsCarousel lang="ar" items={liveItems} isLive={isLive} heading="التغطية المباشرة" />
       <SectionDivider />
+
+      {/* سياسة — البرلمان والتوك شو والعاجل السياسي، أول قسم بعد الهيرو
+          مباشرة. نفس معاملة «شؤون مصر»: كروت قياسية بلون القسم نفسه
+          (#7A2E3E) بدل أحمر البراند، والوقت النسبي زي أي قسم تاني. */}
+      {politics.results.length ? (
+        <>
+          <SectionBlock lang="ar" title="سياسة" seeAllHref="/section/pol" cards={politics.results.map(toSectionCard)} initialCount={4} sectionKey="pol" />
+          <SectionDivider />
+        </>
+      ) : null}
 
       <SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={egypt.results.map(toSectionCard)} initialCount={4} sectionKey="egypt" />
       <SectionDivider />
