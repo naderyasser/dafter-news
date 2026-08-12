@@ -19,7 +19,6 @@ from django.utils.text import slugify
 
 from ads.models import AdPlacement
 from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
-from live.models import LiveStream, LiveUpdate
 from market.models import Currency, GoldKarat, TickerModule, WeatherCity
 from siteconfig.models import DailyVisit, SiteSettings, SocialLink
 from video.models import Video, VideoComment
@@ -52,7 +51,6 @@ class Command(BaseCommand):
         self.seed_comments()
         self.seed_breaking()
         self.seed_videos(sections)
-        self.seed_live()
         self.seed_ads()
         self.seed_market()
         self.seed_site_settings()
@@ -652,23 +650,6 @@ class Command(BaseCommand):
                     VideoComment.objects.create(
                         video=video, name=name, text=text, status=VideoComment.Status.APPROVED,
                     )
-
-    # ------------------------------------------------------------------- live
-    def seed_live(self):
-        stream, _ = LiveStream.objects.update_or_create(
-            title="تغطية لحظية: مؤتمر البنك المركزي حول أسعار الفائدة",
-            defaults=dict(is_live=True),
-        )
-        stream.updates.all().delete()
-        updates = [
-            ("12:41", "محافظ البنك المركزي يبدأ كلمته بالإشارة إلى استقرار معدلات التضخم خلال الربع الأخير."),
-            ("12:33", "بدء المؤتمر الصحفي بحضور نواب المحافظ وممثلي البنوك الكبرى."),
-            ("12:20", "تجمع صحفي كبير أمام مقر البنك المركزي قبل بدء المؤتمر."),
-            ("12:05", "مصادر: القرار المرتقب لن يشمل تغييراً في سعر الإيداع الليلي."),
-            ("11:50", "انطلاق التغطية المباشرة لاجتماع لجنة السياسة النقدية."),
-        ]
-        for time_label, text in updates:
-            LiveUpdate.objects.create(stream=stream, time_label=time_label, text=text)
 
     # -------------------------------------------------------------------- ads
     def seed_ads(self):

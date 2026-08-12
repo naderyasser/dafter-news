@@ -8,7 +8,6 @@ import type {
   Comment,
   DashboardOverview,
   DashUser,
-  LiveStream,
   MediaAsset,
   Match,
   PrayerTimes,
@@ -22,6 +21,7 @@ import type {
   Tag,
   TickerModule,
   TickerPayload,
+  UrgentNotification,
   Video,
   VideoDetail,
 } from "./types";
@@ -197,9 +197,6 @@ export const getVideos = (query = "", opts?: FetchOptions) => safeGet<Paginated<
 export const getVideo = (slug: string) =>
   safeGet<VideoDetail | null>(`/videos/${encodeSlug(slug)}/`, null, { revalidate: 30 });
 
-export const getLiveStreams = (opts: FetchOptions = { revalidate: 15 }) =>
-  safeGet<Paginated<LiveStream>>(`/live-streams/`, { count: 0, next: null, previous: null, results: [] }, opts);
-
 export const getTicker = () =>
   safeGet<TickerPayload>(
     `/ticker/`,
@@ -236,6 +233,9 @@ export const getStories = () =>
 
 export const getWelcomeAlert = () =>
   safeGet<WelcomeAlert | null>(`/welcome-alert/`, null);
+
+export const getUrgentNotification = (lang: "ar" | "en" = "ar") =>
+  safeGet<UrgentNotification>(`/urgent-notification/?language=${lang}`, {});
 
 // ------------------------------------------------------- external feeds
 export const getPrayerTimes = (city = "cairo") =>

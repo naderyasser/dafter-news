@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from django.core.files.base import ContentFile
 from django.db.models import Count, Q, Sum
@@ -182,6 +183,52 @@ class BreakingNewsItemViewSet(viewsets.ModelViewSet):
     permission_classes = [ReadOnlyOrStaff]
     filterset_fields = ["active"]
     ordering_fields = ["order", "created_at"]
+
+
+class UrgentNotificationView(APIView):
+    """
+    /api/urgent-notification/ — the single floating popup shown on every
+    public page (SiteFooter mounts it, per the client's brief).
+
+    No stored "currently active" record to manage: the newest published,
+    notify_urgent article within the last 24h simply *is* the active one, so
+    a fresher urgent story overrides an older one for free — there is
+    nothing to unset. An article un-published or older than 24h just stops
+    matching the query, rather than needing a background job to expire it.
+    """
+
+    permission_classes = [ReadOnlyOrStaff]
+
+    def get(self, request):
+        lang = request.query_params.get("language", "ar")
+        cutoff = timezone.now() - timedelta(hours=24)
+        article = (
+            Article.objects.filter(
+                status=Article.Status.PUBLISHED,
+                language=lang,
+                notify_urgent=True,
+                published_at__gte=cutoff,
+            )
+            .order_by("-published_at")
+            .first()
+        )
+        if not article:
+            # Not `Response(None)` — DRF's JSONRenderer special-cases `None`
+            # into a genuinely empty body with no Content-Type at all, which
+            # breaks `res.json()` on the client. `{}` is a real, parseable
+            # JSON value; the frontend treats a response with no `id` as
+            # "nothing to show".
+            return Response({})
+        return Response(
+            {
+                "id": article.id,
+                "title": article.title,
+                "label": article.notify_label or "خبر عاجل",
+                "href": f"/article/{article.slug}" if lang == "ar" else f"/en/article/{article.slug}",
+                "cover_image": article.cover_image.name if article.cover_image else None,
+                "published_at": article.published_at,
+            }
+        )
 
 
 class DashboardOverviewView(APIView):

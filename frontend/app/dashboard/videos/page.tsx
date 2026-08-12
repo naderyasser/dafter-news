@@ -9,7 +9,7 @@ export default async function DashVideosPage() {
   return (
     // The upload button moved into VideosManager — it opens a dialog, which
     // the server-rendered shell can't do.
-    <DashboardShell active="videos" breadcrumb="لوحة التحكم / الوسائط والبث" title="الفيديوهات">
+    <DashboardShell active="videos" breadcrumb="لوحة التحكم / الوسائط" title="الفيديوهات">
       <VideosManager videos={videos.results} sections={sections.results} />
     </DashboardShell>
   );

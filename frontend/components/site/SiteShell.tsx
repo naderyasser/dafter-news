@@ -1,9 +1,10 @@
 import MarketsTicker from "@/components/site/MarketsTicker";
 import SiteFooter from "@/components/site/SiteFooter";
 import SiteHeader from "@/components/site/SiteHeader";
+import UrgentNotification from "@/components/site/UrgentNotification";
 import VisitBeacon from "@/components/site/VisitBeacon";
 import WelcomeToast from "@/components/site/WelcomeToast";
-import { getTicker, getWelcomeAlert } from "@/lib/api";
+import { getTicker, getUrgentNotification, getWelcomeAlert } from "@/lib/api";
 
 /**
  * Shared public-site frame: header (3 layers + breaking marquee) → page
@@ -20,7 +21,7 @@ export default async function SiteShell({
   children: React.ReactNode;
 }) {
   const isAr = lang === "ar";
-  const [ticker, welcome] = await Promise.all([getTicker(), getWelcomeAlert()]);
+  const [ticker, welcome, urgent] = await Promise.all([getTicker(), getWelcomeAlert(), getUrgentNotification(lang)]);
   return (
     <div
       dir={isAr ? "rtl" : "ltr"}
@@ -32,6 +33,7 @@ export default async function SiteShell({
       <SiteFooter lang={lang} />
       <MarketsTicker lang={lang} data={ticker} />
       <WelcomeToast alert={welcome} lang={lang} />
+      <UrgentNotification notification={urgent} lang={lang} />
       {/* Public pages only — the dashboard mounts DashboardShell, so the
           newsroom's own tabs never inflate «زيارات اليوم». */}
       <VisitBeacon />

@@ -102,6 +102,9 @@ export type ArticleDetail = {
   status: ArticleStatus;
   badge: Badge;
   pinned: boolean;
+  /** The site-wide floating popup — see UrgentNotification. */
+  notify_urgent: boolean;
+  notify_label: string;
   standfirst: string;
   cover_image: string | null;
   cover_caption: string;
@@ -170,18 +173,6 @@ export type Video = {
 export type VideoComment = { id: number; video: number; name: string; initial: string; text: string; created_at: string };
 
 export type VideoDetail = Video & { comments: VideoComment[] };
-
-export type LiveUpdate = { id: number; stream: number; time_label: string; text: string; created_at: string };
-
-export type LiveStream = {
-  id: number;
-  title: string;
-  is_live: boolean;
-  cover_image: string | null;
-  stream_url: string;
-  updates: LiveUpdate[];
-  created_at: string;
-};
 
 export type AdPlacement = {
   id: number;
@@ -322,6 +313,16 @@ export type WelcomeAlert = {
   cta_label: string;
   cta_href: string;
   image: string | null;
+};
+
+/** The floating popup — /api/urgent-notification/. `{}` means none active. */
+export type UrgentNotification = {
+  id?: number;
+  title?: string;
+  label?: string;
+  href?: string;
+  cover_image?: string | null;
+  published_at?: string;
 };
 
 export type PrayerTimes = {
