@@ -275,6 +275,21 @@ class ArticleAPITests(APITestCase):
 
         self.assertEqual(res.json()["results"][0]["comment_count"], 2)
 
+    def test_pinned_leads_a_section_listing_even_when_older(self):
+        """«تثبيت في الرئيسية» leads the home hero already; the client also
+        wants it to lead its own section page, which reads this same
+        ?ordering=-pinned,-published_at the section pages now pass."""
+        Article.objects.create(
+            title="أحدث خبر", slug="newer-unpinned", section=self.section,
+            status=Article.Status.PUBLISHED, published_at=timezone.now(),
+        )
+        self.published.pinned = True
+        self.published.save(update_fields=["pinned"])
+
+        res = self.client.get(f"/api/articles/?section__key={self.section.key}&ordering=-pinned,-published_at")
+
+        self.assertEqual(res.json()["results"][0]["slug"], "published-one")
+
     def test_search_matches_title(self):
         res = self.client.get("/api/articles/?search=منشور")
 

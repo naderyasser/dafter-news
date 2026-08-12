@@ -147,6 +147,10 @@ export default function ArticleEditorForm({
   // third checkbox here; removed on request, keeping these two.
   const [pushBreaking, setPushBreaking] = useState(false);
   const [pushStory, setPushStory] = useState(false);
+  // «تثبيت في الرئيسية» — leads the home hero regardless of publish time,
+  // and (per the client) its own section's front too; both read pinned
+  // straight off the article, not a copy kept here.
+  const [pinned, setPinned] = useState(initial?.pinned ?? false);
   // The site-wide floating popup (SiteFooter mounts it on every page) —
   // distinct from `badge`, which only decorates this article's own card.
   // Stored on the article itself (not a one-shot push), so it round-trips
@@ -482,6 +486,7 @@ export default function ArticleEditorForm({
       standfirst,
       status,
       badge,
+      pinned,
       notify_urgent: notifyUrgent,
       notify_label: notifyLabel.trim() || "خبر عاجل",
       language: lang,
@@ -918,6 +923,15 @@ export default function ArticleEditorForm({
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">النشر والإبراز</div>
+          <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+            <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
+            <span>
+              <span className="block text-[13px] font-semibold text-ink">الظهور في الرئيسية</span>
+              <span className="block text-[11px] leading-relaxed text-ink-3">
+                يتصدّر شريط الرئيسية الرئيسي وقسمه الخاص، بغض النظر عن وقت النشر.
+              </span>
+            </span>
+          </label>
           <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
             <input type="checkbox" checked={pushBreaking} onChange={(e) => setPushBreaking(e.target.checked)} className="mt-0.5 h-4 w-4 accent-brand" />
             <span>
