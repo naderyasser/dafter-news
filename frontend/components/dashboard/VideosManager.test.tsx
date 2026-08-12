@@ -122,6 +122,54 @@ describe("VideosManager — the grid", () => {
   });
 });
 
+describe("VideosManager — view count", () => {
+  it("shows the current count and saves a new one typed into the prompt", async () => {
+    const prompt = vi.fn().mockReturnValue("500");
+    vi.stubGlobal("prompt", prompt);
+    dashMutate.mockResolvedValue({});
+    render(<VideosManager videos={[video({ views: 12 })]} sections={sections} />);
+
+    expect(screen.getByText("👁 12")).toBeInTheDocument();
+
+    await act(async () => screen.getByTitle("تعديل عدد المشاهدات").click());
+
+    expect(prompt).toHaveBeenCalledWith(expect.stringContaining("جولة داخل المصنع"), "12");
+    expect(dashMutate).toHaveBeenCalledWith("/videos/1/", "PATCH", { views: 500 });
+    expect(screen.getByText("👁 500")).toBeInTheDocument();
+  });
+
+  it("changes nothing when the prompt is cancelled", async () => {
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue(null));
+    render(<VideosManager videos={[video({ views: 12 })]} sections={sections} />);
+
+    await act(async () => screen.getByTitle("تعديل عدد المشاهدات").click());
+
+    expect(dashMutate).not.toHaveBeenCalled();
+    expect(screen.getByText("👁 12")).toBeInTheDocument();
+  });
+
+  it("ignores a non-numeric answer instead of saving garbage", async () => {
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("مش رقم"));
+    render(<VideosManager videos={[video({ views: 12 })]} sections={sections} />);
+
+    await act(async () => screen.getByTitle("تعديل عدد المشاهدات").click());
+
+    expect(dashMutate).not.toHaveBeenCalled();
+    expect(screen.getByText("👁 12")).toBeInTheDocument();
+  });
+
+  it("puts the old count back and says so when the save fails", async () => {
+    vi.stubGlobal("prompt", vi.fn().mockReturnValue("500"));
+    dashMutate.mockRejectedValue(new Error("network"));
+    render(<VideosManager videos={[video({ views: 12 })]} sections={sections} />);
+
+    await act(async () => screen.getByTitle("تعديل عدد المشاهدات").click());
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("تعذّر تحديث عدد المشاهدات"));
+    expect(screen.getByText("👁 12")).toBeInTheDocument();
+  });
+});
+
 describe("VideosManager — upload", () => {
   it("refuses to save a video with nothing to play", async () => {
     render(<VideosManager videos={[]} sections={sections} />);
