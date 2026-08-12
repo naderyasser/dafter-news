@@ -146,6 +146,15 @@ class Article(models.Model):
     # click instead of re-dating it.
     pinned = models.BooleanField(default=False)
 
+    # The site-wide floating notification — distinct from `badge=breaking`,
+    # which only decorates this article's own card wherever it's displayed.
+    # This instead surfaces the article on every page as a dismissible popup.
+    # No separate "sent at" timestamp: the notification's 24h window is read
+    # off `published_at` itself, so un-publishing or rescheduling the article
+    # naturally drops it rather than leaving a stale flag to remember to undo.
+    notify_urgent = models.BooleanField(default=False, help_text="يظهر كإشعار عائم في كل صفحات الموقع لمدة 24 ساعة من النشر")
+    notify_label = models.CharField(max_length=40, blank=True, default="خبر عاجل", help_text='العنوان الفرعي للإشعار، مثال: "يحدث الآن"')
+
     standfirst = models.TextField(blank=True)
     cover_image = models.ImageField(upload_to="covers/", blank=True, null=True)
     cover_caption = models.CharField(max_length=200, blank=True)

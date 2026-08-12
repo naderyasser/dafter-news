@@ -126,7 +126,7 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "byline", "tags", "language", "related_article",
-            "status", "badge", "pinned", "standfirst", "cover_image", "cover_caption", "cover_credit",
+            "status", "badge", "pinned", "notify_urgent", "notify_label", "standfirst", "cover_image", "cover_caption", "cover_credit",
             "views", "read_minutes", "tts_status", "tts_audio", "tts_duration_seconds",
             "published_at", "scheduled_for", "created_at", "blocks", "comments",
         ]
@@ -174,7 +174,8 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
         fields = [
             "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "byline", "language", "related_article",
             "status", "badge", "standfirst", "cover_image", "cover_caption", "cover_credit",
-            "scheduled_for", "blocks", "tag_names", "cover_asset_id", "pinned", "push_breaking", "push_story",
+            "scheduled_for", "blocks", "tag_names", "cover_asset_id", "pinned", "notify_urgent", "notify_label",
+            "push_breaking", "push_story",
         ]
 
     def create(self, validated_data):

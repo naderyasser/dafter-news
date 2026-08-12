@@ -16,10 +16,9 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    label: "الوسائط والبث",
+    label: "الوسائط",
     items: [
       { key: "videos", label: "الفيديوهات", href: "/dashboard/videos", icon: "▶" },
-      { key: "live", label: "البث المباشر", href: "/dashboard/live", icon: "●" },
       { key: "opinion", label: "بالعقل والمنطق", href: "/dashboard/opinion", icon: '"' },
     ],
   },

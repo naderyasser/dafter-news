@@ -147,6 +147,12 @@ export default function ArticleEditorForm({
   // third checkbox here; removed on request, keeping these two.
   const [pushBreaking, setPushBreaking] = useState(false);
   const [pushStory, setPushStory] = useState(false);
+  // The site-wide floating popup (SiteFooter mounts it on every page) —
+  // distinct from `badge`, which only decorates this article's own card.
+  // Stored on the article itself (not a one-shot push), so it round-trips
+  // when re-opening a published urgent story to edit it.
+  const [notifyUrgent, setNotifyUrgent] = useState(initial?.notify_urgent ?? false);
+  const [notifyLabel, setNotifyLabel] = useState(initial?.notify_label ?? "خبر عاجل");
   // Publish-later. datetime-local wants "YYYY-MM-DDTHH:mm" in the editor's
   // own zone; the API stores ISO with offset. Prefilled when editing an
   // already-scheduled story so its time is visible and adjustable.
@@ -456,6 +462,8 @@ export default function ArticleEditorForm({
       standfirst,
       status,
       badge,
+      notify_urgent: notifyUrgent,
+      notify_label: notifyLabel.trim() || "خبر عاجل",
       language: lang,
       section: sectionId,
       byline: byline.trim(),
@@ -904,6 +912,34 @@ export default function ArticleEditorForm({
               <span className="block text-[11px] leading-relaxed text-ink-3">ينضم لشريط القصص أعلى الرئيسية بصورة غلافه.</span>
             </span>
           </label>
+          <label className="flex cursor-pointer items-start gap-2.5 py-1.5">
+            <input
+              type="checkbox"
+              checked={notifyUrgent}
+              onChange={(e) => setNotifyUrgent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-brand"
+            />
+            <span>
+              <span className="block text-[13px] font-semibold text-ink">إشعار عاجل</span>
+              <span className="block text-[11px] leading-relaxed text-ink-3">
+                مربع عائم يظهر في كل صفحات الموقع لمدة 24 ساعة، ويختفي فوراً إذا نشرت إشعاراً عاجلاً أحدث منه.
+              </span>
+            </span>
+          </label>
+          {notifyUrgent && (
+            <div className="mt-1.5 ps-6.5">
+              <label className="flex flex-col gap-1">
+                <span className="text-[11px] font-semibold text-ink-3">العنوان الفرعي للإشعار</span>
+                <input
+                  value={notifyLabel}
+                  onChange={(e) => setNotifyLabel(e.target.value)}
+                  maxLength={40}
+                  placeholder="يحدث الآن"
+                  className="w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px] outline-none focus:border-brand"
+                />
+              </label>
+            </div>
+          )}
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[13px] font-bold">الشارة</div>

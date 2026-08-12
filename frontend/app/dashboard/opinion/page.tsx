@@ -11,7 +11,7 @@ export default async function DashOpinionPage() {
   ]);
 
   return (
-    <DashboardShell active="opinion" breadcrumb="لوحة التحكم / الوسائط والبث" title="بالعقل والمنطق">
+    <DashboardShell active="opinion" breadcrumb="لوحة التحكم / الوسائط" title="بالعقل والمنطق">
       <ColumnistsManager authors={authors.results} articles={opinionArticles.results} />
     </DashboardShell>
   );

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import ArticleEditorForm from "./ArticleEditorForm";
@@ -414,5 +414,72 @@ describe("ArticleEditorForm image uploads require a name", () => {
     expect(prompt).toHaveBeenCalled();
     const form = dashUpload.mock.calls[0][2] as FormData;
     expect(form.get("title")).toBe("غلاف الخبر");
+  });
+});
+
+describe("ArticleEditorForm urgent notification", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+  });
+
+  const checkbox = () => within(screen.getByText("إشعار عاجل").closest("label")!).getByRole("checkbox");
+
+  it("saves unchecked by default, with no subtitle field shown", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    expect(screen.queryByPlaceholderText("يحدث الآن")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر عادي" } });
+    await act(async () => {
+      fireEvent.click(screen.getByText("حفظ ونشر"));
+    });
+
+    const payload = dashMutate.mock.calls[0][2];
+    expect(payload.notify_urgent).toBe(false);
+  });
+
+  it("reveals the subtitle field once checked, and saves both", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(checkbox());
+    const subtitle = screen.getByPlaceholderText("يحدث الآن");
+    fireEvent.change(subtitle, { target: { value: "تحديث هام" } });
+
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "زلزال يضرب المنطقة" } });
+    await act(async () => {
+      fireEvent.click(screen.getByText("حفظ ونشر"));
+    });
+
+    const payload = dashMutate.mock.calls[0][2];
+    expect(payload.notify_urgent).toBe(true);
+    expect(payload.notify_label).toBe("تحديث هام");
+  });
+
+  it("falls back to a default subtitle when the field is cleared", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(checkbox());
+    fireEvent.change(screen.getByPlaceholderText("يحدث الآن"), { target: { value: "  " } });
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    await act(async () => {
+      fireEvent.click(screen.getByText("حفظ ونشر"));
+    });
+
+    expect(dashMutate.mock.calls[0][2].notify_label).toBe("خبر عاجل");
+  });
+
+  it("loads an already-urgent article with its checkbox and subtitle pre-filled", () => {
+    render(
+      <ArticleEditorForm
+        initial={{ id: 3, notify_urgent: true, notify_label: "يحدث الآن", blocks: [], tags: [] } as any}
+        sections={sections}
+      />,
+    );
+
+    expect(checkbox()).toBeChecked();
+    expect(screen.getByPlaceholderText("يحدث الآن")).toHaveValue("يحدث الآن");
   });
 });

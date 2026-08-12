@@ -31,7 +31,6 @@ INSTALLED_APPS = [
     "content",
     "media_library",
     "video",
-    "live",
     "ads",
     "market",
     "siteconfig",

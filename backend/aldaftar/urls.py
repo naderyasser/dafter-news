@@ -9,7 +9,6 @@ urlpatterns = [
     path("api/", include("content.urls")),
     path("api/", include("media_library.urls")),
     path("api/", include("video.urls")),
-    path("api/", include("live.urls")),
     path("api/", include("ads.urls")),
     path("api/", include("market.urls")),
     path("api/", include("siteconfig.urls")),
