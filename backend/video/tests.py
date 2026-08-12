@@ -126,6 +126,25 @@ class VideoAPITests(APITestCase):
         self.video.refresh_from_db()
         self.assertTrue(self.video.is_live)
 
+    def test_staff_can_set_the_view_count_shown_on_the_dashboard(self):
+        """VideosManager's «👁» edit — an editorial override of the shown
+        count, not a real-view tracker. Real views (if that's ever wired
+        up) would only ever add on top of whatever's set here."""
+        self.client.force_authenticate(User.objects.create(username="video-staff-5", is_staff=True))
+
+        res = self.client.patch(f"/api/videos/{self.video.pk}/", {"views": 50000}, format="json")
+
+        self.assertEqual(res.status_code, 200)
+        self.video.refresh_from_db()
+        self.assertEqual(self.video.views, 50000)
+
+    def test_anonymous_reader_cannot_set_the_view_count(self):
+        res = self.client.patch(f"/api/videos/{self.video.pk}/", {"views": 999999}, format="json")
+
+        self.assertEqual(res.status_code, 403)
+        self.video.refresh_from_db()
+        self.assertEqual(self.video.views, 12480)
+
     def test_filter_by_section(self):
         Video.objects.create(title="آخر", slug="other-v")
 

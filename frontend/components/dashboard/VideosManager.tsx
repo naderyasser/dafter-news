@@ -33,6 +33,25 @@ export default function VideosManager({
     }
   };
 
+  /** Manual override — editorial sets a video's shown view count directly,
+   *  same as the views field already accepts from any staff PATCH. Real
+   *  views (VideoDetail's own increment) keep adding on top of whatever's
+   *  set here, so this is a baseline, not a freeze. */
+  const editViews = async (v: Video) => {
+    const raw = window.prompt(`عدد المشاهدات لـ«${v.title}»:`, String(v.views));
+    if (raw === null) return;
+    const next = parseInt(raw.replace(/\D/g, ""), 10);
+    if (Number.isNaN(next) || next < 0) return;
+    const before = videos;
+    setVideos((vs) => vs.map((x) => (x.id === v.id ? { ...x, views: next } : x)));
+    try {
+      await dashMutate(`/videos/${v.id}/`, "PATCH", { views: next });
+    } catch {
+      setVideos(before);
+      setError("تعذّر تحديث عدد المشاهدات.");
+    }
+  };
+
   const remove = async (v: Video) => {
     if (!confirm(`حذف «${v.title}» نهائياً؟`)) return;
     const before = videos;
@@ -102,7 +121,19 @@ export default function VideosManager({
                 </button>
               </div>
               <div className="flex items-center justify-between text-xs text-ink-3">
-                <span>💬 {v.comment_count} تعليق</span>
+                <div className="flex items-center gap-2.5">
+                  <span>💬 {v.comment_count} تعليق</span>
+                  <button
+                    onClick={() => editViews(v)}
+                    title="تعديل عدد المشاهدات"
+                    className="tnum flex items-center gap-1 font-bold text-ink hover:text-brand"
+                  >
+                    👁 {v.views.toLocaleString("en-US")}
+                    <span aria-hidden className="text-[10px]">
+                      ✎
+                    </span>
+                  </button>
+                </div>
                 <div className="flex gap-3">
                   <Link href="/dashboard/comments" className="font-bold text-brand no-underline">
                     التعليقات
