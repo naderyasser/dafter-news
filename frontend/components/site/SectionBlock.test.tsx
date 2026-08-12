@@ -88,4 +88,30 @@ describe("SectionBlock", () => {
     expect(screen.getByRole("button", { name: /Show more/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /See all/ })).toBeInTheDocument();
   });
+
+  it("swaps the plain heading for the photo masthead once a cover image is set", () => {
+    render(
+      <SectionBlock
+        lang="ar"
+        title="سياسة"
+        seeAllHref="/section/pol"
+        cards={cards}
+        sectionKey="pol"
+        coverImage="/media/sections/pol.jpg"
+        tagline="آخر تطورات المشهد السياسي"
+      />,
+    );
+
+    expect(screen.getByText("آخر تطورات المشهد السياسي")).toBeInTheDocument();
+    // Still just one "عرض الكل"-style link — the masthead's own, not a second
+    // heading stacked underneath it.
+    expect(screen.getAllByRole("link", { name: /عرض الكل/ })).toHaveLength(1);
+  });
+
+  it("keeps the plain heading when no cover image is set", () => {
+    render(<SectionBlock lang="ar" title="سياسة" seeAllHref="/section/pol" cards={cards} sectionKey="pol" />);
+
+    expect(screen.queryByText("آخر تطورات المشهد السياسي")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /عرض الكل/ })).toBeInTheDocument();
+  });
 });

@@ -85,4 +85,20 @@ describe("EgyptHomeBlock", () => {
     expect(screen.getByRole("link", { name: /عنوان 0/ })).toHaveAttribute("href", "/article/e0");
     expect(screen.getByRole("link", { name: /عنوان 3/ })).toHaveAttribute("href", "/article/e3");
   });
+
+  it("swaps the plain heading for the photo masthead once a cover image is set", () => {
+    render(
+      <EgyptHomeBlock
+        lang="ar"
+        title="شؤون مصر"
+        seeAllHref="/section/egypt"
+        sectionKey="egypt"
+        cards={cards}
+        coverImage="/media/sections/egypt.jpg"
+        tagline="متابعة يومية لأهم الأخبار والتطورات"
+      />,
+    );
+
+    expect(screen.getByText("متابعة يومية لأهم الأخبار والتطورات")).toBeInTheDocument();
+  });
 });

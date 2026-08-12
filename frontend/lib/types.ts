@@ -18,6 +18,8 @@ export type Section = {
   name_en: string;
   order: number;
   article_count: number;
+  cover_image: string | null;
+  tagline: string;
 };
 
 export type Tag = { id: number; name: string; slug: string };

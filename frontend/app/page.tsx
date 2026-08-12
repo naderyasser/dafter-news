@@ -107,6 +107,14 @@ async function HomeContent() {
   const arVideos = videos.results.filter((v) => isArabicText(v.title));
   const arTags = tags.results.filter((t) => isArabicText(t.name));
 
+  // A curated block's masthead — cover photo + tagline — is set per section
+  // in the dashboard, not hardcoded here. Undefined for a section with
+  // neither, which is what makes each block fall back to its plain heading.
+  const masthead = (key: string) => {
+    const s = sections.results.find((sec) => sec.key === key);
+    return { coverImage: mediaUrl(s?.cover_image ?? null), tagline: s?.tagline || undefined };
+  };
+
   // The tail: every section without a bespoke block above. Empty ones are
   // dropped rather than rendered as a bare heading.
   const tailSections = sections.results.filter((s) => !CURATED_KEYS.includes(s.key));
@@ -223,17 +231,40 @@ async function HomeContent() {
           (#7A2E3E) بدل أحمر البراند، والوقت النسبي زي أي قسم تاني. */}
       {politics.results.length ? (
         <>
-          <SectionBlock lang="ar" title="سياسة" seeAllHref="/section/pol" cards={politics.results.map(toSectionCard)} initialCount={4} sectionKey="pol" />
+          <SectionBlock
+            lang="ar"
+            title="سياسة"
+            seeAllHref="/section/pol"
+            cards={politics.results.map(toSectionCard)}
+            initialCount={4}
+            sectionKey="pol"
+            {...masthead("pol")}
+          />
           <SectionDivider />
         </>
       ) : null}
 
-      <EgyptHomeBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" sectionKey="egypt" cards={egypt.results.map(toSectionCard)} />
+      <EgyptHomeBlock
+        lang="ar"
+        title="شؤون مصر"
+        seeAllHref="/section/egypt"
+        sectionKey="egypt"
+        cards={egypt.results.map(toSectionCard)}
+        {...masthead("egypt")}
+      />
       <SectionDivider />
 
       {gulf.results.length ? (
         <>
-          <SectionBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" cards={gulf.results.map(toGulfCard)} initialCount={4} sectionKey="gulf" />
+          <SectionBlock
+            lang="ar"
+            title="الخليج العربي"
+            seeAllHref="/section/gulf"
+            cards={gulf.results.map(toGulfCard)}
+            initialCount={4}
+            sectionKey="gulf"
+            {...masthead("gulf")}
+          />
           <SectionDivider />
         </>
       ) : null}

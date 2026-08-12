@@ -9,7 +9,7 @@ from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, S
 class SectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Section
-        fields = ["id", "key", "name_ar", "name_en", "order", "article_count"]
+        fields = ["id", "key", "name_ar", "name_en", "order", "article_count", "cover_image", "tagline"]
 
 
 class TagSerializer(serializers.ModelSerializer):
