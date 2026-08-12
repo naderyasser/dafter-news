@@ -6,7 +6,7 @@ import SectionHeading from "@/components/site/SectionHeading";
 import SectionMasthead from "@/components/site/SectionMasthead";
 import { sectionColor } from "@/lib/sections";
 
-export type EgyptHomeCard = {
+export type LeadListCard = {
   href: string;
   title: string;
   section?: string;
@@ -30,8 +30,13 @@ function ClockIcon({ className = "h-3 w-3" }: { className?: string }) {
 }
 
 /**
- * «شؤون مصر» on the home page — a photo lead with the headline set into the
- * image, then the rest of the desk as a plain white list underneath.
+ * The «شؤون مصر» treatment — a photo lead with the headline set into the
+ * image over a navy tint (the client's reference, not the neutral-black
+ * scrim most photo overlays on this site use), then the rest of the desk
+ * as a plain white list underneath. Built for Egypt first; reused as-is
+ * for «الخليج العربي» on the client's explicit request that the two
+ * sections share one design rather than Gulf keeping the plain card grid
+ * every other section still uses.
  *
  * The list rows put the image last in the markup rather than first: this
  * site is RTL throughout, so the last child in a flex row lands at the
@@ -41,7 +46,7 @@ function ClockIcon({ className = "h-3 w-3" }: { className?: string }) {
  * brand red, so the row style stays consistent with every other block on
  * the page rather than inventing a second badge language.
  */
-export default function EgyptHomeBlock({
+export default function LeadListBlock({
   lang,
   title,
   seeAllHref,
@@ -54,7 +59,7 @@ export default function EgyptHomeBlock({
   title: string;
   seeAllHref: string;
   sectionKey: string;
-  cards: EgyptHomeCard[];
+  cards: LeadListCard[];
   /** A cover photo swaps the plain text heading for the full-bleed masthead. */
   coverImage?: string | null;
   tagline?: string;
@@ -87,9 +92,12 @@ export default function EgyptHomeBlock({
               className="absolute inset-0"
               sizes="(min-width: 1024px) 1200px, 100vw"
             />
+            {/* Navy, not the neutral-black scrim other photo overlays on the
+                site use — the client's reference tints the whole photo
+                blue, not just a dark fade at the bottom. */}
             <div
               aria-hidden
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(10,11,13,.92)] via-[rgba(10,11,13,.25)] to-transparent"
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(7,50,82,.93)] via-[rgba(7,50,82,.45)] to-[rgba(7,50,82,.18)]"
             />
           </div>
           <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
