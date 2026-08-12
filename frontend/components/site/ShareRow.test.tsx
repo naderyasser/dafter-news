@@ -120,6 +120,23 @@ describe("ShareRow", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("تعذّر النسخ");
   });
 
+  it("falls back to a selectable link when every programmatic path is blocked", async () => {
+    // regression: in-app browsers (a link opened from inside WhatsApp,
+    // Instagram, Facebook, Telegram) routinely block both the Share and
+    // Clipboard APIs with no error the page can see — reported live as
+    // "the share button does nothing". Plain selectable text is the one
+    // fallback that isn't a privileged API call, so it can't be blocked
+    // the same way.
+    Object.assign(navigator, { clipboard: undefined });
+    Object.assign(document, { execCommand: vi.fn().mockReturnValue(false) });
+    render(<ShareRow lang="ar" title="خبر" />);
+
+    await act(async () => fireEvent.click(screen.getByTitle("نسخ الرابط")));
+
+    const field = await screen.findByLabelText("الرابط — حدّده وانسخه يدوياً");
+    expect(field).toHaveValue(window.location.href);
+  });
+
   it("prefers the native share sheet when the device offers one", async () => {
     const share = vi.fn().mockResolvedValue(undefined);
     Object.assign(navigator, { share });
