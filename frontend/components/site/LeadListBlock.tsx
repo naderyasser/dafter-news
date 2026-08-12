@@ -74,11 +74,12 @@ export default function LeadListBlock({
   if (!lead) return null;
 
   return (
-    <section className="mx-auto max-w-container px-6 py-8">
+    <section className="bg-navy py-8">
+    <div className="mx-auto max-w-container px-6">
       {coverImage ? (
         <SectionMasthead lang={lang} title={title} tagline={tagline} imageSrc={coverImage} sectionKey={sectionKey} href={seeAllHref} />
       ) : (
-        <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} />
+        <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} tone="dark" />
       )}
 
       <div className="overflow-hidden rounded-card border border-line">
@@ -163,6 +164,7 @@ export default function LeadListBlock({
           <Chevron lang={lang} className="h-3.5 w-3.5" />
         </Link>
       </div>
+    </div>
     </section>
   );
 }
