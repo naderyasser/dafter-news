@@ -59,6 +59,15 @@ export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: st
   // action gave no feedback at all, so even a *successful* copy looked
   // like a dead button.
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  // A link a reader can select and copy by hand, shown only when every
+  // programmatic path failed. In-app browsers (a link opened from inside
+  // WhatsApp/Instagram/Facebook/Telegram, rather than a real browser tab)
+  // routinely block both the Web Share API and the Clipboard API with no
+  // error at all — the promise just never resolves the way a normal
+  // browser's does, or execCommand silently returns false. Plain selectable
+  // text in the page is the one fallback nothing can block, because it
+  // isn't calling a privileged API at all.
+  const [manualUrl, setManualUrl] = useState<string | null>(null);
   const btnClass =
     "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-paper transition-opacity duration-fast hover:opacity-85";
 
@@ -83,6 +92,7 @@ export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: st
       }
       const ok = await copyToClipboard(url);
       setCopyState(ok ? "copied" : "failed");
+      if (!ok) setManualUrl(url);
       window.setTimeout(() => setCopyState("idle"), 2000);
       return;
     }
@@ -103,7 +113,7 @@ export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: st
   const copyLabel = isAr ? "نسخ الرابط" : "Copy link";
 
   return (
-    <span className="ms-auto flex items-center gap-2">
+    <span className="relative ms-auto flex items-center gap-2">
       {PLATFORMS.map(({ key, label, Icon, bg }) => (
         // A real <button>, not a <span onClick>: the old markup was
         // unreachable by keyboard and invisible to assistive tech, which
@@ -129,19 +139,53 @@ export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: st
         <ShareGlyph className="h-4 w-4" />
       </button>
       {/* Announced to screen readers as well as shown, so the outcome of a
-          copy is never colour-only. */}
+          copy is never colour-only. Its own line (`w-full`), not squeezed
+          into the same non-wrapping row as the five icon buttons — that row
+          already sits flush against the edge of a narrow phone screen, and
+          appending text after the last icon there could run past the
+          viewport instead of onto a visible line. */}
       {copyState !== "idle" && (
         <span
           role="status"
-          className={`text-[12px] font-bold ${copyState === "copied" ? "text-up" : "text-down"}`}
+          className={`absolute top-full mt-1.5 w-max max-w-[240px] text-[12px] font-bold ${
+            isAr ? "end-0" : "start-0"
+          } ${copyState === "copied" ? "text-up" : "text-down"}`}
         >
           {copyState === "copied"
             ? isAr
               ? "تم نسخ الرابط"
               : "Link copied"
             : isAr
-              ? "تعذّر النسخ"
-              : "Copy failed"}
+              ? "تعذّر النسخ — انسخ الرابط يدوياً بالأسفل"
+              : "Copy failed — copy the link below manually"}
+        </span>
+      )}
+      {manualUrl && (
+        <span
+          className={`absolute top-full mt-6 z-10 flex w-[240px] flex-col gap-1.5 rounded-card border border-line bg-paper p-2.5 shadow-2 ${
+            isAr ? "end-0" : "start-0"
+          }`}
+        >
+          <input
+            readOnly
+            value={manualUrl}
+            dir="ltr"
+            aria-label={isAr ? "الرابط — حدّده وانسخه يدوياً" : "The link — select and copy it manually"}
+            // Selected the instant it renders: on a device that blocked
+            // every clipboard API, a long-press "نسخ" from the OS's own
+            // text-selection menu is the one path left that no site can
+            // block — this just puts the selection there for it.
+            onFocus={(e) => e.currentTarget.select()}
+            ref={(el) => el?.focus()}
+            className="w-full truncate rounded border border-line bg-surface px-2 py-1 text-[12px] text-ink outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => setManualUrl(null)}
+            className="self-end text-[11px] font-semibold text-ink-3 hover:text-ink"
+          >
+            {isAr ? "إغلاق" : "Close"}
+          </button>
         </span>
       )}
     </span>
