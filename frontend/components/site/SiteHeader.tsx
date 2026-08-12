@@ -6,6 +6,7 @@ import NavDrawer from "@/components/site/NavDrawer";
 import PrayerStrip from "@/components/site/PrayerStrip";
 import BreakingAlertsToggle from "@/components/site/BreakingAlertsToggle";
 import SearchBox from "@/components/site/SearchBox";
+import StickyHeader from "@/components/site/StickyHeader";
 import { getBreakingNews, getPrayerTimes, getSections, getSiteSettings, mediaUrl } from "@/lib/api";
 import { sectionColor } from "@/lib/sections";
 
@@ -110,7 +111,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
         </div>
       </div>
 
-      <div className="sticky top-0 z-50">
+      <StickyHeader>
       {/* masthead — hamburger at the inline start, search at the inline end */}
       <div className="border-b border-line bg-paper">
         <div className="mx-auto flex max-w-container items-center gap-4 px-6 py-4">
@@ -188,7 +189,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
           })}
         </div>
       </nav>
-      </div>
+      </StickyHeader>
 
       {/* breaking marquee */}
       <div className="relative flex h-9 items-stretch overflow-hidden bg-badge-breaking">
