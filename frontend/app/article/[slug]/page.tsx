@@ -45,10 +45,15 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   const [related, sections] = await Promise.all([getRelatedArticles(article.slug), getSections()]);
   // Sections appended below the article; skip the one we're already in.
   const feedSections = sections.results.filter((s) => s.key !== article.section?.key && s.key !== "opinion");
-  const relatedCards = related.results
+  const relatedAll = related.results
     .filter((a) => a.slug !== article.slug)
-    .slice(0, 4)
+    .slice(0, 6)
     .map((a) => ({ href: `/article/${a.slug}`, title: a.title, section: a.section_name, time: relativeTime(a.published_at, "ar"), badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
+  // First two land inside the body itself (client ask: «تعرض داخل محتوى
+  // الخبر نفسه»); the rest keep the end-of-article list from going empty on
+  // an article with too few blocks for the inline box to show at all.
+  const relatedInline = relatedAll.slice(0, 2);
+  const relatedCards = relatedAll.slice(2, 6);
 
   const badgeLabel = { breaking: "عاجل", live: "مباشر", exclusive: "خاص", none: "" }[article.badge];
 
@@ -140,7 +145,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
 
           <AudioPlayer lang="ar" audioSrc={mediaUrl(article.tts_audio)} durationSeconds={article.tts_duration_seconds || 255} />
 
-          <ArticleBlocks lang="ar" blocks={article.blocks} />
+          <ArticleBlocks lang="ar" blocks={article.blocks} relatedCards={relatedInline} />
 
           {article.tags.length > 0 && (
             <div className="mb-2 mt-7 flex flex-wrap gap-2">

@@ -161,4 +161,37 @@ describe("ArticleBlocks", () => {
 
     expect(container.querySelector("p")).toHaveClass(expectedClass);
   });
+
+  describe("mid-article related news", () => {
+    const cards = [
+      { href: "/article/a", title: "خبر أول ذو صلة" },
+      { href: "/article/b", title: "خبر ثانٍ ذو صلة" },
+    ];
+    const longEnough = [
+      block({ text: sentence(1) }),
+      block({ type: "heading", text: "عنوان فرعي" }),
+      block({ text: sentence(2) }),
+      block({ text: sentence(3) }),
+    ];
+
+    it("shows the box, roughly midway through the body, when there's enough content", () => {
+      render(<ArticleBlocks lang="ar" blocks={longEnough} relatedCards={cards} />);
+
+      expect(screen.getByText("أخبار ذات صلة")).toBeInTheDocument();
+      expect(screen.getByText("خبر أول ذو صلة")).toBeInTheDocument();
+      expect(screen.getByText("خبر ثانٍ ذو صلة")).toBeInTheDocument();
+    });
+
+    it("skips the box on a short article with no real middle to sit in", () => {
+      render(<ArticleBlocks lang="ar" blocks={[block({ text: sentence(1) })]} relatedCards={cards} />);
+
+      expect(screen.queryByText("أخبار ذات صلة")).not.toBeInTheDocument();
+    });
+
+    it("skips the box entirely when there's nothing related to show", () => {
+      render(<ArticleBlocks lang="ar" blocks={longEnough} relatedCards={[]} />);
+
+      expect(screen.queryByText("أخبار ذات صلة")).not.toBeInTheDocument();
+    });
+  });
 });

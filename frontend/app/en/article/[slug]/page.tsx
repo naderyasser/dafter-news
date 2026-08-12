@@ -35,10 +35,12 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
     getRelatedArticles(article.slug),
     getArticles("?language=en&ordering=-views&page_size=5"),
   ]);
-  const relatedCards = related.results
+  const relatedAll = related.results
     .filter((a) => a.slug !== article.slug)
-    .slice(0, 4)
+    .slice(0, 6)
     .map((a) => ({ href: `/en/article/${a.slug}`, title: a.title, section: a.section_name, time: relativeTime(a.published_at, "en"), badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
+  const relatedInline = relatedAll.slice(0, 2);
+  const relatedCards = relatedAll.slice(2, 6);
 
   const badgeLabel = { breaking: "Breaking", live: "Live", exclusive: "Exclusive", none: "" }[article.badge];
 
@@ -110,7 +112,7 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
 
           <AudioPlayer lang="en" audioSrc={mediaUrl(article.tts_audio)} durationSeconds={article.tts_duration_seconds || 255} />
 
-          <ArticleBlocks lang="en" blocks={article.blocks} />
+          <ArticleBlocks lang="en" blocks={article.blocks} relatedCards={relatedInline} />
 
           {article.tags.length > 0 && (
             <div className="mb-2 mt-7 flex flex-wrap gap-2">
