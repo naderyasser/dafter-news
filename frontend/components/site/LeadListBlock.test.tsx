@@ -117,4 +117,14 @@ describe("LeadListBlock", () => {
     expect(screen.getAllByRole("heading", { level: 4 })).toHaveLength(4);
     expect(screen.getByRole("link", { name: /عرض المزيد/ })).toHaveAttribute("href", "/section/gulf");
   });
+
+  it("sits on the same navy band as «لقطة وتعليق», with the heading readable on it", () => {
+    const { container } = render(
+      <LeadListBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" sectionKey="egypt" cards={cards} />,
+    );
+
+    expect(container.querySelector("section")?.className).toContain("bg-navy");
+    // rule-on-dark is SectionHeading's own signal that it was given tone="dark".
+    expect(container.querySelector(".rule-on-dark")).not.toBeNull();
+  });
 });
