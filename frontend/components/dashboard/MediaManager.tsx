@@ -18,7 +18,7 @@ const LICENSES: { key: MediaLicense; label: string }[] = [
 export type MediaArticleOption = { id: number; title: string; slug: string };
 
 const input =
-  "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-brand";
+  "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand";
 
 export default function MediaManager({
   assets: initial,
@@ -122,16 +122,16 @@ export default function MediaManager({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="بحث بالعنوان أو المصدر أو الخبر المرتبط..."
-          className="max-w-[360px] flex-1 rounded-lg border border-line bg-paper px-3.5 py-2.5 text-[13px] outline-none focus:border-brand"
+          className="max-w-[360px] flex-1 rounded-lg border border-line bg-paper px-3.5 py-2.5 text-[14px] outline-none focus:border-brand"
         />
-        <span className="text-[12.5px] text-ink-3">
+        <span className="text-[13.5px] text-ink-3">
           {query ? `${visible.length} من ${assets.length}` : `${assets.length} صورة`}
         </span>
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
-          className="ms-auto rounded-lg bg-brand px-4.5 py-2.5 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-60"
+          className="ms-auto rounded-lg bg-brand px-4.5 py-2.5 text-[14px] font-bold text-paper hover:bg-brand-strong disabled:opacity-60"
         >
           {uploading ? "جارٍ الرفع…" : "⬆ رفع صور متعددة"}
         </button>
@@ -149,7 +149,7 @@ export default function MediaManager({
       </div>
 
       {error && (
-        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down">
           {error}
         </div>
       )}
@@ -166,7 +166,7 @@ export default function MediaManager({
                 <img src={mediaUrl(m.image)} alt={m.alt} className="h-full w-full object-cover" />
               ) : null}
               {m.article_slug ? (
-                <span className="absolute bottom-0 start-0 bg-brand px-2 py-1 text-[10.5px] font-bold text-paper">
+                <span className="absolute bottom-0 start-0 bg-brand px-2 py-1 text-[11.5px] font-bold text-paper">
                   مرتبطة بخبر ↗
                 </span>
               ) : null}
@@ -183,11 +183,11 @@ export default function MediaManager({
               )}
               <div className="flex flex-col gap-1 px-3 py-2.5">
                 <span className="truncate text-xs font-semibold text-ink">{m.title || m.alt || "بدون عنوان"}</span>
-                <span className="truncate text-[11px] text-ink-3">
+                <span className="truncate text-[12px] text-ink-3">
                   {m.license_label}
                   {m.credit ? ` · ${m.credit}` : ""}
                 </span>
-                <div className="mt-1 flex gap-3 text-[11.5px]">
+                <div className="mt-1 flex gap-3 text-[12.5px]">
                   <button onClick={() => setEditing(m)} className="font-bold text-brand hover:underline">
                     تعديل
                   </button>
@@ -305,10 +305,10 @@ function MetadataDialog({
         </div>
 
         <div className="mt-5 flex justify-end gap-2.5">
-          <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-surface">
+          <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[14px] font-semibold text-ink hover:bg-surface">
             إلغاء
           </button>
-          <button onClick={() => onSave(draft)} className="rounded-lg bg-brand px-4.5 py-2 text-[13px] font-bold text-paper hover:bg-brand-strong">
+          <button onClick={() => onSave(draft)} className="rounded-lg bg-brand px-4.5 py-2 text-[14px] font-bold text-paper hover:bg-brand-strong">
             حفظ
           </button>
         </div>
@@ -320,7 +320,7 @@ function MetadataDialog({
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[12px] font-bold text-ink-3">{label}</span>
+      <span className="text-[13px] font-bold text-ink-3">{label}</span>
       {children}
     </label>
   );

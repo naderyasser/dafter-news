@@ -79,12 +79,12 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
   };
 
   const chip = (active: boolean) =>
-    `whitespace-nowrap rounded-pill border px-3.5 py-2 text-[12.5px] font-semibold ${active ? "border-brand bg-brand text-paper" : "border-line bg-paper text-ink"}`;
+    `whitespace-nowrap rounded-pill border px-3.5 py-2 text-[13.5px] font-semibold ${active ? "border-brand bg-brand text-paper" : "border-line bg-paper text-ink"}`;
 
   return (
     <>
       {error ? (
-        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down">
           {error}
         </div>
       ) : null}
@@ -93,7 +93,7 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="بحث في المقالات..."
-          className="min-w-[200px] flex-1 rounded-lg border border-line bg-paper px-3.5 py-2.5 text-[13px] outline-none focus:border-brand"
+          className="min-w-[200px] flex-1 rounded-lg border border-line bg-paper px-3.5 py-2.5 text-[14px] outline-none focus:border-brand"
         />
         {STATUS_CHIPS.map((c) => (
           <button key={c.key} onClick={() => setStatusFilter(c.key)} className={chip(statusFilter === c.key)}>
@@ -104,17 +104,17 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
 
       {selectedCount > 0 && (
         <div className="flex items-center gap-3.5 rounded-lg border border-brand bg-brand-tint px-4 py-2.5">
-          <span className="text-[13px] font-bold text-brand-strong">{selectedCount} عنصر محدد</span>
-          <button onClick={() => bulkAction("publish")} className="rounded-md border border-line-strong bg-paper px-3.5 py-1.5 text-[12.5px] font-semibold text-ink">
+          <span className="text-[14px] font-bold text-brand-strong">{selectedCount} عنصر محدد</span>
+          <button onClick={() => bulkAction("publish")} className="rounded-md border border-line-strong bg-paper px-3.5 py-1.5 text-[13.5px] font-semibold text-ink">
             نشر
           </button>
-          <button onClick={() => bulkAction("archive")} className="rounded-md border border-line-strong bg-paper px-3.5 py-1.5 text-[12.5px] font-semibold text-ink">
+          <button onClick={() => bulkAction("archive")} className="rounded-md border border-line-strong bg-paper px-3.5 py-1.5 text-[13.5px] font-semibold text-ink">
             أرشفة
           </button>
-          <button onClick={() => bulkAction("delete")} className="rounded-md border border-down bg-paper px-3.5 py-1.5 text-[12.5px] font-semibold text-down">
+          <button onClick={() => bulkAction("delete")} className="rounded-md border border-down bg-paper px-3.5 py-1.5 text-[13.5px] font-semibold text-down">
             حذف
           </button>
-          <button onClick={() => setSelected({})} className="ms-auto border-none bg-none text-[13px] font-semibold text-brand-strong">
+          <button onClick={() => setSelected({})} className="ms-auto border-none bg-none text-[14px] font-semibold text-brand-strong">
             إلغاء التحديد
           </button>
         </div>
@@ -148,15 +148,15 @@ export default function ArticlesTable({ rows: initialRows }: { rows: ArticleRow[
                 {selected[a.id] ? "✓" : ""}
               </span>
             </div>
-            <div className="truncate px-4 text-[13.5px] font-semibold text-ink">{a.title}</div>
-            <div className="px-4 text-[13.5px] text-ink-3">{a.section}</div>
-            <div className="px-4 text-[13.5px] text-ink-3">{a.author}</div>
+            <div className="truncate px-4 text-[14.5px] font-semibold text-ink">{a.title}</div>
+            <div className="px-4 text-[14.5px] text-ink-3">{a.section}</div>
+            <div className="px-4 text-[14.5px] text-ink-3">{a.author}</div>
             <div className="px-4">
               <StatusBadge status={a.status} />
             </div>
-            <div className="tnum px-4 text-[13.5px] font-semibold text-ink">{a.views ? a.views.toLocaleString("en-US") : "—"}</div>
-            <div className="px-4 text-[13.5px] text-ink-3">{a.date}</div>
-            <div className="flex gap-2.5 pe-3.5 text-[14px] text-ink-3" style={{ opacity: hoverRow === a.id ? 1 : 0 }}>
+            <div className="tnum px-4 text-[14.5px] font-semibold text-ink">{a.views ? a.views.toLocaleString("en-US") : "—"}</div>
+            <div className="px-4 text-[14.5px] text-ink-3">{a.date}</div>
+            <div className="flex gap-2.5 pe-3.5 text-[15px] text-ink-3" style={{ opacity: hoverRow === a.id ? 1 : 0 }}>
               <Link href={`/dashboard/articles/${a.id}/edit`} className="cursor-pointer text-inherit no-underline" title="تعديل">
                 ✎
               </Link>

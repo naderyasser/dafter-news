@@ -58,6 +58,8 @@ const config: Config = {
         "body-ar": ["var(--font-plex-arabic)", "Segoe UI", "Tahoma", "system-ui", "sans-serif"],
         "display-en": ["var(--font-inter)", "system-ui", "sans-serif"],
         "body-en": ["var(--font-inter)", "system-ui", "sans-serif"],
+        // The dashboard's own face — see lib/fonts.ts's `cairo` for why.
+        "dashboard-ar": ["var(--font-cairo)", "Segoe UI", "Tahoma", "system-ui", "sans-serif"],
       },
       fontSize: {
         hero: ["2.125rem", { lineHeight: "1.4" }],

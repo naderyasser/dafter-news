@@ -111,12 +111,12 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
     <>
       <div className="flex max-w-[720px] flex-col gap-5">
         <div className="flex justify-end">
-          <button onClick={save} className="rounded-lg bg-brand px-4.5 py-2.5 text-[13px] font-bold text-paper hover:bg-brand-strong">
+          <button onClick={save} className="rounded-lg bg-brand px-4.5 py-2.5 text-[14px] font-bold text-paper hover:bg-brand-strong">
             حفظ التغييرات
           </button>
         </div>
         {error && (
-          <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+          <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down">
             {error}
           </div>
         )}
@@ -128,7 +128,7 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
               title="ارفع لوجو الموقع"
-              className="flex h-[72px] w-[112px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-1.5 text-[11px] text-ink-3 hover:border-brand hover:text-brand disabled:opacity-60"
+              className="flex h-[72px] w-[112px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-1.5 text-[12px] text-ink-3 hover:border-brand hover:text-brand disabled:opacity-60"
             >
               {uploading ? (
                 "جارٍ الرفع…"
@@ -151,8 +151,8 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
               }}
             />
             <div className="flex min-w-[200px] flex-1 flex-col gap-2.5">
-              <input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="rounded-lg border border-line px-3 py-2.5 text-[13.5px] outline-none focus:border-brand" />
-              <input value={tagline} onChange={(e) => setTagline(e.target.value)} className="rounded-lg border border-line px-3 py-2.5 text-[13.5px] outline-none focus:border-brand" />
+              <input value={siteName} onChange={(e) => setSiteName(e.target.value)} className="rounded-lg border border-line px-3 py-2.5 text-[14.5px] outline-none focus:border-brand" />
+              <input value={tagline} onChange={(e) => setTagline(e.target.value)} className="rounded-lg border border-line px-3 py-2.5 text-[14.5px] outline-none focus:border-brand" />
             </div>
           </div>
         </div>
@@ -161,18 +161,18 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
           <div className="mb-1 text-[15px] font-extrabold">روابط التواصل الاجتماعي</div>
           {SOCIAL_FIELDS.map((f) => (
             <div key={f.key} className="flex items-center gap-2.5">
-              <span className="w-[70px] text-[13px] text-ink-3">{f.label}</span>
+              <span className="w-[70px] text-[14px] text-ink-3">{f.label}</span>
               <input
                 value={socials[f.key] ?? ""}
                 onChange={(e) => setSocials((s) => ({ ...s, [f.key]: e.target.value }))}
                 placeholder={f.placeholder}
                 dir="ltr"
                 aria-label={`رابط ${f.label}`}
-                className="flex-1 rounded-lg border border-line px-3 py-2 text-start text-[13px] outline-none focus:border-brand"
+                className="flex-1 rounded-lg border border-line px-3 py-2 text-start text-[14px] outline-none focus:border-brand"
               />
             </div>
           ))}
-          <p className="m-0 text-[11.5px] text-ink-3">تُعرض في تذييل الموقع. اتركه فارغاً لإخفاء المنصة.</p>
+          <p className="m-0 text-[12.5px] text-ink-3">تُعرض في تذييل الموقع. اتركه فارغاً لإخفاء المنصة.</p>
         </div>
 
         <div className="flex flex-col gap-2.5 rounded-card border border-line bg-paper p-5">
@@ -181,31 +181,31 @@ export default function SettingsManager({ initial }: { initial: SiteSettings | n
             value={seoTitle}
             onChange={(e) => setSeoTitle(e.target.value)}
             placeholder="عنوان meta الافتراضي"
-            className="rounded-lg border border-line px-3 py-2.5 text-[13.5px] outline-none focus:border-brand"
+            className="rounded-lg border border-line px-3 py-2.5 text-[14.5px] outline-none focus:border-brand"
           />
           <textarea
             value={seoDescription}
             onChange={(e) => setSeoDescription(e.target.value)}
             placeholder="وصف meta الافتراضي"
-            className="min-h-[60px] resize-y rounded-lg border border-line px-3 py-2.5 text-[13.5px] outline-none focus:border-brand"
+            className="min-h-[60px] resize-y rounded-lg border border-line px-3 py-2.5 text-[14.5px] outline-none focus:border-brand"
           />
         </div>
 
         <div className="flex flex-col gap-3 rounded-card border border-line bg-paper p-5">
           <div className="text-[15px] font-extrabold">اللغات المفعّلة</div>
           <div className="flex items-center justify-between">
-            <span className="text-[13.5px] font-semibold">العربية</span>
+            <span className="text-[14.5px] font-semibold">العربية</span>
             <Switch on={langAr} onToggle={() => setLangAr((v) => !v)} />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[13.5px] font-semibold">English</span>
+            <span className="text-[14.5px] font-semibold">English</span>
             <Switch on={langEn} onToggle={() => setLangEn((v) => !v)} />
           </div>
         </div>
       </div>
 
       {toastVisible && (
-        <div className="fixed top-5 end-6 z-[70] rounded-lg bg-ink px-5 py-3 text-[13.5px] font-semibold text-paper shadow-2">✓ تم حفظ الإعدادات بنجاح</div>
+        <div className="fixed top-5 end-6 z-[70] rounded-lg bg-ink px-5 py-3 text-[14.5px] font-semibold text-paper shadow-2">✓ تم حفظ الإعدادات بنجاح</div>
       )}
     </>
   );

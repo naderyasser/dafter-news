@@ -47,15 +47,15 @@ export default function ImportFromUrl({ onImported }: { onImported: (draft: Impo
 
   return (
     <div className="mb-5 rounded-card border border-dashed border-line-strong bg-paper p-5">
-      <div className="mb-1.5 flex items-center gap-2 text-[14px] font-extrabold text-ink">
+      <div className="mb-1.5 flex items-center gap-2 text-[15px] font-extrabold text-ink">
         <span aria-hidden>🔗</span> استيراد خبر من رابط
       </div>
-      <p className="mb-3.5 max-w-[640px] text-[12px] leading-relaxed text-ink-3">
+      <p className="mb-3.5 max-w-[640px] text-[13px] leading-relaxed text-ink-3">
         الصق رابط خبر من موقع آخر لتعبئة العنوان والمقدمة والمتن والصورة تلقائياً كمسودة تبدأ منها. يُنسب المصدر تلقائياً
         (اسم الكاتب وحقوق الصورة) — راجع الخبر وأعد صياغته بأسلوبك قبل النشر.
       </p>
       {error ? (
-        <div role="alert" className="mb-3 rounded-card border border-down bg-down-tint px-4 py-2.5 text-[13px] font-semibold text-down">
+        <div role="alert" className="mb-3 rounded-card border border-down bg-down-tint px-4 py-2.5 text-[14px] font-semibold text-down">
           {error}
         </div>
       ) : null}
@@ -68,12 +68,12 @@ export default function ImportFromUrl({ onImported }: { onImported: (draft: Impo
           dir="ltr"
           placeholder="https://example.com/news/..."
           aria-label="رابط الخبر"
-          className="min-w-[240px] flex-1 rounded-lg border border-line px-3.5 py-2.5 text-start text-[13px] outline-none focus:border-brand"
+          className="min-w-[240px] flex-1 rounded-lg border border-line px-3.5 py-2.5 text-start text-[14px] outline-none focus:border-brand"
         />
         <button
           type="submit"
           disabled={busy || !url.trim()}
-          className="flex-shrink-0 rounded-lg bg-accent px-5 py-2.5 text-[13px] font-bold text-paper hover:bg-accent-strong disabled:opacity-60"
+          className="flex-shrink-0 rounded-lg bg-accent px-5 py-2.5 text-[14px] font-bold text-paper hover:bg-accent-strong disabled:opacity-60"
         >
           {busy ? "جارٍ الاستيراد…" : "استيراد"}
         </button>

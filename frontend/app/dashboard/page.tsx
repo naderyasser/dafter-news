@@ -22,8 +22,8 @@ export default async function DashOverviewPage() {
           table nobody watches. */}
       {alerts.length > 0 && (
         <div role="alert" className="rounded-card border border-gold bg-[#FDF6E3] px-4.5 py-3.5">
-          <div className="mb-1 text-[13.5px] font-extrabold text-gold">⚠ تغذيات متوقفة تحتاج انتباهك</div>
-          <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[13px] text-ink-2">
+          <div className="mb-1 text-[14.5px] font-extrabold text-gold">⚠ تغذيات متوقفة تحتاج انتباهك</div>
+          <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[14px] text-ink-2">
             {alerts.map((a) => (
               <li key={a.source}>
                 <span className="font-bold">{a.label}</span> — فشل {a.consecutive_failures.toLocaleString("en-US")} محاولة متتالية
@@ -31,7 +31,7 @@ export default async function DashOverviewPage() {
               </li>
             ))}
           </ul>
-          <Link href="/dashboard/feeds" className="mt-1.5 inline-block text-[12.5px] font-bold text-accent no-underline hover:underline">
+          <Link href="/dashboard/feeds" className="mt-1.5 inline-block text-[13.5px] font-bold text-accent no-underline hover:underline">
             راجع شاشة التغذيات ←
           </Link>
         </div>
@@ -75,12 +75,12 @@ export default async function DashOverviewPage() {
           </div>
           {(data?.recent_articles ?? []).map((a) => (
             <div key={a.id} className="grid min-h-[44px] grid-cols-[2fr_1fr_1fr_1fr] items-center border-t border-line hover:bg-surface">
-              <div className="truncate px-4.5 text-[13.5px] font-semibold text-ink">{a.title}</div>
-              <div className="px-4.5 text-[13.5px] text-ink-3">{a.section}</div>
+              <div className="truncate px-4.5 text-[14.5px] font-semibold text-ink">{a.title}</div>
+              <div className="px-4.5 text-[14.5px] text-ink-3">{a.section}</div>
               <div className="px-4.5">
                 <StatusBadge status={a.status} />
               </div>
-              <div className="tnum px-4.5 text-[13.5px] font-semibold text-ink">{a.views ? a.views.toLocaleString("en-US") : "—"}</div>
+              <div className="tnum px-4.5 text-[14.5px] font-semibold text-ink">{a.views ? a.views.toLocaleString("en-US") : "—"}</div>
             </div>
           ))}
           {(data?.recent_articles ?? []).length === 0 && <div className="p-6 text-center text-ui text-ink-3">لا توجد مقالات بعد</div>}
@@ -90,7 +90,7 @@ export default async function DashOverviewPage() {
           <div className="flex flex-col">
             {(data?.review_queue ?? []).map((q) => (
               <div key={q.id} className="border-b border-line py-3 last:border-b-0">
-                <div className="text-[13.5px] font-semibold leading-[1.5] text-ink">{q.title}</div>
+                <div className="text-[14.5px] font-semibold leading-[1.5] text-ink">{q.title}</div>
                 <div className="mt-1.5 flex items-center justify-between">
                   <span className="text-xs text-ink-3">{q.author}</span>
                   <Link href={`/dashboard/articles/${q.id}/edit`} className="text-xs font-bold text-brand no-underline">

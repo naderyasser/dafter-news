@@ -6,7 +6,7 @@ import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
 import { toEasternNumerals } from "@/lib/format";
 import type { Section, Tag } from "@/lib/types";
 
-const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-brand";
+const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand";
 
 /**
  * Clean up a typed `key`/`slug`, which are ASCII columns.
@@ -181,7 +181,7 @@ export default function TaxonomyManager({
   return (
     <>
       {error && (
-        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down">
           {error}
         </div>
       )}
@@ -191,7 +191,7 @@ export default function TaxonomyManager({
           <span className="text-[15px] font-bold">الأقسام</span>
           <button
             onClick={() => setAdding(true)}
-            className="rounded-pill bg-surface px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-surface-2"
+            className="rounded-pill bg-surface px-4 py-1.5 text-[13.5px] font-semibold text-ink hover:bg-surface-2"
           >
             + قسم جديد
           </button>
@@ -199,7 +199,7 @@ export default function TaxonomyManager({
         <div className="overflow-hidden rounded-card border border-line bg-paper">
           {sections.map((s, i) => (
             <div key={s.id} className="flex min-h-[44px] items-center gap-3.5 border-t border-line px-4 py-3 first:border-t-0">
-              <div className="flex flex-col gap-0.5 text-[11px] text-header-muted">
+              <div className="flex flex-col gap-0.5 text-[12px] text-header-muted">
                 <button onClick={() => move(s.id, -1)} disabled={i === 0} aria-label={`تحريك ${s.name_ar} لأعلى`} className="disabled:opacity-30">
                   ▲
                 </button>
@@ -212,8 +212,8 @@ export default function TaxonomyManager({
                   ▼
                 </button>
               </div>
-              <span className="flex-1 text-[13.5px] font-bold">{s.name_ar}</span>
-              <span className="text-[11px] text-ink-3" dir="ltr">
+              <span className="flex-1 text-[14.5px] font-bold">{s.name_ar}</span>
+              <span className="text-[12px] text-ink-3" dir="ltr">
                 {s.key}
               </span>
               {/* Counted server-side off the article table. */}
@@ -234,7 +234,7 @@ export default function TaxonomyManager({
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-3 flex flex-wrap gap-2">
             {tags.map((t) => (
-              <span key={t.id} className="flex items-center gap-1.5 rounded-pill bg-brand-tint px-3 py-1.5 text-[12.5px] font-semibold text-brand">
+              <span key={t.id} className="flex items-center gap-1.5 rounded-pill bg-brand-tint px-3 py-1.5 text-[13.5px] font-semibold text-brand">
                 <button onClick={() => setEditingTag(t)} title="تعديل الوسم" className="hover:underline">
                   {t.name}
                 </button>
@@ -243,16 +243,16 @@ export default function TaxonomyManager({
                 </button>
               </span>
             ))}
-            {tags.length === 0 && <span className="text-[12.5px] text-ink-3">لا توجد وسوم بعد</span>}
+            {tags.length === 0 && <span className="text-[13.5px] text-ink-3">لا توجد وسوم بعد</span>}
           </div>
           <input
             value={tagDraft}
             onChange={(e) => setTagDraft(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addTag()}
             placeholder="أضف وسماً جديداً واضغط Enter"
-            className="max-w-[320px] rounded-lg border border-line px-3 py-2 text-[13px] outline-none focus:border-brand"
+            className="max-w-[320px] rounded-lg border border-line px-3 py-2 text-[14px] outline-none focus:border-brand"
           />
-          <p className="m-0 mt-2 text-[11.5px] text-ink-3">الوسوم تظهر فوراً في البحث الداخلي وصفحات الأرشيف (‎/tag/…‎).</p>
+          <p className="m-0 mt-2 text-[12.5px] text-ink-3">الوسوم تظهر فوراً في البحث الداخلي وصفحات الأرشيف (‎/tag/…‎).</p>
         </div>
       </div>
 
@@ -332,16 +332,16 @@ function SectionDialog({
     <Modal label={title} onCancel={onCancel}>
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1.5">
-          <span className="text-[12px] font-bold text-ink-3">الاسم بالعربية</span>
+          <span className="text-[13px] font-bold text-ink-3">الاسم بالعربية</span>
           <input value={nameAr} onChange={(e) => setNameAr(e.target.value)} className={input} />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-[12px] font-bold text-ink-3">الاسم بالإنجليزية</span>
+          <span className="text-[13px] font-bold text-ink-3">الاسم بالإنجليزية</span>
           <input value={nameEn} onChange={(e) => setNameEn(e.target.value)} dir="ltr" className={`${input} text-start`} />
         </label>
         {!isNew && (
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">الوصف المختصر (فوق صورة الغلاف بالرئيسية)</span>
+            <span className="text-[13px] font-bold text-ink-3">الوصف المختصر (فوق صورة الغلاف بالرئيسية)</span>
             <textarea
               value={tagline}
               onChange={(e) => setTagline(e.target.value)}
@@ -353,13 +353,13 @@ function SectionDialog({
         )}
         {!isNew && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">صورة غلاف القسم (بانر الرئيسية)</span>
+            <span className="text-[13px] font-bold text-ink-3">صورة غلاف القسم (بانر الرئيسية)</span>
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                className="flex h-[64px] w-[112px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-1 text-[11px] text-ink-3 hover:border-brand hover:text-brand disabled:opacity-60"
+                className="flex h-[64px] w-[112px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-1 text-[12px] text-ink-3 hover:border-brand hover:text-brand disabled:opacity-60"
               >
                 {uploading ? (
                   "جارٍ الرفع…"
@@ -371,7 +371,7 @@ function SectionDialog({
                 )}
               </button>
               {section!.cover_image && onRemoveCover && (
-                <button type="button" onClick={onRemoveCover} className="text-[12px] font-semibold text-down hover:underline">
+                <button type="button" onClick={onRemoveCover} className="text-[13px] font-semibold text-down hover:underline">
                   إزالة الصورة
                 </button>
               )}
@@ -387,12 +387,12 @@ function SectionDialog({
                 e.target.value = "";
               }}
             />
-            <span className="text-[11px] text-ink-3">بدون صورة، يظل عنوان القسم البسيط كما هو في الرئيسية.</span>
+            <span className="text-[12px] text-ink-3">بدون صورة، يظل عنوان القسم البسيط كما هو في الرئيسية.</span>
           </div>
         )}
         {isNew ? (
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">المعرّف (يظهر في الرابط)</span>
+            <span className="text-[13px] font-bold text-ink-3">المعرّف (يظهر في الرابط)</span>
             <input
               value={key}
               onChange={(e) => setKey(e.target.value)}
@@ -401,24 +401,24 @@ function SectionDialog({
               dir="ltr"
               className={`${input} text-start`}
             />
-            <span className="text-[11px] text-ink-3">إنجليزي فقط — سيصبح ‎/section/{toKey(key) || "…"}‎</span>
+            <span className="text-[12px] text-ink-3">إنجليزي فقط — سيصبح ‎/section/{toKey(key) || "…"}‎</span>
           </label>
         ) : (
           // The key is the URL segment and the API lookup, so changing it under
           // an existing section breaks every /section/… link already published.
-          <div className="rounded-lg bg-surface px-3 py-2 text-[11.5px] text-ink-3">
+          <div className="rounded-lg bg-surface px-3 py-2 text-[12.5px] text-ink-3">
             المعرّف <span dir="ltr">{section.key}</span> ثابت — تغييره يكسر الروابط المنشورة.
           </div>
         )}
       </div>
       <div className="mt-5 flex justify-end gap-2.5">
-        <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-surface">
+        <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[14px] font-semibold text-ink hover:bg-surface">
           إلغاء
         </button>
         <button
           onClick={() => onSave(nameAr.trim(), nameEn.trim(), toKey(key), tagline.trim())}
           disabled={!canSave}
-          className="rounded-lg bg-brand px-4.5 py-2 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
+          className="rounded-lg bg-brand px-4.5 py-2 text-[14px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
         >
           حفظ
         </button>
@@ -432,17 +432,17 @@ function TagDialog({ tag, onCancel, onSave }: { tag: Tag; onCancel: () => void; 
   return (
     <Modal label="تعديل الوسم" onCancel={onCancel}>
       <label className="flex flex-col gap-1.5">
-        <span className="text-[12px] font-bold text-ink-3">اسم الوسم</span>
+        <span className="text-[13px] font-bold text-ink-3">اسم الوسم</span>
         <input value={name} onChange={(e) => setName(e.target.value)} className={input} />
       </label>
       <div className="mt-5 flex justify-end gap-2.5">
-        <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-surface">
+        <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[14px] font-semibold text-ink hover:bg-surface">
           إلغاء
         </button>
         <button
           onClick={() => onSave(name.trim())}
           disabled={!name.trim()}
-          className="rounded-lg bg-brand px-4.5 py-2 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
+          className="rounded-lg bg-brand px-4.5 py-2 text-[14px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
         >
           حفظ
         </button>

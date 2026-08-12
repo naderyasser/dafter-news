@@ -36,7 +36,7 @@ export default function CommentsManager({ comments: initial }: { comments: Comme
   return (
     <>
       {error ? (
-        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down">
           {error}
         </div>
       ) : null}
@@ -45,7 +45,7 @@ export default function CommentsManager({ comments: initial }: { comments: Comme
           <button
             key={c.key}
             onClick={() => setFilter(c.key)}
-            className={`rounded-pill border px-4 py-2 text-[12.5px] font-semibold ${filter === c.key ? "border-brand bg-brand text-paper" : "border-line bg-paper text-ink"}`}
+            className={`rounded-pill border px-4 py-2 text-[13.5px] font-semibold ${filter === c.key ? "border-brand bg-brand text-paper" : "border-line bg-paper text-ink"}`}
           >
             {c.label}
           </button>
@@ -61,9 +61,9 @@ export default function CommentsManager({ comments: initial }: { comments: Comme
         </div>
         {filtered.map((c) => (
           <div key={c.id} className="grid min-h-[52px] grid-cols-[1fr_2.4fr_1.6fr_1fr_130px] items-center border-t border-line">
-            <div className="px-3.5 text-[13.5px] font-semibold text-ink">{c.user_name}</div>
-            <div className="px-3.5 text-[13.5px] leading-[1.5] text-ink-3">{c.text}</div>
-            <div className="px-3.5 text-[13.5px] text-ink-3">{c.article_title}</div>
+            <div className="px-3.5 text-[14.5px] font-semibold text-ink">{c.user_name}</div>
+            <div className="px-3.5 text-[14.5px] leading-[1.5] text-ink-3">{c.text}</div>
+            <div className="px-3.5 text-[14.5px] text-ink-3">{c.article_title}</div>
             <div className="px-3.5">
               <StatusBadge status={STATUS_KEY[c.status]} />
             </div>
