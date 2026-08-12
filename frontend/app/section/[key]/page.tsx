@@ -30,7 +30,9 @@ export default async function SectionPage({ params }: { params: { key: string } 
 
   const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
     getSection(params.key),
-    getArticles(`?language=ar&section__key=${params.key}&ordering=-published_at&page_size=24`),
+    // -pinned first, so a story pinned in the dashboard leads this section's
+    // own front the same way it already leads the home hero.
+    getArticles(`?language=ar&section__key=${params.key}&ordering=-pinned,-published_at&page_size=24`),
     getArticles("?language=ar&ordering=-views&page_size=5"),
     getArticles("?language=ar&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),

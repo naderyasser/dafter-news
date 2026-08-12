@@ -78,8 +78,9 @@ function toWorldCard(a: ArticleCardType) {
   };
 }
 
+// -pinned first — mirrors the Arabic home; see its sectionFeed for why.
 const sectionFeed = (key: string, size = 6) =>
-  getArticles(`?language=en&section__key=${key}&ordering=-published_at&page_size=${size}`);
+  getArticles(`?language=en&section__key=${key}&ordering=-pinned,-published_at&page_size=${size}`);
 
 async function HomeEnContent() {
   const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, sections, matches] =

@@ -59,8 +59,11 @@ function toWorldCard(a: ArticleCardType) {
   };
 }
 
+// -pinned first: «تثبيت في الرئيسية» leads the home hero already (see
+// heroPool below) and the client wants it leading its own section's block
+// here too, not just the hero.
 const sectionFeed = (key: string, size = 6) =>
-  getArticles(`?language=ar&section__key=${key}&ordering=-published_at&page_size=${size}`);
+  getArticles(`?language=ar&section__key=${key}&ordering=-pinned,-published_at&page_size=${size}`);
 
 async function HomeContent() {
   const [pinnedRes, recent, politics, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, matches, sections] =

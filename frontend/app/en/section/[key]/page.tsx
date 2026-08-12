@@ -25,7 +25,8 @@ export default async function SectionEnPage({ params }: { params: { key: string 
 
   const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
     getSection(params.key),
-    getArticles(`?language=en&section__key=${params.key}&ordering=-published_at&page_size=24`),
+    // -pinned first — mirrors the Arabic section page; see its own comment.
+    getArticles(`?language=en&section__key=${params.key}&ordering=-pinned,-published_at&page_size=24`),
     getArticles("?language=en&ordering=-views&page_size=5"),
     getArticles("?language=en&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),

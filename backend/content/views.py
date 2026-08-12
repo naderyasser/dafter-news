@@ -77,7 +77,7 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     # "مقالات الكاتب" block despite article_count showing a nonzero total.
     filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug", "pinned", "author__username"]
     search_fields = ["title", "standfirst"]
-    ordering_fields = ["published_at", "views", "created_at", "comment_count"]
+    ordering_fields = ["published_at", "views", "created_at", "comment_count", "pinned"]
     lookup_field = "slug"
 
     def get_serializer_class(self):

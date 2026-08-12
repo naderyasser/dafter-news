@@ -532,3 +532,47 @@ describe("ArticleEditorForm TTS narration", () => {
     expect(screen.getByText("🎙 توليد النسخة الصوتية")).toBeInTheDocument();
   });
 });
+
+describe("ArticleEditorForm homepage pin", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+  });
+
+  const pinCheckbox = () => within(screen.getByText("الظهور في الرئيسية").closest("label")!).getByRole("checkbox");
+
+  it("saves unpinned by default", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    await act(async () => {
+      fireEvent.click(screen.getByText("حفظ ونشر"));
+    });
+
+    expect(dashMutate.mock.calls[0][2].pinned).toBe(false);
+  });
+
+  it("checking it sends pinned:true", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(pinCheckbox());
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر مثبّت" } });
+    await act(async () => {
+      fireEvent.click(screen.getByText("حفظ ونشر"));
+    });
+
+    expect(dashMutate.mock.calls[0][2].pinned).toBe(true);
+  });
+
+  it("loads an already-pinned article with the checkbox pre-checked", () => {
+    render(
+      <ArticleEditorForm
+        initial={{ id: 3, pinned: true, blocks: [], tags: [] } as any}
+        sections={sections}
+      />,
+    );
+
+    expect(pinCheckbox()).toBeChecked();
+  });
+});
