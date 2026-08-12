@@ -15,8 +15,20 @@ const SECTION_HREF: Record<string, { ar: string; en: string }> = {
   opinion: { ar: "/opinion", en: "/en/section/opinion" },
 };
 
-/** Brand icon + colour per platform key — matches SocialLink.Platform. */
-const SOCIAL_META: Record<string, { label: string; Icon: (p: { className?: string }) => React.ReactElement }> = {
+/**
+ * Brand icon + colour per platform key — matches SocialLink.Platform.
+ *
+ * `badgeClassName` overrides the shared white badge background: Instagram's
+ * mark is a plain white glyph that needs its own gradient tile to read as
+ * Instagram rather than a blank white square, so it carries the gradient
+ * itself instead of an embedded SVG `<linearGradient>` — that render
+ * inconsistently (it came back solid black in one renderer during testing),
+ * where a CSS gradient on the container is reliable everywhere.
+ */
+const SOCIAL_META: Record<
+  string,
+  { label: string; Icon: (p: { className?: string }) => React.ReactElement; badgeClassName?: string }
+> = {
   facebook: {
     label: "فيسبوك",
     Icon: ({ className }) => (
@@ -51,7 +63,7 @@ const SOCIAL_META: Record<string, { label: string; Icon: (p: { className?: strin
     Icon: ({ className }) => (
       <svg viewBox="0 0 24 24" className={className} aria-hidden>
         <path
-          d="M12 2.2C6.7 2.2 3.4 5.7 3.4 12S6.7 21.8 12 21.8c4 0 7-1.9 8.1-5.4l-2.2-.7c-.8 2.4-2.7 3.7-5.6 3.7-3.3 0-5.5-1.9-5.9-5h13.3c.1-.5.1-1 .1-1.5 0-5.4-2.6-9.7-7.4-9.7zM8.6 10.9c.4-2.4 1.9-3.9 3.9-3.9 2.1 0 3.5 1.4 3.8 3.9H8.6z"
+          d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.594 12c.022 3.086.713 5.496 2.05 7.164 1.43 1.783 3.63 2.697 6.54 2.717 2.623-.02 4.358-.63 5.8-2.04 1.64-1.605 1.611-3.594 1.088-4.798-.31-.71-.873-1.3-1.629-1.74-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.75-2.964-.065-1.19.36-2.335 1.187-3.202.796-.834 1.945-1.325 3.317-1.416.87-.06 1.7.008 2.472.203-.107-1.045-.463-1.867-1.06-2.451-.573-.56-1.396-.844-2.446-.844-.048 0-.096 0-.144.002-1.284.037-2.184.42-2.837 1.204l-1.65-1.294c.951-1.14 2.36-1.797 4.19-1.845.048-.002.096-.002.144-.002 1.616 0 2.926.489 3.9 1.454.933.925 1.475 2.211 1.61 3.822.058.014.116.03.174.045 1.484.394 2.66 1.135 3.395 2.14.977 1.34 1.132 3.34.394 5.062-.848 1.97-2.545 3.226-5.045 3.734l-.004.001z"
           fill="currentColor"
         />
       </svg>
@@ -59,20 +71,15 @@ const SOCIAL_META: Record<string, { label: string; Icon: (p: { className?: strin
   },
   instagram: {
     label: "إنستغرام",
+    // A CSS gradient on the badge itself (see badgeClassName below), so the
+    // glyph only needs to be a plain white shape on top of it.
+    badgeClassName: "bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5] border-transparent",
     Icon: ({ className }) => (
       <svg viewBox="0 0 24 24" className={className} aria-hidden>
-        <defs>
-          <linearGradient id="footerIgGrad" x1="0" y1="24" x2="24" y2="0">
-            <stop offset="0" stopColor="#FEDA75" />
-            <stop offset=".3" stopColor="#FA7E1E" />
-            <stop offset=".6" stopColor="#D62976" />
-            <stop offset=".8" stopColor="#962FBF" />
-            <stop offset="1" stopColor="#4F5BD5" />
-          </linearGradient>
-        </defs>
-        <rect x="1" y="1" width="22" height="22" rx="6.5" fill="url(#footerIgGrad)" />
-        <rect x="6.7" y="6.7" width="10.6" height="10.6" rx="3.5" fill="none" stroke="#fff" strokeWidth="1.6" />
-        <circle cx="17.4" cy="6.6" r="1.15" fill="#fff" />
+        <path
+          fill="#fff"
+          d="M12 0C8.74 0 8.333.014 7.053.072 5.775.13 4.905.333 4.14.63c-.789.306-1.459.717-2.126 1.384S.935 3.35.63 4.14C.333 4.905.131 5.775.072 7.053.014 8.333 0 8.74 0 12s.014 3.667.072 4.947c.058 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.986 8.74 24 12 24s3.667-.014 4.947-.072c1.277-.058 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.058-1.28.072-1.687.072-4.947s-.014-3.667-.072-4.947c-.058-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.86.63c-.765-.297-1.636-.5-2.913-.558C15.667.014 15.26 0 12 0zm0 2.16c3.203 0 3.585.016 4.85.071 1.17.055 1.805.249 2.227.415.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.36 1.057.413 2.227.057 1.266.07 1.646.07 4.85s-.015 3.585-.074 4.85c-.061 1.17-.256 1.805-.421 2.227a3.81 3.81 0 0 1-.899 1.382c-.42.419-.824.679-1.38.896-.42.164-1.065.36-2.235.413-1.274.057-1.649.07-4.859.07-3.211 0-3.586-.015-4.859-.074-1.171-.061-1.816-.256-2.236-.421a3.81 3.81 0 0 1-1.379-.899c-.421-.42-.69-.824-.9-1.38-.165-.42-.359-1.065-.42-2.235-.045-1.26-.061-1.649-.061-4.844 0-3.196.016-3.586.061-4.861.061-1.17.255-1.814.42-2.234.21-.532.505-.905.9-1.396.394-.475.775-.741 1.375-1.008.42-.164 1.05-.36 2.22-.42 1.269-.05 1.649-.065 4.859-.065l.045.045zM12 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z"
+        />
       </svg>
     ),
   },
@@ -208,7 +215,9 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
                 rel="noopener noreferrer"
                 aria-label={s.label}
                 title={s.label}
-                className="flex h-14 w-14 items-center justify-center rounded-2xl border border-ink-2 bg-paper transition-colors duration-fast hover:border-brand"
+                className={`flex h-14 w-14 items-center justify-center rounded-2xl border transition-colors duration-fast hover:border-brand ${
+                  s.badgeClassName ?? "border-ink-2 bg-paper"
+                }`}
               >
                 <s.Icon className="h-7 w-7 text-ink" />
               </a>
