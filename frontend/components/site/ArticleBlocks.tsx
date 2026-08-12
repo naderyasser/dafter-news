@@ -139,14 +139,24 @@ export default function ArticleBlocks({
   };
 
   /**
-   * Page 0's blocks, rendered, with the related-news box spliced in at the
-   * midpoint — a short article (under 4 blocks) has no real "middle white
-   * space" to speak of, so it's skipped there and the box only ever shows up
-   * once, never once per page.
+   * Page 0's blocks, rendered, with the related-news box spliced into the
+   * middle — never once per page, since it only ever runs on page 0.
+   *
+   * No minimum block count: this used to require >= 4 blocks, on the
+   * reasoning that a shorter article has no real "middle white space" to
+   * sit in. In practice most news briefs are one or two blocks, so that
+   * skipped the box on the majority of the site's own articles — a reader
+   * (and the client testing it) only ever saw it on long features, and
+   * everywhere else the box was pushed all the way down to the
+   * end-of-article list, after the comments, which is exactly the
+   * placement the client asked NOT to have. splice() at the midpoint
+   * degrades sensibly for any length: on a single-block article
+   * `Math.ceil(1/2) = 1` inserts right after that one block — still
+   * "inside the article's own content," never below the comment thread.
    */
   const renderPage = (blocksOnPage: ArticleBlock[], pageIndex: number) => {
     const nodes = blocksOnPage.map(render);
-    if (pageIndex === 0 && relatedCards && relatedCards.length > 0 && blocksOnPage.length >= 4) {
+    if (pageIndex === 0 && relatedCards && relatedCards.length > 0) {
       nodes.splice(Math.ceil(blocksOnPage.length / 2), 0, <MidArticleRelated key="mid-article-related" lang={lang} cards={relatedCards} />);
     }
     return nodes;
