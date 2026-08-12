@@ -15,12 +15,11 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import SpecialFilesBlock from "@/components/site/SpecialFilesBlock";
-import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
 import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getLiveStreams, getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
@@ -70,7 +69,7 @@ const sectionFeed = (key: string, size = 6) =>
   getArticles(`?language=ar&section__key=${key}&ordering=-published_at&page_size=${size}`);
 
 async function HomeContent() {
-  const [pinnedRes, recent, politics, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, matches, sections, breaking, streams] =
+  const [pinnedRes, recent, politics, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, matches, sections] =
     await Promise.all([
       getArticles("?language=ar&pinned=true&ordering=-published_at&page_size=5"),
       getArticles("?language=ar&ordering=-published_at&page_size=12"),
@@ -94,8 +93,6 @@ async function HomeContent() {
       getStories(),
       getMatches(),
       getSections(),
-      getArticles("?language=ar&badge=breaking&ordering=-published_at&page_size=5"),
-      getLiveStreams(),
     ]);
 
   // Symmetric with /en's isLatin filter: stories, videos and tags are
@@ -123,20 +120,6 @@ async function HomeContent() {
     .map((section, i) => ({ section, articles: tailFeeds[i].results }))
     .filter(({ articles }) => articles.length);
 
-
-  /**
-   * The vertical carousel takes what is actually breaking; when nothing
-   * carries the «عاجل» badge it falls back to the most recent stories, so the
-   * block is never a heading with an empty frame under it.
-   */
-  const liveItems = (breaking.results.length ? breaking.results : recent.results.slice(0, 5)).map((a) => ({
-    href: `/article/${a.slug}`,
-    title: a.title,
-    kicker: a.subcategory || a.section_name,
-    time: relativeTime(a.published_at, "ar"),
-    imageSrc: mediaUrl(a.cover_image),
-  }));
-  const isLive = streams.results.some((s) => s.is_live);
 
   // The hero rotates the top stories — pinned first («تثبيت في الرئيسية»
   // from the editor), the latest filling whatever slots remain. The side
@@ -223,7 +206,6 @@ async function HomeContent() {
         </div>
       </div>
 
-      <VerticalNewsCarousel lang="ar" items={liveItems} isLive={isLive} heading="التغطية المباشرة" />
       <SectionDivider />
 
       {/* سياسة — البرلمان والتوك شو والعاجل السياسي، أول قسم بعد الهيرو

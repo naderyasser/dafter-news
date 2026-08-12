@@ -47,14 +47,12 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
   const drawerExtras = isAr
     ? [
         { label: "الأسواق", href: "/markets" },
-        { label: "بث مباشر", href: "/live" },
         { label: "الأكثر قراءة", href: "/most-read" },
         { label: "كتّاب الدفتر", href: "/authors" },
         { label: "من نحن", href: "/about" },
       ]
     : [
         { label: "Markets", href: "/markets" },
-        { label: "Live", href: "/live" },
         { label: "About", href: "/about" },
       ];
   // BreakingNewsItem.text is a single column and every row in it is Arabic,
@@ -153,9 +151,6 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
               mistaken for one of the utility links. Remove this block when the
               site goes fully live. */}
           <BetaBadge lang={lang} />
-
-          {/* The «بث مباشر» pill that used to sit here was removed on request;
-              /live stays reachable from the nav row and the drawer. */}
 
           <div className="ms-auto flex min-w-0 items-center justify-end">
             <SearchBox lang={lang} sections={sections} />

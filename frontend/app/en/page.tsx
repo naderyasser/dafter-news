@@ -14,12 +14,11 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import SpecialFilesBlock from "@/components/site/SpecialFilesBlock";
-import VerticalNewsCarousel from "@/components/site/VerticalNewsCarousel";
 import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getLiveStreams, getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
@@ -49,7 +48,6 @@ const T = {
   sports: "Sports",
   special: "Special Files",
   trendingTags: "Trending tags",
-  liveCoverage: "Live coverage",
 };
 
 function toCard(a: ArticleCardType) {
@@ -84,7 +82,7 @@ const sectionFeed = (key: string, size = 6) =>
   getArticles(`?language=en&section__key=${key}&ordering=-published_at&page_size=${size}`);
 
 async function HomeEnContent() {
-  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, sections, breaking, streams, matches] =
+  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, sections, matches] =
     await Promise.all([
       getArticles("?language=en&pinned=true&ordering=-published_at&page_size=5"),
       getArticles("?language=en&ordering=-published_at&page_size=12"),
@@ -105,8 +103,6 @@ async function HomeEnContent() {
       getArticles("?language=en&ordering=-comment_count&page_size=6"),
       getStories(),
       getSections(),
-      getArticles("?language=en&badge=breaking&ordering=-published_at&page_size=5"),
-      getLiveStreams(),
       getMatches(),
     ]);
 
@@ -122,21 +118,6 @@ async function HomeEnContent() {
   // this page's script; when nothing matches, that strip drops out instead of
   // rendering the wrong language.
   const isLatin = (s: string) => !/[؀-ۿ]/.test(s);
-
-
-  /**
-   * The vertical carousel takes what is actually breaking; when nothing
-   * carries the «عاجل» badge it falls back to the most recent stories, so the
-   * block is never a heading with an empty frame under it.
-   */
-  const liveItems = (breaking.results.length ? breaking.results : recent.results.slice(0, 5)).map((a) => ({
-    href: `/en/article/${a.slug}`,
-    title: a.title,
-    kicker: a.subcategory || a.section_name,
-    time: relativeTime(a.published_at, "en"),
-    imageSrc: mediaUrl(a.cover_image),
-  }));
-  const isLive = streams.results.some((s) => s.is_live);
 
   // Pinned first, same as the Arabic home.
   const pinnedIds = new Set(pinnedRes.results.map((a) => a.id));
@@ -229,7 +210,6 @@ async function HomeEnContent() {
         </div>
       </div>
 
-      <VerticalNewsCarousel lang="en" items={liveItems} isLive={isLive} heading={T.liveCoverage} />
       <SectionDivider />
 
       <SectionBlock lang="en" title={T.egypt} seeAllHref="/en/section/egypt" cards={egypt.results.map(toCard)} initialCount={4} sectionKey="egypt" />
