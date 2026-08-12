@@ -13,6 +13,13 @@ class Section(models.Model):
     name_ar = models.CharField(max_length=60)
     name_en = models.CharField(max_length=60, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
+    # The home-page masthead: a full-bleed banner photo behind the section's
+    # title and a one-line tagline, set into the image itself rather than
+    # printed below it. Both optional — a section with neither still renders
+    # its plain heading exactly as before, the same graceful fallback
+    # SECTION_IDENTITY already uses when a section has no accent colour.
+    cover_image = models.ImageField(upload_to="sections/", blank=True, null=True)
+    tagline = models.CharField(max_length=200, blank=True)
 
     class Meta:
         ordering = ["order", "id"]

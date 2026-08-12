@@ -3,6 +3,7 @@ import Link from "next/link";
 import CoverImage from "@/components/ui/CoverImage";
 import Chevron from "@/components/ui/Chevron";
 import SectionHeading from "@/components/site/SectionHeading";
+import SectionMasthead from "@/components/site/SectionMasthead";
 import { sectionColor } from "@/lib/sections";
 
 export type EgyptHomeCard = {
@@ -46,12 +47,17 @@ export default function EgyptHomeBlock({
   seeAllHref,
   sectionKey,
   cards,
+  coverImage,
+  tagline,
 }: {
   lang: "ar" | "en";
   title: string;
   seeAllHref: string;
   sectionKey: string;
   cards: EgyptHomeCard[];
+  /** A cover photo swaps the plain text heading for the full-bleed masthead. */
+  coverImage?: string | null;
+  tagline?: string;
 }) {
   const isAr = lang === "ar";
   const t = T[lang];
@@ -64,7 +70,11 @@ export default function EgyptHomeBlock({
 
   return (
     <section className="mx-auto max-w-container px-6 py-8">
-      <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} />
+      {coverImage ? (
+        <SectionMasthead lang={lang} title={title} tagline={tagline} imageSrc={coverImage} sectionKey={sectionKey} href={seeAllHref} />
+      ) : (
+        <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} />
+      )}
 
       <div className="overflow-hidden rounded-card border border-line">
         {/* Lead: full-bleed photo, headline and time set directly into it. */}

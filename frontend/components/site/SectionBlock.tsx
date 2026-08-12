@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import ArticleCard from "@/components/site/ArticleCard";
 import SectionHeading from "@/components/site/SectionHeading";
+import SectionMasthead from "@/components/site/SectionMasthead";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { Badge } from "@/lib/types";
 
@@ -29,6 +30,8 @@ export default function SectionBlock({
   cards,
   initialCount,
   sectionKey,
+  coverImage,
+  tagline,
 }: {
   lang: "ar" | "en";
   title: string;
@@ -42,6 +45,9 @@ export default function SectionBlock({
    * no watermark, which is what an unmapped section should look like.
    */
   sectionKey?: string | null;
+  /** A cover photo swaps the plain text heading for the full-bleed masthead. */
+  coverImage?: string | null;
+  tagline?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const isAr = lang === "ar";
@@ -56,7 +62,11 @@ export default function SectionBlock({
           second, hand-rolled copy with its own type size and its own «عرض
           الكل ←» wording, so two blocks in the same column disagreed about
           both. */}
-      <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} />
+      {coverImage ? (
+        <SectionMasthead lang={lang} title={title} tagline={tagline} imageSrc={coverImage} sectionKey={sectionKey} href={seeAllHref} />
+      ) : (
+        <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} />
+      )}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5">
         {visible.map((c, i) => (
           <ArticleCard

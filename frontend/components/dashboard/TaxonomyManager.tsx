@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
-import { dashMutate } from "@/lib/api";
+import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
 import { toEasternNumerals } from "@/lib/format";
 import type { Section, Tag } from "@/lib/types";
 
@@ -73,16 +73,48 @@ export default function TaxonomyManager({
     }
   };
 
-  const renameSection = async (section: Section, nameAr: string, nameEn: string) => {
+  const saveSection = async (section: Section, nameAr: string, nameEn: string, tagline: string) => {
     setError("");
     const before = sections;
-    setSections((ss) => ss.map((s) => (s.id === section.id ? { ...s, name_ar: nameAr, name_en: nameEn } : s)));
+    setSections((ss) => ss.map((s) => (s.id === section.id ? { ...s, name_ar: nameAr, name_en: nameEn, tagline } : s)));
     setEditingSection(null);
     try {
-      await dashMutate(`/sections/${section.key}/`, "PATCH", { name_ar: nameAr, name_en: nameEn });
+      await dashMutate(`/sections/${section.key}/`, "PATCH", { name_ar: nameAr, name_en: nameEn, tagline });
     } catch {
       setSections(before);
-      setError("تعذّر تعديل اسم القسم.");
+      setError("تعذّر تعديل القسم.");
+    }
+  };
+
+  /**
+   * The home-page masthead's cover photo. A direct upload straight onto the
+   * section (not through the media library) — the same pattern the site's
+   * own logo already uses, because this is branding, not editorial content
+   * needing a credit/license line.
+   */
+  const uploadSectionCover = async (section: Section, file: File) => {
+    setError("");
+    try {
+      const form = new FormData();
+      form.append("cover_image", file);
+      const saved = await dashUpload<Section>(`/sections/${section.key}/`, "PATCH", form);
+      setSections((ss) => ss.map((s) => (s.id === section.id ? saved : s)));
+      setEditingSection((cur) => (cur && cur.id === section.id ? saved : cur));
+    } catch {
+      setError("تعذّر رفع صورة الغلاف. تأكد أنها صورة صالحة وحاول مرة أخرى.");
+    }
+  };
+
+  const removeSectionCover = async (section: Section) => {
+    setError("");
+    const before = sections;
+    setSections((ss) => ss.map((s) => (s.id === section.id ? { ...s, cover_image: null } : s)));
+    setEditingSection((cur) => (cur && cur.id === section.id ? { ...cur, cover_image: null } : cur));
+    try {
+      await dashMutate(`/sections/${section.key}/`, "PATCH", { cover_image: null });
+    } catch {
+      setSections(before);
+      setError("تعذّر إزالة صورة الغلاف.");
     }
   };
 
@@ -230,7 +262,9 @@ export default function TaxonomyManager({
           title="تعديل القسم"
           section={editingSection}
           onCancel={() => setEditingSection(null)}
-          onSave={(ar, en) => renameSection(editingSection, ar, en)}
+          onSave={(ar, en, _key, tagline) => saveSection(editingSection, ar, en, tagline)}
+          onUploadCover={(file) => uploadSectionCover(editingSection, file)}
+          onRemoveCover={() => removeSectionCover(editingSection)}
         />
       )}
       {editingTag && <TagDialog tag={editingTag} onCancel={() => setEditingTag(null)} onSave={(name) => renameTag(editingTag, name)} />}
@@ -265,17 +299,34 @@ function SectionDialog({
   section,
   onCancel,
   onSave,
+  onUploadCover,
+  onRemoveCover,
 }: {
   title: string;
   section?: Section;
   onCancel: () => void;
-  onSave: (nameAr: string, nameEn: string, key: string) => void;
+  onSave: (nameAr: string, nameEn: string, key: string, tagline: string) => void;
+  onUploadCover?: (file: File) => Promise<void>;
+  onRemoveCover?: () => void;
 }) {
   const [nameAr, setNameAr] = useState(section?.name_ar ?? "");
   const [nameEn, setNameEn] = useState(section?.name_en ?? "");
   const [key, setKey] = useState(section?.key ?? "");
+  const [tagline, setTagline] = useState(section?.tagline ?? "");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const isNew = !section;
   const canSave = nameAr.trim().length > 0 && (!isNew || toKey(key).length > 1);
+
+  const pickFile = async (file: File) => {
+    if (!onUploadCover) return;
+    setUploading(true);
+    try {
+      await onUploadCover(file);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <Modal label={title} onCancel={onCancel}>
@@ -288,6 +339,57 @@ function SectionDialog({
           <span className="text-[12px] font-bold text-ink-3">الاسم بالإنجليزية</span>
           <input value={nameEn} onChange={(e) => setNameEn(e.target.value)} dir="ltr" className={`${input} text-start`} />
         </label>
+        {!isNew && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-bold text-ink-3">الوصف المختصر (فوق صورة الغلاف بالرئيسية)</span>
+            <textarea
+              value={tagline}
+              onChange={(e) => setTagline(e.target.value)}
+              rows={2}
+              maxLength={200}
+              className={`${input} resize-none`}
+            />
+          </label>
+        )}
+        {!isNew && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[12px] font-bold text-ink-3">صورة غلاف القسم (بانر الرئيسية)</span>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploading}
+                className="flex h-[64px] w-[112px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line-strong bg-surface p-1 text-[11px] text-ink-3 hover:border-brand hover:text-brand disabled:opacity-60"
+              >
+                {uploading ? (
+                  "جارٍ الرفع…"
+                ) : section!.cover_image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={mediaUrl(section!.cover_image) ?? ""} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  "ارفع صورة"
+                )}
+              </button>
+              {section!.cover_image && onRemoveCover && (
+                <button type="button" onClick={onRemoveCover} className="text-[12px] font-semibold text-down hover:underline">
+                  إزالة الصورة
+                </button>
+              )}
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) pickFile(file);
+                e.target.value = "";
+              }}
+            />
+            <span className="text-[11px] text-ink-3">بدون صورة، يظل عنوان القسم البسيط كما هو في الرئيسية.</span>
+          </div>
+        )}
         {isNew ? (
           <label className="flex flex-col gap-1.5">
             <span className="text-[12px] font-bold text-ink-3">المعرّف (يظهر في الرابط)</span>
@@ -314,7 +416,7 @@ function SectionDialog({
           إلغاء
         </button>
         <button
-          onClick={() => onSave(nameAr.trim(), nameEn.trim(), toKey(key))}
+          onClick={() => onSave(nameAr.trim(), nameEn.trim(), toKey(key), tagline.trim())}
           disabled={!canSave}
           className="rounded-lg bg-brand px-4.5 py-2 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
         >
