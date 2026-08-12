@@ -191,7 +191,7 @@ describe("ArticleEditorForm paragraph alignment", () => {
     dashMutate.mockReset();
   });
 
-  it("defaults a new paragraph to right — the same default an unstyled RTL paragraph already reads as", async () => {
+  it("defaults a new paragraph to justify — consistent line lengths instead of a ragged edge", async () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر بلا محاذاة مخصصة" } });
@@ -199,7 +199,7 @@ describe("ArticleEditorForm paragraph alignment", () => {
     await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { align: string }[] }];
-    expect(payload.blocks[0].align).toBe("right");
+    expect(payload.blocks[0].align).toBe("justify");
   });
 
   it("opens the alignment menu, offers all four options, and saves the one picked", async () => {
@@ -312,7 +312,7 @@ describe("ArticleEditorForm inline image", () => {
     vi.useRealTimers();
   });
 
-  it("«🖼 من المكتبة» inserts the picked asset into the block's own text, not its dedicated image field", async () => {
+  it("«🖼 صورة من المكتبة» inserts the picked asset into the block's own text, not its dedicated image field", async () => {
     vi.useFakeTimers();
     getMediaAssets.mockResolvedValue({
       count: 1,
@@ -338,7 +338,7 @@ describe("ArticleEditorForm inline image", () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
-    fireEvent.click(screen.getByText("🖼 من المكتبة"));
+    fireEvent.click(screen.getByText("🖼 صورة من المكتبة"));
     await act(async () => {
       vi.advanceTimersByTime(300);
     });
@@ -365,7 +365,7 @@ describe("ArticleEditorForm image uploads require a name", () => {
     dashUpload.mockResolvedValue({ id: 7, image: "library/uploaded.jpg", credit: "" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
-    fireEvent.click(screen.getByText("⬆ رفع صورة"));
+    fireEvent.click(screen.getByText("⬆ صورة داخل المقال"));
     fireEvent.change(screen.getByLabelText("رفع صورة داخل النص من الجهاز"), { target: { files: [pngFile()] } });
     await act(async () => {});
 
@@ -380,7 +380,7 @@ describe("ArticleEditorForm image uploads require a name", () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
-    fireEvent.click(screen.getByText("⬆ رفع صورة"));
+    fireEvent.click(screen.getByText("⬆ صورة داخل المقال"));
     fireEvent.change(screen.getByLabelText("رفع صورة داخل النص من الجهاز"), { target: { files: [pngFile()] } });
     await act(async () => {});
 
@@ -395,7 +395,7 @@ describe("ArticleEditorForm image uploads require a name", () => {
     vi.stubGlobal("prompt", vi.fn().mockReturnValue(null));
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
-    fireEvent.click(screen.getByText("⬆ رفع صورة"));
+    fireEvent.click(screen.getByText("⬆ صورة داخل المقال"));
     fireEvent.change(screen.getByLabelText("رفع صورة داخل النص من الجهاز"), { target: { files: [pngFile()] } });
     await act(async () => {});
 
