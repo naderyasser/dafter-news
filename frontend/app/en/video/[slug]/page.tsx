@@ -60,6 +60,7 @@ export default async function VideoEnPage({ params }: { params: { slug: string }
     <SiteShell lang="en" active="video">
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-8 px-6 py-8">
         <main className="min-w-0 flex-[2_1_560px]">
+          <h1 className="font-display-en mb-3.5 text-[clamp(1.375rem,1rem+1.4vw,1.75rem)] font-extrabold text-ink">{video.title}</h1>
           <VideoPlayer
             lang="en"
             src={mediaUrl(video.file)}
@@ -69,8 +70,7 @@ export default async function VideoEnPage({ params }: { params: { slug: string }
             isExclusive={video.is_exclusive}
             durationLabel={video.is_live ? undefined : video.duration_label}
           />
-          <h1 className="font-display-en mb-2.5 mt-4.5 text-[clamp(1.375rem,1rem+1.4vw,1.75rem)] font-extrabold text-ink">{video.title}</h1>
-          <div className="mb-5 flex items-center gap-2.5 text-[13px] text-ink-3">
+          <div className="mb-5 mt-4.5 flex items-center gap-2.5 text-[13px] text-ink-3">
             <span>{relativeTime(video.created_at, "en")}</span>
             <span>•</span>
             <span className="tnum">👁 {video.views.toLocaleString("en-US")} views</span>
