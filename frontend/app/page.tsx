@@ -9,7 +9,7 @@ import LatestNewsTabs from "@/components/site/LatestNewsTabs";
 import MatchesRail from "@/components/site/MatchesRail";
 import MostReadList from "@/components/site/MostReadList";
 import OpinionCarousel from "@/components/site/OpinionCarousel";
-import EgyptHomeBlock from "@/components/site/EgyptHomeBlock";
+import LeadListBlock from "@/components/site/LeadListBlock";
 import SectionBlock from "@/components/site/SectionBlock";
 import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
@@ -43,12 +43,6 @@ function toSectionCard(a: ArticleCardType) {
     badge: a.badge,
     imageSrc: mediaUrl(a.cover_image),
   };
-}
-
-/** Gulf cards carry the country on the photo — and only the gulf ones;
- *  the other section grids stay clean, per the client. */
-function toGulfCard(a: ArticleCardType) {
-  return { ...toSectionCard(a), chip: a.country || undefined };
 }
 
 function toWorldCard(a: ArticleCardType) {
@@ -226,7 +220,7 @@ async function HomeContent() {
         </>
       ) : null}
 
-      <EgyptHomeBlock
+      <LeadListBlock
         lang="ar"
         title="شؤون مصر"
         seeAllHref="/section/egypt"
@@ -236,15 +230,18 @@ async function HomeContent() {
       />
       <SectionDivider />
 
+      {/* الخليج العربي — same lead-photo-with-overlaid-headline + white list
+          treatment as شؤون مصر, on the client's explicit request that the
+          two sections share one design rather than Gulf keeping the plain
+          card grid every other section still uses. */}
       {gulf.results.length ? (
         <>
-          <SectionBlock
+          <LeadListBlock
             lang="ar"
             title="الخليج العربي"
             seeAllHref="/section/gulf"
-            cards={gulf.results.map(toGulfCard)}
-            initialCount={4}
             sectionKey="gulf"
+            cards={gulf.results.map(toSectionCard)}
             {...masthead("gulf")}
           />
           <SectionDivider />
