@@ -9,6 +9,7 @@ import LatestNewsTabs from "@/components/site/LatestNewsTabs";
 import MatchesRail from "@/components/site/MatchesRail";
 import MostReadList from "@/components/site/MostReadList";
 import OpinionCarousel from "@/components/site/OpinionCarousel";
+import HeroCarouselBlock from "@/components/site/HeroCarouselBlock";
 import LeadListBlock from "@/components/site/LeadListBlock";
 import SectionBlock from "@/components/site/SectionBlock";
 import SectionDivider from "@/components/site/SectionDivider";
@@ -41,6 +42,21 @@ function toSectionCard(a: ArticleCardType) {
     section: a.section_name,
     time: relativeTime(a.published_at, "ar"),
     badge: a.badge,
+    imageSrc: mediaUrl(a.cover_image),
+  };
+}
+
+// «سياسة» — the client's own reference: lead-photo-headline plus a two-up
+// carousel, the red corner tag reading the subcategory («حرب إيران») and
+// falling back to the section name so it's never blank, same rule
+// toWorldCard already uses for the same «وسم أحمر» field.
+function toHeroCarouselCard(a: ArticleCardType) {
+  return {
+    href: `/article/${a.slug}`,
+    title: a.title,
+    time: relativeTime(a.published_at, "ar"),
+    badge: a.badge,
+    chip: a.subcategory || a.section_name,
     imageSrc: mediaUrl(a.cover_image),
   };
 }
@@ -206,18 +222,16 @@ async function HomeContent() {
       <SectionDivider />
 
       {/* سياسة — البرلمان والتوك شو والعاجل السياسي، أول قسم بعد الهيرو
-          مباشرة. نفس معاملة «شؤون مصر»: كروت قياسية بلون القسم نفسه
-          (#7A2E3E) بدل أحمر البراند، والوقت النسبي زي أي قسم تاني. */}
+          مباشرة. تصميم مرجعي أرسله العميل بالحرف: صورة قائد بعنوان فوقها،
+          ثم شريط بطاقتين بأسهم ونقاط بدل شبكة الكروت العادية. */}
       {politics.results.length ? (
         <>
-          <SectionBlock
+          <HeroCarouselBlock
             lang="ar"
             title="سياسة"
-            seeAllHref="/section/pol"
-            cards={politics.results.map(toSectionCard)}
-            initialCount={4}
+            href="/section/pol"
             sectionKey="pol"
-            {...masthead("pol")}
+            cards={politics.results.map(toHeroCarouselCard)}
           />
           <SectionDivider />
         </>
