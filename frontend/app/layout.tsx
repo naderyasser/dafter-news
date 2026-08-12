@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 
-import { ibmPlexSansArabic, inter, notoKufiArabic } from "@/lib/fonts";
+import { cairo, ibmPlexSansArabic, inter, notoKufiArabic } from "@/lib/fonts";
 import { SITE_URL } from "@/lib/seo";
 
 import "./globals.css";
@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang={locale}
       dir={locale === "en" ? "ltr" : "rtl"}
-      className={`${notoKufiArabic.variable} ${ibmPlexSansArabic.variable} ${inter.variable}`}
+      className={`${notoKufiArabic.variable} ${ibmPlexSansArabic.variable} ${inter.variable} ${cairo.variable}`}
     >
       <body>{children}</body>
     </html>

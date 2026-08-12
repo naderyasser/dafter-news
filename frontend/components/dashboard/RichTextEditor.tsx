@@ -209,7 +209,7 @@ export default function RichTextEditor({
           }
           if ((e.metaKey || e.ctrlKey) && ["b", "i", "u"].includes(e.key.toLowerCase())) e.preventDefault();
         }}
-        className={`w-full resize-y whitespace-pre-wrap rounded-lg border border-line p-2.5 text-[14px] leading-[1.9] outline-none empty:before:text-ink-3 empty:before:content-[attr(data-placeholder)] focus:border-brand ${minHeightClassName}`}
+        className={`w-full resize-y whitespace-pre-wrap rounded-lg border border-line p-2.5 text-[15px] leading-[1.9] outline-none empty:before:text-ink-3 empty:before:content-[attr(data-placeholder)] focus:border-brand ${minHeightClassName}`}
       />
       <TextColorToolbar value={value} onApply={applyFormat} onClear={clearFormat} />
     </>

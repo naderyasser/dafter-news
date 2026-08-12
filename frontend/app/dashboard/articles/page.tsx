@@ -32,7 +32,7 @@ export default async function DashArticlesPage() {
       breadcrumb="لوحة التحكم / المحتوى"
       title="المقالات"
       actions={
-        <Link href="/dashboard/articles/new" className="rounded-lg bg-brand px-4.5 py-2.5 text-[13px] font-bold text-paper no-underline hover:bg-brand-strong">
+        <Link href="/dashboard/articles/new" className="rounded-lg bg-brand px-4.5 py-2.5 text-[14px] font-bold text-paper no-underline hover:bg-brand-strong">
           + مقال جديد
         </Link>
       }

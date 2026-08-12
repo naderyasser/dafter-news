@@ -7,7 +7,7 @@ import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
 import { formatDate, toEasternNumerals } from "@/lib/format";
 import type { ArticleCard, ArticleStatus, Author } from "@/lib/types";
 
-const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[13px] outline-none focus:border-brand";
+const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand";
 
 /** The two states the panel can flip an opinion piece between. */
 const STATUS_OPTIONS: { key: ArticleStatus; label: string }[] = [
@@ -73,7 +73,7 @@ export default function ColumnistsManager({
   return (
     <>
       {error && (
-        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[13px] font-semibold text-down">
+        <div role="alert" className="rounded-card border border-down bg-down-tint px-4 py-3 text-[14px] font-semibold text-down">
           {error}
         </div>
       )}
@@ -83,7 +83,7 @@ export default function ColumnistsManager({
           <span className="text-[15px] font-bold">الكتّاب</span>
           <button
             onClick={() => setAdding(true)}
-            className="rounded-pill bg-surface px-4 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-surface-2"
+            className="rounded-pill bg-surface px-4 py-1.5 text-[13.5px] font-semibold text-ink hover:bg-surface-2"
           >
             + كاتب جديد
           </button>
@@ -115,8 +115,8 @@ export default function ColumnistsManager({
           </div>
           {articles.map((o) => (
             <div key={o.id} className="grid min-h-[48px] grid-cols-[2.4fr_1fr_1fr_1fr] items-center border-t border-line">
-              <div className="px-3.5 py-2 text-[13.5px] font-semibold text-ink">{o.title}</div>
-              <div className="px-3.5 text-[13.5px] text-ink-3">{o.author_name || "—"}</div>
+              <div className="px-3.5 py-2 text-[14.5px] font-semibold text-ink">{o.title}</div>
+              <div className="px-3.5 text-[14.5px] text-ink-3">{o.author_name || "—"}</div>
               <div className="flex items-center gap-2 px-3.5 py-2">
                 <StatusBadge status={o.status} />
                 {/* Only offers the two states the brief asks for; anything in
@@ -126,7 +126,7 @@ export default function ColumnistsManager({
                   value={STATUS_OPTIONS.some((s) => s.key === o.status) ? o.status : ""}
                   onChange={(e) => setStatus(o, e.target.value as ArticleStatus)}
                   aria-label={`تغيير حالة: ${o.title}`}
-                  className="rounded-lg border border-line bg-paper px-2 py-1 text-[11.5px] outline-none focus:border-brand"
+                  className="rounded-lg border border-line bg-paper px-2 py-1 text-[12.5px] outline-none focus:border-brand"
                 >
                   <option value="" disabled>
                     تغيير…
@@ -138,7 +138,7 @@ export default function ColumnistsManager({
                   ))}
                 </select>
               </div>
-              <div className="px-3.5 text-[13.5px] text-ink-3">{formatDate(o.published_at, "ar") || "—"}</div>
+              <div className="px-3.5 text-[14.5px] text-ink-3">{formatDate(o.published_at, "ar") || "—"}</div>
             </div>
           ))}
           {articles.length === 0 && <div className="p-8 text-center text-ui text-ink-3">لا توجد مقالات رأي</div>}
@@ -239,14 +239,14 @@ function AuthorCard({
           author.initial
         )}
       </div>
-      <span className="text-[13.5px] font-bold">{author.name}</span>
-      {author.title && <span className="text-[11px] text-ink-3">{author.title}</span>}
+      <span className="text-[14.5px] font-bold">{author.name}</span>
+      {author.title && <span className="text-[12px] text-ink-3">{author.title}</span>}
       {/* Counted server-side from the article table, so it can't drift. */}
-      <span className="text-[11.5px] text-ink-3">{toEasternNumerals(author.opinion_count)} مقال رأي</span>
+      <span className="text-[12.5px] text-ink-3">{toEasternNumerals(author.opinion_count)} مقال رأي</span>
       {author.is_hidden && (
-        <span className="rounded-badge bg-surface-2 px-2 py-0.5 text-[10.5px] font-bold text-ink-3">مخفي من الموقع</span>
+        <span className="rounded-badge bg-surface-2 px-2 py-0.5 text-[11.5px] font-bold text-ink-3">مخفي من الموقع</span>
       )}
-      <div className="mt-1 flex flex-wrap justify-center gap-3 text-[11.5px]">
+      <div className="mt-1 flex flex-wrap justify-center gap-3 text-[12.5px]">
         <button onClick={onEdit} className="font-bold text-brand hover:underline">
           تعديل
         </button>
@@ -315,7 +315,7 @@ function AuthorDialog({
             type="button"
             onClick={() => fileRef.current?.click()}
             title="اختر صورة الكاتب"
-            className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-dashed border-line-strong bg-surface text-[10.5px] text-ink-3 hover:border-brand hover:text-brand"
+            className="flex h-16 w-16 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-dashed border-line-strong bg-surface text-[11.5px] text-ink-3 hover:border-brand hover:text-brand"
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -338,13 +338,13 @@ function AuthorDialog({
               e.target.value = "";
             }}
           />
-          <span className="text-[12px] text-ink-3">اضغط الدائرة لاختيار صورة الكاتب</span>
+          <span className="text-[13px] text-ink-3">اضغط الدائرة لاختيار صورة الكاتب</span>
         </div>
 
         <div className="flex flex-col gap-3">
           {isNew && (
             <label className="flex flex-col gap-1.5">
-              <span className="text-[12px] font-bold text-ink-3">اسم المستخدم</span>
+              <span className="text-[13px] font-bold text-ink-3">اسم المستخدم</span>
               <input
                 value={draft.username}
                 onChange={(e) => setDraft({ ...draft, username: e.target.value })}
@@ -352,20 +352,20 @@ function AuthorDialog({
                 className={input}
               />
               {!usernameValid && draft.username.length > 0 && (
-                <span className="text-[11px] text-down">3 أحرف على الأقل، إنجليزية وأرقام ونقاط فقط.</span>
+                <span className="text-[12px] text-down">3 أحرف على الأقل، إنجليزية وأرقام ونقاط فقط.</span>
               )}
             </label>
           )}
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">الاسم الأول</span>
+            <span className="text-[13px] font-bold text-ink-3">الاسم الأول</span>
             <input value={draft.first_name} onChange={(e) => setDraft({ ...draft, first_name: e.target.value })} className={input} />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">اسم العائلة</span>
+            <span className="text-[13px] font-bold text-ink-3">اسم العائلة</span>
             <input value={draft.last_name} onChange={(e) => setDraft({ ...draft, last_name: e.target.value })} className={input} />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">الصفة</span>
+            <span className="text-[13px] font-bold text-ink-3">الصفة</span>
             <input
               value={draft.title}
               onChange={(e) => setDraft({ ...draft, title: e.target.value })}
@@ -374,7 +374,7 @@ function AuthorDialog({
             />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-[12px] font-bold text-ink-3">نبذة</span>
+            <span className="text-[13px] font-bold text-ink-3">نبذة</span>
             <textarea
               value={draft.bio}
               onChange={(e) => setDraft({ ...draft, bio: e.target.value })}
@@ -384,13 +384,13 @@ function AuthorDialog({
         </div>
 
         <div className="mt-5 flex justify-end gap-2.5">
-          <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[13px] font-semibold text-ink hover:bg-surface">
+          <button onClick={onCancel} className="rounded-lg border border-line px-4 py-2 text-[14px] font-semibold text-ink hover:bg-surface">
             إلغاء
           </button>
           <button
             onClick={() => onSave(draft, avatar)}
             disabled={!canSave}
-            className="rounded-lg bg-brand px-4.5 py-2 text-[13px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
+            className="rounded-lg bg-brand px-4.5 py-2 text-[14px] font-bold text-paper hover:bg-brand-strong disabled:opacity-50"
           >
             حفظ
           </button>

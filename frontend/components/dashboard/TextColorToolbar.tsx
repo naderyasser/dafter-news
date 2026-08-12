@@ -65,7 +65,7 @@ export default function TextColorToolbar({
           onClick={() => onApply("b")}
           title="غامق (Bold)"
           aria-label="نص غامق"
-          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[13px] font-extrabold text-ink hover:bg-surface-2"
+          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[14px] font-extrabold text-ink hover:bg-surface-2"
         >
           B
         </button>
@@ -75,7 +75,7 @@ export default function TextColorToolbar({
           onClick={() => onApply("i")}
           title="مائل (Italic)"
           aria-label="نص مائل"
-          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[13px] font-bold italic text-ink hover:bg-surface-2"
+          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[14px] font-bold italic text-ink hover:bg-surface-2"
         >
           I
         </button>
@@ -85,7 +85,7 @@ export default function TextColorToolbar({
           onClick={() => onApply("u")}
           title="تحته خط (Underline)"
           aria-label="نص تحته خط"
-          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[13px] font-bold text-ink underline hover:bg-surface-2"
+          className="flex h-7 w-7 items-center justify-center rounded border border-line bg-surface text-[14px] font-bold text-ink underline hover:bg-surface-2"
         >
           U
         </button>
@@ -98,7 +98,7 @@ export default function TextColorToolbar({
           onClick={() => onApply("L")}
           title="فقرة (نص أكبر وأغمق من باقي المحتوى)"
           aria-label="فقرة"
-          className="flex h-7 items-center justify-center rounded border border-line bg-surface px-2 text-[13px] font-extrabold text-ink hover:bg-surface-2"
+          className="flex h-7 items-center justify-center rounded border border-line bg-surface px-2 text-[14px] font-extrabold text-ink hover:bg-surface-2"
         >
           فقرة
         </button>
@@ -108,7 +108,7 @@ export default function TextColorToolbar({
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          className="flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-[12px] font-semibold text-ink hover:bg-surface-2"
+          className="flex items-center gap-1.5 rounded-pill border border-line bg-surface px-3 py-1.5 text-[13px] font-semibold text-ink hover:bg-surface-2"
         >
           <span aria-hidden>🎨</span> تلوين النص
         </button>
@@ -117,7 +117,7 @@ export default function TextColorToolbar({
             type="button"
             onMouseDown={(e) => e.preventDefault()}
             onClick={onClear}
-            className="rounded-pill border border-line px-3 py-1.5 text-[12px] font-semibold text-ink-3 hover:text-down"
+            className="rounded-pill border border-line px-3 py-1.5 text-[13px] font-semibold text-ink-3 hover:text-down"
           >
             إزالة التلوين
           </button>
@@ -127,7 +127,7 @@ export default function TextColorToolbar({
       {open ? (
         <div className="mt-2 flex flex-col gap-3 rounded-lg border border-line bg-surface p-3">
           <div>
-            <div className="mb-1.5 text-[11.5px] font-bold text-ink-2">لون النص</div>
+            <div className="mb-1.5 text-[12.5px] font-bold text-ink-2">لون النص</div>
             <div className="flex flex-wrap items-center gap-1.5">
               {SWATCHES.map((s) => (
                 <button
@@ -152,7 +152,7 @@ export default function TextColorToolbar({
           </div>
 
           <div>
-            <div className="mb-1.5 text-[11.5px] font-bold text-ink-2">لون الخلفية (تظليل)</div>
+            <div className="mb-1.5 text-[12.5px] font-bold text-ink-2">لون الخلفية (تظليل)</div>
             <div className="flex flex-wrap items-center gap-1.5">
               {HIGHLIGHTS.map((s) => (
                 <button
@@ -176,7 +176,7 @@ export default function TextColorToolbar({
             </div>
           </div>
 
-          <p className="m-0 text-[11.5px] leading-relaxed text-ink-3">
+          <p className="m-0 text-[12.5px] leading-relaxed text-ink-3">
             حدّد كلمة أو جملة داخل النص ثم اختر اللون — يتلوّن فوراً في الصندوق نفسه.
           </p>
         </div>

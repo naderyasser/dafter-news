@@ -80,25 +80,25 @@ export default function AdminSidebar({ active }: { active: string }) {
           <div className="rule-accent rule-on-dark ps-3.5 font-display-ar text-[17px] font-extrabold text-header-ink">
             الدفتر نيوز
           </div>
-          <div className="mt-1 ps-[15px] text-[11px] text-header-muted">لوحة التحكم</div>
+          <div className="mt-1 ps-[15px] text-[12px] text-header-muted">لوحة التحكم</div>
         </Link>
         <nav className="flex-1 overflow-y-auto p-2">
           {GROUPS.map((g) => (
             <div key={g.label}>
-              <div className="px-2.5 pb-1.5 pt-3.5 text-[11px] font-bold text-[#565D66]">{g.label}</div>
+              <div className="px-2.5 pb-1.5 pt-3.5 text-[12px] font-bold text-[#565D66]">{g.label}</div>
               {g.items.map((it) => {
                 const isActive = it.key === active;
                 return (
                   <Link
                     key={it.key}
                     href={it.href}
-                    className={`my-0.5 flex items-center gap-2.5 rounded-md border-s-[3px] px-2.5 py-2.5 text-[13.5px] no-underline ${
+                    className={`my-0.5 flex items-center gap-2.5 rounded-md border-s-[3px] px-2.5 py-2.5 text-[14.5px] no-underline ${
                       isActive
                         ? "border-brand bg-[rgba(176,31,46,.15)] font-bold text-header-ink"
                         : "border-transparent font-medium text-header-muted hover:bg-[rgba(255,255,255,.04)]"
                     }`}
                   >
-                    <span className="w-[18px] flex-shrink-0 text-center text-[14px]">{it.icon}</span>
+                    <span className="w-[18px] flex-shrink-0 text-center text-[15px]">{it.icon}</span>
                     <span>{it.label}</span>
                   </Link>
                 );
@@ -111,8 +111,8 @@ export default function AdminSidebar({ active }: { active: string }) {
             م
           </div>
           <div className="min-w-0">
-            <div className="truncate text-[13px] font-bold text-header-ink">محرر النظام</div>
-            <div className="text-[11px] text-header-muted">محرر</div>
+            <div className="truncate text-[14px] font-bold text-header-ink">محرر النظام</div>
+            <div className="text-[12px] text-header-muted">محرر</div>
           </div>
         </div>
       </aside>

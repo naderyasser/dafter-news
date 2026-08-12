@@ -68,20 +68,20 @@ export default function MediaLibraryPicker({
         className="flex max-h-[80vh] w-[720px] max-w-full flex-col overflow-hidden rounded-card border border-line bg-paper shadow-2"
       >
         <div className="flex items-center gap-3 border-b border-line px-4 py-3">
-          <span className="text-[14px] font-extrabold text-ink">مكتبة الصور</span>
+          <span className="text-[15px] font-extrabold text-ink">مكتبة الصور</span>
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="ابحث باسم الصورة أو الشخصية…"
             aria-label="ابحث في مكتبة الصور"
-            className="min-w-0 flex-1 rounded-pill border border-line bg-surface px-3.5 py-2 text-[13px] outline-none focus:border-accent"
+            className="min-w-0 flex-1 rounded-pill border border-line bg-surface px-3.5 py-2 text-[14px] outline-none focus:border-accent"
           />
           <button
             type="button"
             onClick={onClose}
             aria-label="إغلاق"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-line text-[14px] text-ink-3 hover:border-brand hover:text-brand"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full border border-line text-[15px] text-ink-3 hover:border-brand hover:text-brand"
           >
             ✕
           </button>
@@ -89,9 +89,9 @@ export default function MediaLibraryPicker({
 
         <div className="min-h-[200px] flex-1 overflow-y-auto p-4">
           {loading ? (
-            <div className="py-10 text-center text-[13px] text-ink-3">جارِ البحث…</div>
+            <div className="py-10 text-center text-[14px] text-ink-3">جارِ البحث…</div>
           ) : assets.length === 0 ? (
-            <div className="py-10 text-center text-[13px] text-ink-3">
+            <div className="py-10 text-center text-[14px] text-ink-3">
               لا توجد نتائج — جرّب اسماً آخر، أو ارفع الصورة من صفحة «الوسائط» أولاً.
             </div>
           ) : (
@@ -108,8 +108,8 @@ export default function MediaLibraryPicker({
                     <img src={mediaUrl(a.image) ?? ""} alt={a.alt || a.title} className="h-full w-full object-cover" loading="lazy" />
                   </div>
                   <div className="p-2">
-                    <div className="truncate text-[12px] font-bold text-ink group-hover:text-accent">{a.title || a.alt || "بدون اسم"}</div>
-                    <div className="truncate text-[11px] text-ink-3">{a.credit || a.license_label}</div>
+                    <div className="truncate text-[13px] font-bold text-ink group-hover:text-accent">{a.title || a.alt || "بدون اسم"}</div>
+                    <div className="truncate text-[12px] text-ink-3">{a.credit || a.license_label}</div>
                   </div>
                 </button>
               ))}
