@@ -13,6 +13,7 @@ from aldaftar.permissions import PublicSubmission, ReadOnlyOrStaff, StaffOnly
 from aldaftar.mixins import SlugOrPkLookupMixin
 
 from . import import_url
+from .ai_draft import AiDraftError, generate_draft
 from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 from .tts import TtsError, generate_for_article
 from .serializers import (
@@ -338,6 +339,32 @@ class DashboardOverviewView(APIView):
 
 
 logger = logging.getLogger(__name__)
+
+
+class AiDraftView(APIView):
+    """
+    POST /api/generate-draft/ — «توليد بالذكاء الاصطناعي».
+
+    Same posture as ImportFromUrlView: returns a starting draft's fields,
+    never creates or publishes an Article. See content/ai_draft.py for why
+    — an AI draft is not a source, and the editor's normal save path is
+    still what actually publishes anything.
+    """
+
+    permission_classes = [StaffOnly]
+
+    def post(self, request):
+        topic = (request.data.get("topic") or "").strip()
+        if not topic:
+            return Response({"detail": "اكتب موضوع الخبر أو ملخصاً له أولاً."}, status=status.HTTP_400_BAD_REQUEST)
+        language = request.data.get("language") or "ar"
+
+        try:
+            draft = generate_draft(topic, language)
+        except AiDraftError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
+        return Response(draft)
 
 
 class ImportFromUrlView(APIView):
