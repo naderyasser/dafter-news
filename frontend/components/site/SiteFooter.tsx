@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { ThreadsGlyph } from "@/components/ui/BrandIcons";
 import { getSections, getSiteSettings, mediaUrl } from "@/lib/api";
 
 const CONTACT_EMAIL = "aldaftarnews@gmail.com";
@@ -58,16 +59,13 @@ const SOCIAL_META: Record<
       </svg>
     ),
   },
+  // Imported rather than re-declared inline: this file and BrandIcons.tsx
+  // each carried their own copy of the Threads path, which is exactly how
+  // two "identical" icons drift into two different marks. One definition,
+  // used by both the footer badge and the article share row.
   threads: {
     label: "Threads",
-    Icon: ({ className }) => (
-      <svg viewBox="0 0 24 24" className={className} aria-hidden>
-        <path
-          d="M12.186 24h-.007c-3.581-.024-6.334-1.205-8.184-3.509C2.35 18.44 1.5 15.586 1.472 12.01v-.017c.03-3.579.879-6.43 2.525-8.482C5.845 1.205 8.6.024 12.18 0h.014c2.746.02 5.043.725 6.826 2.098 1.677 1.29 2.858 3.13 3.509 5.467l-2.04.569c-1.104-3.96-3.898-5.984-8.304-6.015-2.91.022-5.11.936-6.54 2.717C4.307 6.504 3.616 8.914 3.594 12c.022 3.086.713 5.496 2.05 7.164 1.43 1.783 3.63 2.697 6.54 2.717 2.623-.02 4.358-.63 5.8-2.04 1.64-1.605 1.611-3.594 1.088-4.798-.31-.71-.873-1.3-1.629-1.74-.192 1.352-.622 2.446-1.284 3.272-.886 1.102-2.14 1.704-3.73 1.79-1.202.065-2.361-.218-3.259-.801-1.063-.689-1.685-1.74-1.75-2.964-.065-1.19.36-2.335 1.187-3.202.796-.834 1.945-1.325 3.317-1.416.87-.06 1.7.008 2.472.203-.107-1.045-.463-1.867-1.06-2.451-.573-.56-1.396-.844-2.446-.844-.048 0-.096 0-.144.002-1.284.037-2.184.42-2.837 1.204l-1.65-1.294c.951-1.14 2.36-1.797 4.19-1.845.048-.002.096-.002.144-.002 1.616 0 2.926.489 3.9 1.454.933.925 1.475 2.211 1.61 3.822.058.014.116.03.174.045 1.484.394 2.66 1.135 3.395 2.14.977 1.34 1.132 3.34.394 5.062-.848 1.97-2.545 3.226-5.045 3.734l-.004.001z"
-          fill="currentColor"
-        />
-      </svg>
-    ),
+    Icon: ThreadsGlyph,
   },
   instagram: {
     label: "إنستغرام",
