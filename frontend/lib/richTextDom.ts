@@ -7,7 +7,7 @@
  * renderer and this editor share it. Only the editor needs an actual DOM to
  * paint into and read a live selection out of.
  */
-import { parseInline, PLACEHOLDER } from "./richtext";
+import { parseInline, PLACEHOLDER, SUBHEADING_COLOR } from "./richtext";
 
 /**
  * Paint `text` into `root` as plain Text nodes and styled `<span>`s — one
@@ -82,7 +82,7 @@ export function renderTokensInto(root: HTMLElement, text: string): void {
         span.dataset.subheading = "1";
         span.style.fontSize = "1.15em";
         span.style.fontWeight = "800";
-        if (!seg.color) span.style.color = "#0E4B7B";
+        if (!seg.color) span.style.color = SUBHEADING_COLOR;
       }
       span.appendChild(document.createTextNode(seg.text));
       root.appendChild(span);

@@ -61,6 +61,21 @@ export type Segment = {
 export const PLACEHOLDER = "\uFFFC";
 
 /**
+ * The colour an uncoloured {H|…} subheading falls back to — the accent blue,
+ * matching tailwind.config.ts's `accent.DEFAULT`.
+ *
+ * It lives here because TWO renderers draw the same token and must agree:
+ * components/site/RichText.tsx paints the published article, and
+ * lib/richTextDom.ts paints the editor's own contenteditable. They each
+ * carried their own copy of the literal, so a change to one silently made
+ * the editor preview disagree with what a reader would see.
+ *
+ * Not read from the Tailwind theme because both call sites set it as an
+ * inline style on a DOM node, where a utility class is not available.
+ */
+export const SUBHEADING_COLOR = "#0E4B7B";
+
+/**
  * One prefix segment inside a token: either a coloured pair (`c:#hex|` /
  * `h:#hex|`) or a bare style flag (`b|` / `i|` / `u|` / `L|` / `H|` —
  * bold/italic/underline/large/subheading, which carry no value of their own).

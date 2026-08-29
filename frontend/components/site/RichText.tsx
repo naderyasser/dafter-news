@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import { mediaUrl } from "@/lib/api";
-import { parseInline } from "@/lib/richtext";
+import { parseInline, SUBHEADING_COLOR } from "@/lib/richtext";
 
 /**
  * Renders the editor's inline colour/bold/italic/underline/large markup
@@ -28,7 +28,7 @@ export default function Rich({ text }: { text: string }) {
           <span
             key={i}
             style={{
-              color: s.color ?? (s.subheading ? "#0E4B7B" : undefined),
+              color: s.color ?? (s.subheading ? SUBHEADING_COLOR : undefined),
               backgroundColor: s.background,
               fontWeight: s.bold || s.large ? 700 : s.subheading ? 800 : undefined,
               fontSize: s.large ? "1.2em" : s.subheading ? "1.15em" : undefined,
