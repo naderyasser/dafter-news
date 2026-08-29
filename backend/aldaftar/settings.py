@@ -126,8 +126,15 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
     ],
+    # Deny by default. Every public endpoint (login, register, csrf, push
+    # subscribe, visit tracking) already names AllowAny on itself, so this
+    # changes no live behaviour — what it changes is the FAILURE MODE for
+    # code not yet written: a new viewset added without a permission_classes
+    # line is now closed rather than serving the world. The audit that
+    # prompted this found all 46 routed views correctly gated; the risk was
+    # never the current code, it was the next endpoint nobody thought to gate.
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
     # PROTECT-blocked deletes are a client-side conflict, not a server fault.
     "EXCEPTION_HANDLER": "aldaftar.exceptions.exception_handler",
