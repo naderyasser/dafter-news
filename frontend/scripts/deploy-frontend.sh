@@ -41,4 +41,14 @@ echo "── warming the pages a reader lands on"
 # non-fatal; the cap stops it happening in the first place.
 node --max-old-space-size=1024 scripts/warm-images.js || echo "   (warming failed — readers will warm it instead; site is up)"
 
+# Next rewrites next-env.d.ts and appends a tsconfig "include" entry naming
+# whichever distDir it just built into (.next-new here, .next-verify under
+# `make check`). Those are build artefacts, not source edits — and this
+# checkout IS the production tree, so leaving them behind means `git status`
+# is dirty after every deploy and the next `git add -A` commits whichever
+# build ran last. The globs in tsconfig already cover every distDir, so the
+# appended lines are redundant; restore both files and move on.
+git -C "$(git rev-parse --show-toplevel)" checkout -- \
+  frontend/tsconfig.json frontend/next-env.d.ts 2>/dev/null || true
+
 echo "✓ deployed"
