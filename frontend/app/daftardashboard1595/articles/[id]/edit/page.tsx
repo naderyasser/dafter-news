@@ -6,8 +6,9 @@ import { getArticle, getAuthors, getSections } from "@/lib/api";
 
 export const revalidate = 0;
 
-export default async function EditArticlePage({ params }: { params: { id: string } }) {
-  const [article, sections, authors] = await Promise.all([getArticle(params.id), getSections(), getAuthors()]);
+export default async function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
+  const _params = await params;
+  const [article, sections, authors] = await Promise.all([getArticle(_params.id), getSections(), getAuthors()]);
   if (!article) notFound();
 
   return (

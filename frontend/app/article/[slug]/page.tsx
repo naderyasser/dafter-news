@@ -26,14 +26,16 @@ export const revalidate = 30;
  * «غير موجود». (The page body keeps its own check as defence in depth;
  * Next dedupes the fetch, so the article is still requested once.)
  */
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const article = await getArticle(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const article = await getArticle(_params.slug);
   if (!article || article.kind !== "news" || article.status !== "published") notFound();
   return articleMetadata(article, `/article/${encodeURIComponent(article.slug)}`);
 }
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
-  const article = await getArticle(params.slug);
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const article = await getArticle(_params.slug);
   // status is re-checked here even though the API already scopes anonymous
   // reads to published articles: this keeps a draft/scheduled/rejected story
   // from rendering in full if the API ever forwards a staff session (see

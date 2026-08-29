@@ -10,8 +10,9 @@ export const revalidate = 60;
 /** The tag itself is the title — every tag page shared the site-wide default
  *  before this, so «الذهب» and «السيسي» were one indistinguishable title
  *  repeated across the archive. */
-export async function generateMetadata({ params }: { params: { tag: string } }) {
-  const tagSlug = decodeParam(params.tag);
+export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }) {
+  const _params = await params;
+  const tagSlug = decodeParam(_params.tag);
   const tag = (await getTags()).results.find((t) => t.slug === tagSlug);
   const name = tag?.name || tagSlug;
   return {
@@ -21,10 +22,11 @@ export async function generateMetadata({ params }: { params: { tag: string } }) 
   };
 }
 
-export default async function TagPage({ params }: { params: { tag: string } }) {
+export default async function TagPage({ params }: { params: Promise<{ tag: string }> }) {
+  const _params = await params;
   // Arabic slugs arrive percent-encoded (twice, once via middleware);
   // decode fully before comparing against the API's decoded slug.
-  const tagSlug = decodeParam(params.tag);
+  const tagSlug = decodeParam(_params.tag);
   const [tags, articles, mostRead] = await Promise.all([
     getTags(),
     getArticles(`?language=ar&tags__slug=${encodeURIComponent(tagSlug)}&ordering=-published_at&page_size=24`),

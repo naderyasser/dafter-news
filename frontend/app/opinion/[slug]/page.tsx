@@ -16,14 +16,16 @@ import Link from "next/link";
 export const revalidate = 30;
 
 /** Existence decided before the stream starts — see app/article/[slug]. */
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const article = await getArticle(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const article = await getArticle(_params.slug);
   if (!article || article.kind !== "opinion" || article.status !== "published") notFound();
   return articleMetadata(article, `/opinion/${encodeURIComponent(article.slug)}`);
 }
 
-export default async function ArticleOpinionPage({ params }: { params: { slug: string } }) {
-  const [article, mostRead] = await Promise.all([getArticle(params.slug), getMostRead("ar")]);
+export default async function ArticleOpinionPage({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const [article, mostRead] = await Promise.all([getArticle(_params.slug), getMostRead("ar")]);
   // See app/article/[slug]/page.tsx for why status is re-checked on the
   // frontend as well as the API.
   if (!article || article.kind !== "opinion" || article.status !== "published") notFound();

@@ -18,14 +18,16 @@ import { articleJsonLd, articleMetadata, SITE_URL } from "@/lib/seo";
 export const revalidate = 30;
 
 /** Existence decided before the stream starts — see app/article/[slug]. */
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const article = await getArticle(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const article = await getArticle(_params.slug);
   if (!article || article.language !== "en" || article.status !== "published") notFound();
   return articleMetadata(article, `/en/article/${encodeURIComponent(article.slug)}`);
 }
 
-export default async function ArticleEnPage({ params }: { params: { slug: string } }) {
-  const article = await getArticle(params.slug);
+export default async function ArticleEnPage({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const article = await getArticle(_params.slug);
   // See app/article/[slug]/page.tsx for why status is re-checked on the
   // frontend as well as the API.
   if (!article || article.language !== "en" || article.status !== "published") notFound();
