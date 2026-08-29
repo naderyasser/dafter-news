@@ -130,4 +130,16 @@ describe("CompactListBlock", () => {
     // crawler and a screen reader get the real headline.
     expect(screen.getByText(long)).toBeInTheDocument();
   });
+  it("hides the stamp entirely when showTime is false", () => {
+    // The home page passes showTime={false}: a newsroom this size cannot
+    // refile hourly, and a column of «منذ يومين» down the front page reads
+    // as an abandoned site. Section pages keep their stamps.
+    const { container } = render(
+      <CompactListBlock lang="ar" title="أمن" href="/s" cards={[card()]} showTime={false} />,
+    );
+
+    expect(container.querySelector("time")).toBeNull();
+    // The headline and its link are untouched — only the stamp goes.
+    expect(screen.getByRole("link", { name: /الداخلية/ })).toHaveAttribute("href", "/article/interior-clarifies");
+  });
 });

@@ -30,6 +30,7 @@ export default function CompactListBlock({
   sectionKey,
   cards,
   tone = "light",
+  showTime = true,
 }: {
   lang: "ar" | "en";
   title: string;
@@ -37,6 +38,14 @@ export default function CompactListBlock({
   sectionKey?: string;
   cards: ArticleCardType[];
   tone?: "light" | "dark";
+  /**
+   * The home page passes false. A newsroom this size cannot refile every
+   * hour, and a column of «منذ يومين» down the front page reads as an
+   * abandoned site rather than an honest one — the stamp costs more than it
+   * tells. Section pages keep it, where a reader is scanning one desk and
+   * recency is the thing being judged.
+   */
+  showTime?: boolean;
 }) {
   if (!cards.length) return null;
   const isAr = lang === "ar";
@@ -75,11 +84,13 @@ export default function CompactListBlock({
                   >
                     {a.title}
                   </span>
-                  <TimeAgo
-                    iso={a.published_at}
-                    lang={lang}
-                    className={`mt-1 block text-xs ${tone === "dark" ? "text-header-muted" : "text-ink-3"}`}
-                  />
+                  {showTime && (
+                    <TimeAgo
+                      iso={a.published_at}
+                      lang={lang}
+                      className={`mt-1 block text-xs ${tone === "dark" ? "text-header-muted" : "text-ink-3"}`}
+                    />
+                  )}
                 </span>
               </Link>
             </li>

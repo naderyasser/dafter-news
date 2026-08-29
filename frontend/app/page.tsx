@@ -21,7 +21,6 @@ import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import TimeAgo from "@/components/ui/TimeAgo";
 import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getSectionFeed } from "@/lib/api";
 import { isArabicScript } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
@@ -67,15 +66,8 @@ function toSectionCard(a: ArticleCardType) {
     title: a.title,
     section: a.section_name,
     badge: a.badge,
-    // Every card on the page carries its own publication instant, rendered
-    // as «قبل ٣ ساعات» inside a real <time datetime> (see ArticleCard's
-    // `iso` prop and components/ui/TimeAgo). Set once here rather than at
-    // each of the dozen call sites, so no block can silently go undated.
-    //
-    // NOTE this reverses the earlier «no relative-time caption on a browsing
-    // card» CTR ask: an undated news homepage reads as stale, which is the
-    // more expensive of the two failures.
-    iso: a.published_at,
+    // NO timestamp on a home-page card, deliberately — see the note above
+    // HomeContent. The article page still stamps every story.
     imageSrc: mediaUrl(a.cover_image),
   };
 }
@@ -90,7 +82,6 @@ function toHeroCarouselCard(a: ArticleCardType) {
     title: a.title,
     badge: a.badge,
     chip: a.subcategory || a.section_name,
-    iso: a.published_at,
     imageSrc: mediaUrl(a.cover_image),
   };
 }
@@ -239,16 +230,16 @@ async function HomeContent() {
   // Claimed in the order the blocks actually render further down — which is
   // now reader-value order (B7), not nav order: شؤون مصر and سياسة lead,
   // then the high-intent desks (economy, sports), then the rest.
-  const egyptCards = claim(egypt.results);
   const politicsCards = claim(politics.results);
-  const econCards = claim(econ.results);
-  const sportsCards = claim(sports.results);
+  const egyptCards = claim(egypt.results);
   const worldCards = claim(world.results);
   const gulfCards = claim(gulf.results);
-  const guideCards = claim(guide.results);
+  const econCards = claim(econ.results);
+  const sportsCards = claim(sports.results);
   const artCards = claim(art.results);
-  const securityCards = claim(security.results);
+  const guideCards = claim(guide.results);
   const techCards = claim(tech.results);
+  const securityCards = claim(security.results);
   const specialCards = claim(special.results);
   // The tail renders last, so it claims last — and a tail section left with
   // nothing after dedup is dropped entirely rather than rendered as a bare
@@ -296,16 +287,7 @@ async function HomeContent() {
   const newsLatest = claim(recent.results, 6).map((a) => ({
     href: `/article/${a.slug}`,
     title: a.title,
-    // «آخر الأخبار» is a timeline — a list of latest news with no times on it
-    // was the clearest instance of the undated-page problem. `iso`, not
-    // `time`: this one IS a timestamp and gets the <time datetime> wrapper,
-    // while newsPopular's comment count below stays plain text.
-    iso: a.published_at,
   }));
-  // The most recent publication instant anywhere in the day's file — what
-  // «آخر تحديث» actually reports. `recent` is already newest-first.
-  const newestIso = recent.results[0]?.published_at ?? null;
-
   // Built once: the list renders beside the hero now, not at the foot of the
   // page. Deliberately NOT run through `claim` — a most-read ranking that
   // silently dropped whichever stories happened to lead the page would stop
@@ -338,17 +320,6 @@ async function HomeContent() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sectionsItemListJsonLd(sections.results) }} />
       <StoriesRail lang="ar" stories={arStories} />
 
-      {/* «آخر تحديث» — the freshness signal. Anchored to the newest story on
-          the page rather than to render time: a wall-clock stamp refreshed by
-          ISR would keep claiming the page had "just updated" on a quiet
-          night when nothing had actually been filed. */}
-      {newestIso && (
-        <div className="mx-auto max-w-container px-6 pt-5 text-[13px] text-ink-3">
-          آخر تحديث:{" "}
-          <TimeAgo iso={newestIso} lang="ar" className="font-semibold text-ink-2" />
-        </div>
-      )}
-
       <div className="mx-auto flex max-w-container flex-wrap gap-8 px-6 pb-8 pt-5">
         <div className="min-w-0 flex-[2_1_480px]">
           <HeroSlider lang="ar" slides={heroSlides} />
@@ -363,7 +334,6 @@ async function HomeContent() {
                 title={a.title}
                 section={a.section_name}
                 badge={a.badge}
-                iso={a.published_at}
                 imageSrc={mediaUrl(a.cover_image)}
               />
             </div>
@@ -381,29 +351,21 @@ async function HomeContent() {
 
       <SectionDivider />
 
-      {/* SECTION ORDER — reader value, not nav order (B7).
-          شؤون مصر and سياسة lead, then the high-intent desks (السوق, الرياضة),
-          then the rest. Every section the client curated is still here; none
-          was dropped to buy height. See the note in the height ledger about
-          what capping at 8-9 sections would actually cost.
+      {/* SECTION ORDER — the client's own hierarchy, top to bottom:
+          سياسة ← شؤون مصر ← عرب وعالم ← الخليج، ثم البقية.
 
-          Adjacent sections deliberately never share a layout variant:
-          LeadList → HeroCarousel → grid → Sports → World → LeadList → V3 →
-          V4 media → carousel → V3 → carousel → shelf → opinion. */}
+          The desks with the fewest editors sit at the bottom on purpose: a
+          thin section low on the page reads as depth, the same section high
+          on the page reads as a gap.
 
-      {/* شؤون مصر — V1 lead + list. */}
-      <LeadListBlock
-        lang="ar"
-        title="شؤون مصر"
-        seeAllHref="/section/egypt"
-        sectionKey="egypt"
-        cards={egyptCards.map(toSectionCard)}
-        {...masthead("egypt")}
-      />
-      {egyptCards.length ? <SectionDivider /> : null}
+          Adjacent sections never share a layout variant — the client asked
+          for varied designs, not one grid repeated. Reading down:
+          HeroCarousel → LeadList → World → LeadList → grid → Sports →
+          V4 media → carousel → V3 list → carousel → V3 list → shelf →
+          opinion. `claim()` above is called in this same order, so dedup
+          priority follows the page. */}
 
-      {/* سياسة — البرلمان والتوك شو والعاجل السياسي. تصميم مرجعي أرسله العميل
-          بالحرف: صورة قائد بعنوان فوقها، ثم شريط بطاقتين بأسهم ونقاط. */}
+      {/* 1. سياسة — صورة قائد بعنوان فوقها، ثم شريط بطاقتين بأسهم ونقاط. */}
       {politicsCards.length ? (
         <>
           <HeroCarouselBlock
@@ -417,27 +379,26 @@ async function HomeContent() {
         </>
       ) : null}
 
-      {/* حركة السوق — V2 equal grid. High commercial intent, so it moves up
-          from eighth place to third. */}
-      <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econCards.map(toSectionCard)} initialCount={4} sectionKey="economy" />
-      {econCards.length ? <SectionDivider /> : null}
+      {/* 2. شؤون مصر — lead photo + white list. */}
+      <LeadListBlock
+        lang="ar"
+        title="شؤون مصر"
+        seeAllHref="/section/egypt"
+        sectionKey="egypt"
+        cards={egyptCards.map(toSectionCard)}
+        {...masthead("egypt")}
+      />
+      {egyptCards.length ? <SectionDivider /> : null}
 
-      {/* جوّه الجون — the sports desk gets its own surface rather than a
-          fourth card grid: the client asked for this block to stand out, and
-          it is the one section whose subject has a shape. */}
-      <SportsBlock lang="ar" title="جوّه الجون" href="/section/sports" cards={sportsCards.map(toSectionCard)} matches={matches.results} />
-
-      {/* عرب وعالم — its own front-page treatment (lead + rail + tiles, red
-          category chips on the photos), deliberately not a grid shared with
-          any other section: the client asked for this design to be this
-          section's alone. */}
+      {/* 3. عرب وعالم — its own front-page treatment (lead + rail + tiles,
+          country chips on the photos), deliberately not shared with any
+          other section: the client asked for this design to be its alone. */}
       <WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={worldCards.map(toWorldCard)} sectionKey="world" />
       {worldCards.length ? <SectionDivider /> : null}
 
-      {/* الخليج العربي — same lead-photo-with-overlaid-headline + white list
-          treatment as شؤون مصر, on the client's explicit request that the
-          two sections share one design. Kept on the page for that reason
-          even though B7's own list omits it. */}
+      {/* 4. الخليج العربي — same lead-photo-plus-list shape as شؤون مصر, on
+          the client's explicit request that the two share one design. Not
+          adjacent to it, so the repeat never reads as a repeat. */}
       {gulfCards.length ? (
         <>
           <LeadListBlock
@@ -452,21 +413,20 @@ async function HomeContent() {
         </>
       ) : null}
 
-      {/* دليلك الأول — V3, headline-only compact list. Service journalism
-          carries high search traffic and needs breadth, not photographs. */}
-      {guideCards.length ? (
-        <>
-          <CompactListBlock lang="ar" title="دليلك الأول" href="/section/guide" sectionKey="guide" cards={guideCards} />
-          <SectionDivider />
-        </>
-      ) : null}
+      {/* ---- البقية، والأقل تحديثاً في الأسفل ---- */}
 
-      {/* لقطة وتعليق — V4 media strip. A flagship desk on the client's
-          request, so it stays well above the fold-line of the page. No
-          divider after it: the navy band's own bottom edge separates it. */}
+      {/* حركة السوق — V2 equal grid. */}
+      <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econCards.map(toSectionCard)} initialCount={4} sectionKey="economy" />
+      {econCards.length ? <SectionDivider /> : null}
+
+      {/* جوّه الجون — its own floodlit surface rather than a fourth grid. */}
+      <SportsBlock lang="ar" title="جوّه الجون" href="/section/sports" cards={sportsCards.map(toSectionCard)} matches={matches.results} />
+
+      {/* لقطة وتعليق — V4 media strip. No divider after: the navy band's own
+          bottom edge separates it from what follows. */}
       <VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={showcaseVideos} />
 
-      {/* ثقافة وفن — the arrow-navigated rail, photo-first slides. */}
+      {/* ثقافة وفن — photo-first arrow rail. */}
       {artCards.length ? (
         <>
           <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("art")}>
@@ -481,25 +441,37 @@ async function HomeContent() {
         </>
       ) : null}
 
-      {/* أمن ومحاكم — V3. Sits between the two carousel rails so ثقافة وفن
-          and علوم وتكنولوجيا, which share a layout, are never adjacent. */}
-      {securityCards.length ? (
+      {/* دليلك الأول — V3 headline list. Service journalism needs breadth,
+          not photographs. */}
+      {guideCards.length ? (
         <>
-          <CompactListBlock lang="ar" title="أمن ومحاكم" href="/section/security" sectionKey="security" cards={securityCards} />
+          <CompactListBlock lang="ar" title="دليلك الأول" href="/section/guide" sectionKey="guide" cards={guideCards} showTime={false} />
           <SectionDivider />
         </>
       ) : null}
 
-      {/* علوم وتكنولوجيا — arrow-navigated rail (the عكاظ pattern). */}
+      {/* علوم وتكنولوجيا — arrow rail (the عكاظ pattern). Sits between the
+          two V3 lists so neither pair of like layouts is adjacent. */}
       {techCards.length ? (
-        <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("tech")}>
-          <SectionHeading lang="ar" title="علوم وتكنولوجيا" href="/section/tech" sectionKey="tech" />
-          <ArrowCarousel lang="ar" itemClassName="w-[300px]">
-            {techCards.map((a) => (
-              <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} accent={sectionColor("tech")} />
-            ))}
-          </ArrowCarousel>
-        </section>
+        <>
+          <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("tech")}>
+            <SectionHeading lang="ar" title="علوم وتكنولوجيا" href="/section/tech" sectionKey="tech" />
+            <ArrowCarousel lang="ar" itemClassName="w-[300px]">
+              {techCards.map((a) => (
+                <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} accent={sectionColor("tech")} />
+              ))}
+            </ArrowCarousel>
+          </section>
+          <SectionDivider />
+        </>
+      ) : null}
+
+      {/* أمن ومحاكم — V3 headline list. */}
+      {securityCards.length ? (
+        <>
+          <CompactListBlock lang="ar" title="أمن ومحاكم" href="/section/security" sectionKey="security" cards={securityCards} showTime={false} />
+          <SectionDivider />
+        </>
       ) : null}
 
       {/* ملف خاص — the magazine shelf. Its own dark band is the separation. */}
