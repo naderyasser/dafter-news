@@ -13,7 +13,7 @@
  * Standalone node, no deps — it must run on a box where npm install may
  * not have happened yet.
  */
-const BASE = process.env.WARM_BASE || "https://dafter.educore.software";
+const BASE = process.env.WARM_BASE || "https://aldaftarnews.com";
 const PAGES = ["/", "/en", "/most-read", "/video", "/markets", "/section/egypt"];
 
 const seen = new Set();

@@ -1,4 +1,4 @@
-# نشر الدفتر نيوز — dafter.educore.software
+# نشر الدفتر نيوز — aldaftarnews.com
 
 هذا الملف مكتوب ليُعطى كما هو لوكيل نشر (أو لمهندس) يعمل على السيرفر مباشرة.
 
@@ -6,7 +6,7 @@
 
 انشر مشروع «الدفتر نيوز» على هذا السيرفر — موقع إخباري عربي RTL.
 
-**النطاق:** `dafter.educore.software`
+**النطاق:** `aldaftarnews.com`
 
 ## المصدر
 
@@ -26,9 +26,9 @@ https://github.com/naderyasser/dafter-news
 2. **الخلفية:** gunicorn خلف systemd. لا تستخدم `manage.py runserver`.
 3. **الواجهة:** `npm ci && npm run build && npm start` خلف systemd (أو PM2).
    ليست موقعاً ثابتاً — فيها SSR وISR، فلا تحاول تصديرها بـ`next export`.
-4. **nginx:** reverse proxy على `dafter.educore.software`، مع تقديم
+4. **nginx:** reverse proxy على `aldaftarnews.com`، مع تقديم
    `/media/` و`/static/` من القرص مباشرة.
-5. **SSL:** certbot / Let's Encrypt لـ `dafter.educore.software`.
+5. **SSL:** certbot / Let's Encrypt لـ `aldaftarnews.com`.
 6. **cron:** `sync_feeds` كل دقيقة (تفصيل أسفل).
 
 ## متغيرات البيئة
@@ -38,13 +38,13 @@ https://github.com/naderyasser/dafter-news
 ```
 DJANGO_SECRET_KEY=<ولّد مفتاحاً جديداً — لا تستخدم الافتراضي>
 DJANGO_DEBUG=0
-DJANGO_ALLOWED_HOSTS=dafter.educore.software
+DJANGO_ALLOWED_HOSTS=aldaftarnews.com
 POSTGRES_DB=aldaftar
 POSTGRES_USER=aldaftar
 POSTGRES_PASSWORD=<كلمة مرور قوية>
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-CORS_ALLOWED_ORIGINS=https://dafter.educore.software
+CORS_ALLOWED_ORIGINS=https://aldaftarnews.com
 OPENWEATHER_API_KEY=<من openweathermap.org>
 NEWSDATA_API_KEY=<من newsdata.io>
 THESPORTSDB_KEY=3
@@ -54,7 +54,7 @@ WEATHER_PROVIDER=openweathermap
 `frontend/.env.local`:
 
 ```
-NEXT_PUBLIC_API_URL=https://dafter.educore.software/api
+NEXT_PUBLIC_API_URL=https://aldaftarnews.com/api
 ```
 
 ⚠️ لا ترفع أي من الملفين إلى git — كلاهما في `.gitignore` بالفعل، لكن تحقق
@@ -85,9 +85,9 @@ cd frontend && npm test                          # يجب أن تمر 153
 
 ثم:
 
-- `https://dafter.educore.software/` — الرئيسية
-- `https://dafter.educore.software/dashboard` — لوحة التحكم
-- `https://dafter.educore.software/dashboard/feeds` — حالة المصادر الخارجية.
+- `https://aldaftarnews.com/` — الرئيسية
+- `https://aldaftarnews.com/dashboard` — لوحة التحكم
+- `https://aldaftarnews.com/dashboard/feeds` — حالة المصادر الخارجية.
   عمود **«آخر تحديث ناجح»** هو المهم: مصدر فاشل يُبقي آخر بيانات ناجحة ظاهرة
   على الموقع، فلن ترى العطل في الواجهة إطلاقاً — هذه الصفحة هي المكان الوحيد
   الذي يظهر فيه الفرق.

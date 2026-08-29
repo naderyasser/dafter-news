@@ -15,7 +15,7 @@
 # Log: /var/log/aldaftar-health.log
 set -uo pipefail
 
-URL="${HEALTH_URL:-https://dafter.educore.software/}"
+URL="${HEALTH_URL:-https://aldaftarnews.com/}"
 # Overridable so the failure path can be exercised against a dummy unit
 # without restarting the live one.
 UNIT="${HEALTH_UNIT:-dafter-frontend}"
