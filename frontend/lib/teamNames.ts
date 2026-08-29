@@ -3,10 +3,10 @@
  * returns in English only.
  *
  * TheSportsDB has no Arabic column, so an unmapped Arabic page would print
- * "Ghazl El Mahalla" beside «الجولة 13». This lived inside MatchesRail until
- * «جوّه الجون» grew its own scoreboard and immediately reproduced the bug it
- * had already fixed once — so the table is shared now and there is one place
- * to add a newly promoted side.
+ * "Ghazl El Mahalla" beside «الجولة 13». The table is shared rather than
+ * living inside whichever component happens to render a fixture — the last
+ * time it wasn't, a second scoreboard reproduced the bug this had already
+ * fixed once. One place to add a newly promoted side.
  *
  * Anything unmapped falls through to the English string rather than
  * disappearing: a cup opponent with no entry is still a readable fixture.

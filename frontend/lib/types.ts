@@ -51,6 +51,11 @@ export type ArticleCard = {
   badge: Badge;
   status: ArticleStatus;
   cover_image: string | null;
+  /** The cover file's real pixel size — declared in the RSS feed's
+   *  <media:content>/<media:thumbnail>. null on covers uploaded before the
+   *  columns existed. */
+  cover_image_width: number | null;
+  cover_image_height: number | null;
   published_at: string | null;
   views: number;
   kind: "news" | "opinion";
@@ -64,6 +69,10 @@ export type ArticleCard = {
   author_avatar: string | null;
   /** Deck line — the magazine archetype puts it under the headline. */
   standfirst: string;
+  /** Prose summary — the standfirst, or the opening paragraph when the story
+   *  was filed without one. Still carries the editor's inline tokens; strip
+   *  with richtext's stripInline before display. Feeds the RSS description. */
+  excerpt: string;
 };
 
 export type ArticleBlock = {
@@ -107,6 +116,11 @@ export type ArticleDetail = {
   notify_label: string;
   standfirst: string;
   cover_image: string | null;
+  /** The file's real pixel size (Django's ImageField width_field/height_field,
+   *  stamped at upload time) — what articleMetadata declares in
+   *  og:image:width/height. null on an article saved before this existed. */
+  cover_image_width: number | null;
+  cover_image_height: number | null;
   cover_caption: string;
   cover_credit: string;
   views: number;
@@ -258,6 +272,11 @@ export type DashUser = {
   last_login: string | null;
   is_active: boolean;
   date_joined: string;
+  /** Still holding the temporary password an admin issued at invite time. */
+  must_change_password: boolean;
+  /** Whether this account can open the dashboard at all. Byline-only
+   *  columnist rows (and readers who signed up) are false. */
+  is_staff: boolean;
 };
 
 export type SiteSettings = {

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 
-import { clockTime, dayBucket, decodeParam, formatDate, relativeTime, standfirstFor, toEasternNumerals, withoutSectionPrefix } from "./format";
+import { clockTime, dayBucket, decodeParam, formatDate, publishedLine, readCount, relativeTime, standfirstFor, toEasternNumerals, withoutSectionPrefix, isArabicScript, isLatinScript } from "./format";
 
 describe("decodeParam", () => {
   it("returns a plain ASCII slug unchanged", () => {
@@ -127,6 +127,44 @@ describe("formatDate", () => {
   });
 });
 
+describe("publishedLine", () => {
+  it("returns an empty string for a missing or invalid date", () => {
+    expect(publishedLine(null, "ar")).toBe("");
+    expect(publishedLine("not-a-date", "ar")).toBe("");
+  });
+
+  it("reads «نُشر في <يوم> <تاريخ>، <ساعة 12>» — regression: the newsroom's own reference example", () => {
+    // 22:30 local time — the exact case the client flagged: a 24h "23:xx"
+    // reads wrong to a reader used to news-style publish lines.
+    const evening = new Date(2026, 7, 12, 22, 30); // Wed 12 Aug 2026, 22:30
+    const line = publishedLine(evening.toISOString(), "ar");
+
+    expect(line.startsWith("نُشر في ")).toBe(true);
+    expect(line).toContain("الأربعاء");
+    expect(line).toContain("أغسطس");
+    expect(line).toMatch(/م$/); // 22:30 is PM — «م», never «ص»
+    expect(line).not.toMatch(/٢٢|22/); // never the 24h hour
+    // exactly one comma, immediately before the time — not one after the
+    // weekday too (Intl's own combined weekday+date format would add that).
+    expect(line.split("،")).toHaveLength(2);
+  });
+
+  it("writes a morning hour as «ص», not «م»", () => {
+    const morning = new Date(2026, 7, 12, 3, 5);
+    expect(publishedLine(morning.toISOString(), "ar")).toMatch(/ص$/);
+  });
+
+  it("formats in English as a 12-hour clock with AM/PM", () => {
+    const evening = new Date(2026, 7, 12, 22, 30);
+    const line = publishedLine(evening.toISOString(), "en");
+
+    expect(line.startsWith("Published ")).toBe(true);
+    expect(line).toContain("Wednesday");
+    expect(line).toContain("August");
+    expect(line).toMatch(/PM$/);
+  });
+});
+
 describe("standfirstFor", () => {
   /**
    * 61 of the 63 published stories carry a standfirst identical to their
@@ -212,5 +250,85 @@ describe("withoutSectionPrefix", () => {
 
   it("is a no-op without a section name", () => {
     expect(withoutSectionPrefix("عنوان", undefined)).toBe("عنوان");
+  });
+});
+
+describe("script detection", () => {
+  it("recognises Arabic text", () => {
+    expect(isArabicScript("محور الدلتا")).toBe(true);
+    expect(isArabicScript("Delta corridor")).toBe(false);
+  });
+
+  it("treats a mixed headline as Arabic", () => {
+    // A story rail's title column holds both editions with no language
+    // column beside it, and «صلاح» in a Latin sentence still belongs to the
+    // Arabic edition.
+    expect(isArabicScript("Mohamed صلاح")).toBe(true);
+  });
+
+  it("counts Eastern digits as Arabic", () => {
+    expect(isArabicScript("٢٠٢٦")).toBe(true);
+  });
+
+  it("gives digits and punctuation to the English edition", () => {
+    // isLatinScript is "not Arabic", deliberately: a positive A-Z test would
+    // fail a headline that is all numerals.
+    expect(isLatinScript("2026 — 60%")).toBe(true);
+    expect(isLatinScript("")).toBe(true);
+  });
+
+  it("is the exact inverse of the Arabic test", () => {
+    for (const sample of ["محور", "Delta", "", "٢٠٢٦", "Mohamed صلاح"]) {
+      expect(isLatinScript(sample)).toBe(!isArabicScript(sample));
+    }
+  });
+});
+
+describe("readCount", () => {
+  it("uses the Arabic plural for a tail of three to ten", () => {
+    // ٣–١٠ take the plural: «٥ قراءات», not «٥ قراءة».
+    expect(readCount(5, "ar")).toBe("٥ قراءات");
+    expect(readCount(9, "ar")).toBe("٩ قراءات");
+    expect(readCount(10, "ar")).toBe("١٠ قراءات");
+  });
+
+  it("uses the Arabic singular from eleven upward", () => {
+    expect(readCount(11, "ar")).toBe("١١ قراءة");
+    expect(readCount(150, "ar")).toBe("١٥٠ قراءة");
+  });
+
+  it("counts by the last two digits, not the magnitude", () => {
+    // The rule that catches people out: 103 is plural because its tail is 3,
+    // while 111 is singular because its tail is 11.
+    expect(readCount(103, "ar")).toBe("١٠٣ قراءات");
+    expect(readCount(111, "ar")).toBe("١١١ قراءة");
+    expect(readCount(100, "ar")).toBe("١٠٠ قراءة");
+  });
+
+  it("gives one and two their own forms rather than a digit", () => {
+    expect(readCount(1, "ar")).toBe("قراءة واحدة");
+    expect(readCount(2, "ar")).toBe("قراءتان");
+  });
+
+  it("prints zero rather than pretending a story has no count", () => {
+    expect(readCount(0, "ar")).toBe("٠ قراءة");
+  });
+
+  it("groups thousands in Eastern numerals", () => {
+    expect(readCount(31822, "ar")).toMatch(/^٣١.٨٢٢ قراءة$/);
+  });
+
+  it("reads plainly in English", () => {
+    expect(readCount(1, "en")).toBe("1 read");
+    expect(readCount(1500, "en")).toBe("1,500 reads");
+    expect(readCount(0, "en")).toBe("0 reads");
+  });
+
+  it("treats a missing or negative count as zero", () => {
+    // ArticleCard.views is non-null from the API, but the prop is optional on
+    // the widget and a negative count is not a thing to render literally.
+    expect(readCount(null, "ar")).toBe("٠ قراءة");
+    expect(readCount(undefined, "en")).toBe("0 reads");
+    expect(readCount(-5, "en")).toBe("0 reads");
   });
 });

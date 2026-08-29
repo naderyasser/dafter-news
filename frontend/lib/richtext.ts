@@ -33,6 +33,17 @@ export type Segment = {
    *  heading block. Renders bold even without `bold` also being set. */
   large?: boolean;
   /**
+   * «عنوان فرعي» applied to a selection — a subheading picked out inline,
+   * in the accent colour, rather than lifting the selection into its own
+   * heading block and splitting the paragraph around it. The block-split
+   * version of this tool used to strip any colour/bold the selection
+   * already had and rearrange the surrounding text into up to three new
+   * blocks — exactly the "text collapses and loses formatting" the client
+   * reported. Same mechanics as `large`: a same-run style flag, nothing
+   * structural.
+   */
+  subheading?: boolean;
+  /**
    * An image embedded mid-paragraph (MediaAsset.image path) — «بدي اقدر
    * اضيف صورة بين الكلام». An image segment's `text` is always exactly
    * PLACEHOLDER: one real character, so it occupies the same one visible
@@ -51,18 +62,18 @@ export const PLACEHOLDER = "\uFFFC";
 
 /**
  * One prefix segment inside a token: either a coloured pair (`c:#hex|` /
- * `h:#hex|`) or a bare style flag (`b|` / `i|` / `u|` / `L|` — bold/italic/
- * underline/large, which carry no value of their own).
+ * `h:#hex|`) or a bare style flag (`b|` / `i|` / `u|` / `L|` / `H|` —
+ * bold/italic/underline/large/subheading, which carry no value of their own).
  */
-const PAIR_SRC = "(?:[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\||[biuL]\\|)";
-const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\||([biuL])\\|`, "g");
+const PAIR_SRC = "(?:[ch]:#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\\||[biuLH]\\|)";
+const PAIR = new RegExp(`([ch]):(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}))\\||([biuLH])\\|`, "g");
 
 /**
  * `{c:#RRGGBB|…}` = text colour, `{h:#RRGGBB|…}` = highlight, `{b|…}` /
- * `{i|…}` / `{u|…}` / `{L|…}` = bold / italic / underline / large, and any
- * of these can stack on the same run as `{c:#RRGGBB|b|…}` — one token, one
- * or more prefix segments, then the text. Stacking is what lets an editor
- * colour a word and then bold it without re-selecting (see
+ * `{i|…}` / `{u|…}` / `{L|…}` / `{H|…}` = bold / italic / underline / large /
+ * subheading, and any of these can stack on the same run as `{c:#RRGGBB|b|…}`
+ * — one token, one or more prefix segments, then the text. Stacking is what
+ * lets an editor colour a word and then bold it without re-selecting (see
  * TextColorToolbar's apply()); it has to be one token rather than a nested
  * `{c:…|{h:…|…}}` pair because the inner group below (`[^{}]*`) —
  * deliberately, so stray braces in body text can't be mistaken for markup —
@@ -108,7 +119,7 @@ function unnestTokens(text: string): string {
  * Opening prefix for a token. `color` is omitted for the flag kinds (bold/
  * italic/underline), which carry no value of their own.
  */
-export const COLOR_OPEN = (kind: "c" | "h" | "b" | "i" | "u" | "L", color?: string) =>
+export const COLOR_OPEN = (kind: "c" | "h" | "b" | "i" | "u" | "L" | "H", color?: string) =>
   `{${kind}${color ? `:${color}` : ""}|`;
 
 /**
@@ -126,7 +137,7 @@ export function mergeColorWrap(
   value: string,
   start: number,
   end: number,
-  kind: "c" | "h" | "b" | "i" | "u" | "L",
+  kind: "c" | "h" | "b" | "i" | "u" | "L" | "H",
   color?: string,
 ): { next: string; selStart: number; selEnd: number } | null {
   const openAt = new RegExp(`\\{((?:${PAIR_SRC})+)$`).exec(value.slice(0, start));
@@ -174,6 +185,7 @@ export function parseInline(text: string): Segment[] {
         else if (p[3] === "i") seg.italic = true;
         else if (p[3] === "u") seg.underline = true;
         else if (p[3] === "L") seg.large = true;
+        else if (p[3] === "H") seg.subheading = true;
       }
       out.push(seg);
     }
@@ -204,6 +216,7 @@ export function serializeSegments(segments: Segment[]): string {
       if (s.italic) prefix += "i|";
       if (s.underline) prefix += "u|";
       if (s.large) prefix += "L|";
+      if (s.subheading) prefix += "H|";
       return prefix ? `{${prefix}${s.text}}` : s.text;
     })
     .join("");

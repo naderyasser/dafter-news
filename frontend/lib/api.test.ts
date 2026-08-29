@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { API_ORIGIN, ApiError, apiMutate, describeApiError, getArticle, getArticles, getTicker, mediaUrl } from "./api";
+import { API_ORIGIN, ApiError, apiMutate, describeApiError, getArticle, getArticles, getLatest, getMostCommented, getMostRead, getSectionFeed, getTicker, mediaUrl } from "./api";
 
 const okJson = (body: unknown) =>
   Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) } as Response);
@@ -39,6 +39,105 @@ describe("read helpers", () => {
 
     expect(page.count).toBe(1);
     expect(vi.mocked(fetch).mock.calls[0][0]).toContain("/articles/?page_size=5");
+  });
+
+  it("ranks most-read by trending score, windowed tight and capped", async () => {
+    // The whole «الأكثر قراءة» contract in one URL: sorted by trending_score
+    // (views decayed by recency — see ArticleViewSet._trending_annotations
+    // on the backend), scoped to a narrow recent window so an old story's
+    // large-but-decaying score can't outlast it, and limited.
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getMostRead("ar");
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("ordering=-trending_score");
+    // MOST_READ_TRENDING_WINDOW_HOURS (48h) expressed in the whole days
+    // `published_within` actually accepts.
+    expect(url).toContain("published_within=2");
+    expect(url).toContain("page_size=5");
+    expect(url).toContain("language=ar");
+  });
+
+  it("takes a language and a limit for the standalone most-read page", async () => {
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getMostRead("en", 10);
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("language=en");
+    expect(url).toContain("page_size=10");
+  });
+
+  it("keeps most-read on a 30-second window so a climbing story surfaces without a redeploy", async () => {
+    // Shorter than the other lists on purpose: this is the one a reader's
+    // own actions change, so it has to visibly answer them while the
+    // newsroom is testing.
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getMostRead("ar");
+
+    expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({ next: { revalidate: 30 } });
+  });
+
+  it("orders a section block strictly newest-first", async () => {
+    // regression: the ordering led with `-pinned`, so «الظهور في الرئيسية»
+    // held the top of a section's own block indefinitely — «الخليج العربي»
+    // showed a 22-hour-old pinned story above one published an hour before,
+    // and the front looked frozen for days.
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getSectionFeed("ar", "gulf", 6);
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("ordering=-published_at");
+    expect(url).not.toContain("pinned");
+    expect(url).toContain("section__key=gulf");
+    expect(url).toContain("page_size=6");
+  });
+
+  it("encodes a section key rather than pasting it into the URL", async () => {
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getSectionFeed("ar", "a b&c");
+
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain(encodeURIComponent("a b&c"));
+  });
+
+  it("fetches «الأحدث» strictly newest-first", async () => {
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getLatest("ar", 12);
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("ordering=-published_at");
+    expect(url).toContain("page_size=12");
+    // No recency window here on purpose: this list IS the recency ordering,
+    // so bounding it would only hide the tail on a quiet news day.
+    expect(url).not.toContain("published_within");
+  });
+
+  it("windows «الأكثر تعليقاً» the same way most-read is windowed", async () => {
+    // regression: comment counts only accumulate, so unbounded this tab was
+    // an all-time leaderboard held by the seeded demo articles — it showed
+    // three-week-old copy right beside the «الأحدث» tab showing today's.
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getMostCommented("ar");
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("ordering=-comment_count");
+    expect(url).toContain("published_within=7");
+  });
+
+  it("keeps both «أحدث الأخبار» tabs on the same 60-second freshness", async () => {
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getLatest("ar");
+    await getMostCommented("ar");
+
+    expect(vi.mocked(fetch).mock.calls[0][1]).toMatchObject({ next: { revalidate: 60 } });
+    expect(vi.mocked(fetch).mock.calls[1][1]).toMatchObject({ next: { revalidate: 60 } });
   });
 
   it("returns an empty page instead of throwing when the API is down", async () => {

@@ -95,6 +95,14 @@ describe("parseInline", () => {
     expect(parseInline("{L|فقرة مميزة}")).toEqual([{ text: "فقرة مميزة", large: true }]);
   });
 
+  it("reads a subheading flag — «عنوان فرعي» picked out inline, not lifted into its own block", () => {
+    expect(parseInline("{H|عنوان داخل الفقرة}")).toEqual([{ text: "عنوان داخل الفقرة", subheading: true }]);
+  });
+
+  it("stacks a subheading with a custom colour on the same run", () => {
+    expect(parseInline("{c:#0E4B7B|H|عنوان ملون}")).toEqual([{ text: "عنوان ملون", color: "#0E4B7B", subheading: true }]);
+  });
+
   it("pulls out an image embedded mid-paragraph as its own atomic segment", () => {
     // «بدي اقدر اضيف صورة بين الكلام» — an inline image, not text to style.
     expect(parseInline("اكد الوزير {img:library/x.jpg} ان سيتم رفع الرواتب")).toEqual([
@@ -240,6 +248,11 @@ describe("serializeSegments", () => {
 
   it("round-trips the large flag through parseInline", () => {
     const value = "قبل {L|فقرة} بعد";
+    expect(serializeSegments(parseInline(value))).toBe(value);
+  });
+
+  it("round-trips the subheading flag through parseInline", () => {
+    const value = "قبل {H|عنوان فرعي} بعد";
     expect(serializeSegments(parseInline(value))).toBe(value);
   });
 

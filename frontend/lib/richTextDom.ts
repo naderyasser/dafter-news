@@ -50,7 +50,7 @@ export function renderTokensInto(root: HTMLElement, text: string): void {
       root.appendChild(span);
       continue;
     }
-    if (seg.color || seg.background || seg.bold || seg.italic || seg.underline || seg.large) {
+    if (seg.color || seg.background || seg.bold || seg.italic || seg.underline || seg.large || seg.subheading) {
       const span = document.createElement("span");
       if (seg.color) {
         span.style.color = seg.color;
@@ -75,6 +75,15 @@ export function renderTokensInto(root: HTMLElement, text: string): void {
         span.style.fontSize = "1.2em";
         span.style.fontWeight = "700";
       }
+      if (seg.subheading) {
+        // «عنوان فرعي» applied inline — bold, a size up, and in the brand
+        // accent colour so it reads as a subheading picked out of the
+        // running text, not just another emphasised word.
+        span.dataset.subheading = "1";
+        span.style.fontSize = "1.15em";
+        span.style.fontWeight = "800";
+        if (!seg.color) span.style.color = "#0E4B7B";
+      }
       span.appendChild(document.createTextNode(seg.text));
       root.appendChild(span);
     } else if (seg.text) {
@@ -83,7 +92,15 @@ export function renderTokensInto(root: HTMLElement, text: string): void {
   }
 }
 
-type ActiveStyle = { color?: string; background?: string; bold?: boolean; italic?: boolean; underline?: boolean; large?: boolean };
+type ActiveStyle = {
+  color?: string;
+  background?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  large?: boolean;
+  subheading?: boolean;
+};
 
 function styleOf(el: HTMLElement): ActiveStyle {
   return {
@@ -93,6 +110,7 @@ function styleOf(el: HTMLElement): ActiveStyle {
     italic: el.style.fontStyle === "italic" || el.tagName === "I" || el.tagName === "EM",
     underline: el.style.textDecorationLine === "underline" || el.tagName === "U",
     large: el.dataset.large === "1",
+    subheading: el.dataset.subheading === "1",
   };
 }
 
@@ -107,6 +125,7 @@ function walk(node: Node, active: ActiveStyle): string {
     if (active.italic) prefix += "i|";
     if (active.underline) prefix += "u|";
     if (active.large) prefix += "L|";
+    if (active.subheading) prefix += "H|";
     return prefix ? `{${prefix}${text}}` : text;
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
@@ -124,6 +143,7 @@ function walk(node: Node, active: ActiveStyle): string {
     italic: own.italic || active.italic,
     underline: own.underline || active.underline,
     large: own.large || active.large,
+    subheading: own.subheading || active.subheading,
   };
   let out = "";
   for (const child of Array.from(el.childNodes)) out += walk(child, merged);

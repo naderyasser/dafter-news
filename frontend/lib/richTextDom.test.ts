@@ -83,6 +83,21 @@ describe("renderTokensInto / domToTokens round-trip", () => {
     expect(domToTokens(el)).toBe("{b|L|فقرة مميزة}");
   });
 
+  it("round-trips a subheading applied to a selection, byte-identical — no stray bold flag", () => {
+    const el = box();
+    renderTokensInto(el, "{H|عنوان فرعي داخل الفقرة}");
+
+    const span = el.querySelector("span")!;
+    expect(span.dataset.subheading).toBe("1");
+    expect(span.style.fontSize).toBe("1.15em");
+    // 800, not 700 — deliberately distinct from bold's own weight so this
+    // never gets misread as a plain bold run on the way back out.
+    expect(span.style.fontWeight).toBe("800");
+    expect(span.style.color).toBe("rgb(14, 75, 123)");
+
+    expect(domToTokens(el)).toBe("{H|عنوان فرعي داخل الفقرة}");
+  });
+
   it("merges an ancestor's style into a nested run — the shape typing at a span's edge can leave behind", () => {
     const el = box();
     const outer = document.createElement("span");

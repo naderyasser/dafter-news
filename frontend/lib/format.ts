@@ -62,8 +62,81 @@ export function formatDate(iso: string | null | undefined, lang: "ar" | "en"): s
   }).format(new Date(iso));
 }
 
+/**
+ * The full "نُشر في ..." publish line under a story's headline — day name,
+ * full date and a 12-hour clock with ص/م, matching the newsroom's own
+ * reference example for how a publish date should read. Not used for the
+ * compact dates elsewhere (front-page cards, dashboard tables) — those stay
+ * as `formatDate` prints them; this is only the article/opinion byline row.
+ *
+ * Built from three separate Intl calls rather than one combined
+ * weekday+date format: Intl's own combined form inserts a comma after the
+ * weekday («الأربعاء، ١٢ أغسطس») which reads one comma too many next to the
+ * reference example («الأربعاء ١٢ أغسطس... ، ١٠:٣٠ م» — comma only before
+ * the time).
+ */
+export function publishedLine(iso: string | null | undefined, lang: "ar" | "en"): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const isAr = lang === "ar";
+  const locale = isAr ? "ar-EG" : "en-US";
+  const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(d);
+  const rest = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(d);
+  const time = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", hour12: true }).format(d);
+  return isAr ? `نُشر في ${weekday} ${rest}، ${time}` : `Published ${weekday}, ${rest}, ${time}`;
+}
+
+/**
+ * Which script a string is written in.
+ *
+ * The site has columns that hold both languages — a story rail's title, a
+ * video's title, a tag's name — with no language column beside them, so each
+ * edition decides what belongs to it by looking at the characters. Both
+ * home pages, the sitemap, the English video page and the welcome toast had
+ * each written this same regex privately; one definition means a change to
+ * what counts as Arabic can't apply to four of the five.
+ *
+ * U+0600–U+06FF is the Arabic block, which covers the letters and the
+ * Eastern digits this newsroom writes in. `isLatinScript` is deliberately
+ * "not Arabic" rather than a Latin range test: a headline of digits and
+ * punctuation belongs to the English edition, and would fail a positive
+ * A–Z test.
+ */
+export const isArabicScript = (text: string) => /[؀-ۿ]/.test(text);
+export const isLatinScript = (text: string) => !isArabicScript(text);
+
 const EASTERN = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
 export const toEasternNumerals = (n: number | string) => String(n).split("").map((d) => (EASTERN[+d] ?? d)).join("");
+
+/**
+ * A story's read count, as «الأكثر قراءة» prints it beside the eye mark.
+ *
+ * The list ranks by reads, but every row showed only a timestamp — so the
+ * ordering looked like a broken chronological sort, which is exactly how the
+ * newsroom read it. Printing the number the ranking is actually built on is
+ * what makes the order explain itself.
+ *
+ * Arabic counts its nouns by the *last two digits*, and getting it wrong is
+ * conspicuous in a newsroom: ٣–١٠ take the plural (٥ قراءات), ١١ and above
+ * take the singular (١٥٠ قراءة), and one and two have their own forms rather
+ * than a digit at all — «قراءة واحدة», not «١ قراءة». Hence the tail test on
+ * `n % 100`: 103 reads is «١٠٣ قراءات» while 111 is «١١١ قراءة».
+ *
+ * ar-EG for the digits and the thousands mark, matching formatDate and the
+ * rest of this file — the widget already prints its rank numbers in Eastern
+ * numerals, and a Western-digit count beside them would read as a leak from
+ * another system.
+ */
+export function readCount(views: number | null | undefined, lang: "ar" | "en"): string {
+  const n = Math.max(0, Math.floor(Number(views) || 0));
+  if (lang !== "ar") return `${n.toLocaleString("en-US")} ${n === 1 ? "read" : "reads"}`;
+  if (n === 1) return "قراءة واحدة";
+  if (n === 2) return "قراءتان";
+  const num = new Intl.NumberFormat("ar-EG").format(n);
+  const tail = n % 100;
+  return tail >= 3 && tail <= 10 ? `${num} قراءات` : `${num} قراءة`;
+}
 
 /**
  * The standfirst, but only when it says something the headline didn't.
