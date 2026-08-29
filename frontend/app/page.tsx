@@ -23,6 +23,7 @@ import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getSectionFeed } from "@/lib/api";
 import { isArabicScript } from "@/lib/format";
+import { pickLatest } from "@/lib/homeFeed";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import { sectionsItemListJsonLd } from "@/lib/seo";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
@@ -207,41 +208,40 @@ async function HomeContent() {
   const heroSide = recent.results.filter((a) => !heroIds.has(a.id)).slice(0, 4);
 
   /**
-   * Page-level "already shown" set, for the CROSS-SECTION blocks only.
+   * Page-level "already shown" set.
    *
-   * The distinction matters and was got wrong once already. There are two
-   * kinds of block on this page:
+   * The hero and its side rail are the only blocks that filter against it,
+   * and they do it between themselves: the side rail takes what the hero did
+   * not. Everything below simply RECORDS what it shows.
    *
-   *  - Aggregate blocks (the hero, its side rail, «آخر الأخبار», the tail)
-   *    draw from the whole paper. Two of them showing the same story is
-   *    pure repetition, so they filter through `claim`.
+   * The reason is that every other block on this page has a fixed job — this
+   * desk's newest, the latest news, the most read — and a block with a fixed
+   * job cannot be allowed to come back empty. Two rounds of filtering proved
+   * that twice over, and both were reported as bugs by the newsroom.
    *
-   *  - A SECTION block is that desk's own feed. Its job is to answer "what
-   *    is newest in سياسة", and the honest answer does not change because
-   *    the hero happens to be running the same story. These use `mark`.
-   *
-   * Filtering section blocks was a real, reported bug: a freshly published
+   * Filtering section blocks was the first: a freshly published
    * story is by definition the newest thing on the site, so the hero took it
    * first and its own section silently dropped it. The editor published to
    * سياسة, could not find it in سياسة, and reasonably concluded the page was
    * serving stale cache. It was not — the story was on the page, in the
    * hero, and deliberately withheld from the one block being checked.
    *
-   * Section blocks still MARK what they show, so the aggregate blocks below
-   * them («آخر الأخبار», the tail) do not repeat it a third time.
+   * Section blocks still MARK what they show, so anything downstream can ask
+   * "has this been shown?" without a second pass over the page.
    *
-   * The breaking ticker is exempt from both (a story can be the lead and
+   * There is deliberately no `claim` helper any more. Filtering a block
+   * against this set starved two of them in turn — first the section blocks,
+   * then «أحدث الأخبار», which rendered an empty box under its own heading
+   * once the sections began marking. Every block on this page has a fixed
+   * job (this desk's newest, the latest news, the most read); none of them
+   * is improved by being allowed to come back empty. Repetition far down a
+   * long page is a much smaller cost than a heading over nothing.
+   *
+   * The breaking ticker is exempt as well (a story can be the lead and
    * breaking at once); it dedupes within its own loop.
    */
   const seenIds = new Set<number>([...heroIds, ...heroSide.map((a) => a.id)]);
-  /** Filter out anything already shown, then mark what survives. */
-  const claim = <T extends { id: number }>(items: T[], limit?: number): T[] => {
-    const kept = items.filter((a) => !seenIds.has(a.id));
-    const out = typeof limit === "number" ? kept.slice(0, limit) : kept;
-    out.forEach((a) => seenIds.add(a.id));
-    return out;
-  };
-  /** Show everything, but record it so later aggregate blocks skip it. */
+  /** Show everything, but record it so any later block can skip it. */
   const mark = <T extends { id: number }>(items: T[]): T[] => {
     items.forEach((a) => seenIds.add(a.id));
     return items;
@@ -259,11 +259,12 @@ async function HomeContent() {
   const techCards = mark(tech.results);
   const securityCards = mark(security.results);
   const specialCards = mark(special.results);
-  // The tail renders last, so it claims last — and a tail section left with
-  // nothing after dedup is dropped entirely rather than rendered as a bare
-  // heading over an empty grid.
+  // A tail section is still a section block: it answers "what is newest in
+  // this desk", so it marks rather than filters, exactly like the curated
+  // ones above. Filtering it could empty a quiet desk entirely and drop the
+  // whole block — the same failure the section blocks themselves had.
   const tailBlocks = tail
-    .map(({ section, articles }) => ({ section, articles: claim(articles) }))
+    .map(({ section, articles }) => ({ section, articles: mark(articles) }))
     .filter(({ articles }) => articles.length);
 
   const showcaseVideos = arVideos.slice(0, 8).map((v) => ({
@@ -302,7 +303,22 @@ async function HomeContent() {
   // page): it fills with whatever the sections above did not already take,
   // rather than repeating the hero back to a reader who has just scrolled
   // the whole page past it.
-  const newsLatest = claim(recent.results, 6).map((a) => ({
+  /**
+   * «أحدث الأخبار» — the latest, always non-empty.
+   *
+   * This is NOT run through `claim`. Once section blocks began marking every
+   * story they show (so the desks stop losing their own newest), the marked
+   * set covers most of `recent` — and a `claim` here returned nothing at
+   * all, leaving the tab rendering an empty box under its own heading.
+   *
+   * Instead it skips only what the TOP of the page is already showing (the
+   * hero and its side rail, which a reader has just scrolled past), and then
+   * tops up from the full list so a busy day can never empty it. A tab
+   * labelled "latest news" showing nothing is worse than one repeating a
+   * story from the top of a long page.
+   */
+  const topOfPage = new Set<number>([...heroIds, ...heroSide.map((a) => a.id)]);
+  const newsLatest = pickLatest(recent.results, topOfPage, 6).map((a) => ({
     href: `/article/${a.slug}`,
     title: a.title,
   }));
@@ -380,8 +396,7 @@ async function HomeContent() {
           for varied designs, not one grid repeated. Reading down:
           HeroCarousel → LeadList → World → LeadList → grid → Sports →
           V4 media → carousel → V3 list → carousel → V3 list → shelf →
-          opinion. `claim()` above is called in this same order, so dedup
-          priority follows the page. */}
+          opinion. */}
 
       {/* 1. سياسة — صورة قائد بعنوان فوقها، ثم شريط بطاقتين بأسهم ونقاط. */}
       {politicsCards.length ? (
