@@ -57,6 +57,21 @@ describe("WorldNewsBlock", () => {
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(1);
   });
 
+  it("sets the lead's headline in white directly on the photo, over a dark gradient — the client's own reference", () => {
+    const { container } = render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} />);
+
+    const heading = screen.getByRole("heading", { level: 3, name: "عنوان 0" });
+    expect(heading).toHaveClass("text-paper");
+    expect(container.querySelector('[class*="from-\\[rgba(10,11,13"]')).not.toBeNull();
+  });
+
+  it("shows the lead's time in a light colour so it reads over the dark gradient, not the plain ink used elsewhere", () => {
+    render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} />);
+
+    const lead = screen.getByRole("link", { name: /عنوان 0/ });
+    expect(lead.querySelector(".text-paper\\/85")).not.toBeNull();
+  });
+
   it("holds back the tile row until the side rail is full", () => {
     render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards.slice(0, 4)} />);
 
@@ -65,24 +80,67 @@ describe("WorldNewsBlock", () => {
     expect(document.querySelector(".border-t.border-line")).toBeNull();
   });
 
-  it("paints the category chip in the section's colour", () => {
+  it("paints the chip flat red, regardless of the section — the client's own reference for this block", () => {
     const { container } = render(
       <WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} sectionKey="world" />,
     );
 
     const chip = screen.getByText("سياسة");
-    expect(chip).toHaveStyle({ backgroundColor: sectionColor("world") });
-    // The same key recolours the whole block, which is what lets another
-    // section run this layout without a second copy of it.
+    expect(chip).toHaveClass("bg-badge-breaking");
+    // sectionKey still recolours the heading rule and headline hover even
+    // though the chip itself no longer follows it.
     expect(container.querySelector("section")!.getAttribute("style")).toContain(sectionColor("world"));
   });
 
   it("keeps the chip clear of the corner the breaking badge owns", () => {
     render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} />);
 
-    // bottom-start, so a breaking world story shows both without stacking.
-    expect(screen.getByText("سياسة").className).toContain("bottom-0");
-    expect(screen.getByText("سياسة").className).toContain("start-0");
+    // Anywhere but the top-start corner, which «عاجل»/«خاص» owns, so a
+    // breaking world story shows both without them stacking.
+    expect(screen.getByText("سياسة").className).not.toMatch(/\btop-\d/);
+  });
+
+  it("regression: the chip and the timestamp share one row instead of stacking on the same corner", () => {
+    // Reported by the client: the red country tag («آسيا», «أمريكا
+    // اللاتينية») lay across the publish time and made it unreadable. Both
+    // were anchored to the photo's bottom-start corner — the chip
+    // absolutely, the time inside the overlay's padding box.
+    render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} />);
+
+    const chip = screen.getByText("سياسة");
+    // Nothing absolutely positioned: it can only be laid out beside the time.
+    expect(chip.className).not.toContain("absolute");
+    const row = chip.parentElement!;
+    expect(row.className).toContain("justify-between");
+    expect(row).toHaveTextContent("منذ ساعة");
+  });
+
+  it("wraps the pair rather than letting them collide on a narrow card", () => {
+    render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} />);
+
+    expect(screen.getByText("سياسة").parentElement!.className).toContain("flex-wrap");
+  });
+
+  it("leaves the time at the inline start on a card with no chip", () => {
+    // justify-between with a single child: a chipless card looks exactly as
+    // it always did, with nothing pushed to the far edge on its own.
+    const noChip = [{ ...cards[0], label: undefined }, ...cards.slice(1)];
+    render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={noChip} />);
+
+    const lead = screen.getByRole("link", { name: /عنوان 0/ });
+    expect(lead.querySelector(".text-paper\\/85")).toHaveTextContent("منذ ساعة");
+    expect(lead.querySelectorAll(".justify-between > *")).toHaveLength(1);
+  });
+
+  it("truncates an over-long label on the side rail's thumbnail instead of slicing it mid-word", () => {
+    // 112px of thumbnail can't seat «أمريكا اللاتينية», and the thumbnail
+    // clips its overflow — so the chip has to cut itself, visibly.
+    const withLongLabel = cards.map((c, i) => (i === 1 ? { ...c, label: "أمريكا اللاتينية" } : c));
+    render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={withLongLabel} />);
+
+    const chip = screen.getByText("أمريكا اللاتينية");
+    expect(chip.className).toContain("truncate");
+    expect(chip.className).toContain("max-w-[calc(100%-1rem)]");
   });
 
   it("gives a side item its topic kicker when the chip is spent on the country", () => {

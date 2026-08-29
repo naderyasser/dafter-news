@@ -23,7 +23,22 @@ import { mediaUrl } from "@/lib/api";
  * pointer/focus inside the rail, the rail scrolled out of view, and
  * prefers-reduced-motion.
  */
-export default function StoriesRail({ lang, stories }: { lang: "ar" | "en"; stories: Story[] }) {
+
+/**
+ * The rail is capped, never open-ended: ten slots is the client's number,
+ * enforced here rather than by whoever fetched the data, so no caller can
+ * widen the rail by passing a longer list. Everything downstream — the
+ * timer, the «1/10» counter, the full-screen viewer — counts the capped
+ * list, so they can't disagree about how many there are.
+ *
+ * The list arrives newest-first (see getStories), so slot 1 is always the
+ * freshest story and adding one pushes the tenth off the end — no editor
+ * has to retire anything by hand.
+ */
+export const MAX_STORIES = 10;
+
+export default function StoriesRail({ lang, stories: all }: { lang: "ar" | "en"; stories: Story[] }) {
+  const stories = all.slice(0, MAX_STORIES);
   const isAr = lang === "ar";
   const trackRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
@@ -85,7 +100,7 @@ export default function StoriesRail({ lang, stories }: { lang: "ar" | "en"; stor
   if (!stories.length) return null;
 
   return (
-    <section className="border-b border-line bg-paper py-5">
+    <section className="border-b border-line bg-paper py-8">
       <div className="mx-auto max-w-container px-6">
         <div className="mb-3 flex items-end justify-between gap-4">
           <h2
@@ -120,7 +135,26 @@ export default function StoriesRail({ lang, stories }: { lang: "ar" | "en"; stor
           onMouseLeave={() => setPaused(false)}
           onFocusCapture={() => setPaused(true)}
           onBlurCapture={() => setPaused(false)}
-          className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          // iOS Safari notes, all three deliberate:
+          //
+          // `items-start` — a row flex container stretches its items to the
+          // line height by default. Combined with a card that sets its own
+          // height, WebKit has repeatedly resolved the stretched cross-size
+          // ahead of the card's own, which leaves cards of unequal height
+          // with their absolutely-positioned photos and captions spilling
+          // over their neighbours. Nothing here wants stretching: every card
+          // is the same declared size.
+          //
+          // `snap-proximity`, not mandatory — autoplay drives this rail with
+          // scrollBy({behavior:"smooth"}), and iOS re-snaps mid-animation
+          // under a mandatory rule, so the rail visibly fights itself and
+          // lands somewhere between two cards. Proximity still snaps a
+          // finger-flick, which is the part a reader notices.
+          //
+          // `overscroll-x-contain` — without it, flicking past the end of a
+          // horizontal rail on iOS hands the gesture to Safari's back-swipe,
+          // so browsing the stories navigates away from the page.
+          className="-mx-1 flex snap-x snap-proximity items-start gap-3 overflow-x-auto overscroll-x-contain px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {stories.map((s, i) => {
             const img = mediaUrl(s.image);
@@ -138,7 +172,23 @@ export default function StoriesRail({ lang, stories }: { lang: "ar" | "en"; stor
                 // The ring marks which card the timer is counting down; the
                 // rest sit on a hairline so the active one is the only thing
                 // the eye has to track.
-                className={`group relative flex aspect-[9/16] w-[128px] flex-shrink-0 snap-start flex-col justify-end overflow-hidden rounded-card border-2 bg-navy-2 no-underline transition-colors duration-med sm:w-[142px] ${
+                // The card was sized by `aspect-[9/16]`, which is the one
+                // pattern on this page that puts an aspect-ratio on a flex
+                // ITEM that is itself a flex container — everywhere else the
+                // ratio sits on a plain nested div, which is safe. That
+                // combination is where WebKit falls down: when the ratio
+                // isn't honoured the card collapses to the height of its own
+                // caption, the `inset-0` photo behind it has no box left to
+                // fill, and the strip reads as overlapping fragments — the
+                // reported "jumbled" rail.
+                //
+                // The width was already fixed at both breakpoints, so the
+                // height was never really a ratio: 128 × 16/9 = 228 and
+                // 142 × 16/9 = 252. Declaring those directly is the same
+                // design with no ratio resolution for any engine to get
+                // wrong. `flex-shrink-0` stays — it was already here, and it
+                // is what stops the cards squeezing to fit the viewport.
+                className={`group relative flex h-[228px] w-[128px] flex-shrink-0 snap-start flex-col justify-end overflow-hidden rounded-card border-2 bg-navy-2 no-underline transition-colors duration-med sm:h-[252px] sm:w-[142px] ${
                   i === index ? "border-accent" : "border-line"
                 }`}
               >

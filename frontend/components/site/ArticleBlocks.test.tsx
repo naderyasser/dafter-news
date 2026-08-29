@@ -198,5 +198,23 @@ describe("ArticleBlocks", () => {
 
       expect(screen.queryByText("أخبار ذات صلة")).not.toBeInTheDocument();
     });
+
+    it("never shows a card's timestamp, even when the caller supplied one", () => {
+      // The client asked for this box specifically to stay clean/uncluttered
+      // — no publish time on its cards, unlike every other place ArticleCard
+      // renders. Enforced here rather than by callers omitting `time` from
+      // relatedInline, so a future caller that does pass one still can't
+      // reintroduce a timestamp into this box.
+      render(
+        <ArticleBlocks
+          lang="ar"
+          blocks={longEnough}
+          relatedCards={[{ href: "/article/a", title: "خبر أول ذو صلة", time: "منذ ٣ ساعات" }]}
+        />,
+      );
+
+      expect(screen.getByText("خبر أول ذو صلة")).toBeInTheDocument();
+      expect(screen.queryByText("منذ ٣ ساعات")).not.toBeInTheDocument();
+    });
   });
 });

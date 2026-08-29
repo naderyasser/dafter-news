@@ -166,3 +166,58 @@ describe("ShareRow", () => {
     expect(screen.getByTitle("Copy link")).toBeInTheDocument();
   });
 });
+
+describe("ShareRow with an explicit shareUrl", () => {
+  let openSpy: ReturnType<typeof vi.spyOn>;
+  const writeText = vi.fn();
+  const short = "https://aldaftarnews.com/article/246";
+
+  beforeEach(() => {
+    openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    Object.assign(navigator, { clipboard: { writeText } });
+    Object.assign(navigator, { share: undefined });
+    // The real page URL is the long Arabic-slug one — every assertion below
+    // checks that `shareUrl` wins over it, not the other way around.
+    window.history.pushState({}, "", "/article/%D9%85%D9%86-%D9%85%D9%83%D8%A9");
+  });
+
+  afterEach(() => {
+    openSpy.mockRestore();
+    writeText.mockClear();
+  });
+
+  /**
+   * The whole point: an Arabic slug pasted into WhatsApp round-trips through
+   * percent-encoding into a wall of `%D8%AA%D8…` — every action here must
+   * hand out the short `/article/<id>` link instead, not just the explicit
+   * "نسخ الرابط" button.
+   */
+  it("copies the short link, not the page's own long Arabic-slug URL", async () => {
+    writeText.mockResolvedValue(undefined);
+    render(<ShareRow lang="ar" title="خبر" shareUrl={short} />);
+
+    await act(async () => fireEvent.click(screen.getByTitle("نسخ الرابط")));
+
+    expect(writeText).toHaveBeenCalledWith(short);
+  });
+
+  it("uses the short link in the WhatsApp/X/Facebook/Threads intents too", () => {
+    render(<ShareRow lang="ar" title="خبر" shareUrl={short} />);
+
+    fireEvent.click(screen.getByTitle("واتساب"));
+    expect(openSpy.mock.calls[0][0]).toContain(encodeURIComponent(short));
+
+    fireEvent.click(screen.getByTitle("فيسبوك"));
+    expect(openSpy.mock.calls[1][0]).toContain(encodeURIComponent(short));
+  });
+
+  it("hands the short link to the native share sheet, not the long one", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, { share });
+    render(<ShareRow lang="ar" title="خبر" shareUrl={short} />);
+
+    await act(async () => fireEvent.click(screen.getByTitle("نسخ الرابط")));
+
+    expect(share).toHaveBeenCalledWith({ title: "خبر", url: short });
+  });
+});

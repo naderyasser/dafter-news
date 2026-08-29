@@ -34,8 +34,14 @@ export default function CoverImage({
   sizes?: string;
 }) {
   const [loaded, setLoaded] = useState(false);
+  // A src that 404s (or decodes as garbage) never fires onLoad, so the image
+  // stayed at opacity-0 over the wrapper's grey — an empty box that looked
+  // identical to a broken layout and never resolved. Falling back to the same
+  // slot the no-src branch already renders means a dead URL degrades to the
+  // branded placeholder instead of a hole in the grid.
+  const [errored, setErrored] = useState(false);
 
-  if (!src) {
+  if (!src || errored) {
     const tone = placeholderClassName ?? "bg-surface-2 text-header-muted";
     return (
       <div className={`flex items-center justify-center text-center text-caption font-semibold ${tone} ${className}`}>
@@ -62,6 +68,7 @@ export default function CoverImage({
         sizes={sizes}
         className={`object-cover transition-opacity duration-500 ease-out motion-reduce:transition-none ${loaded ? "opacity-100" : "opacity-0"}`}
         onLoad={() => setLoaded(true)}
+        onError={() => setErrored(true)}
       />
     </div>
   );

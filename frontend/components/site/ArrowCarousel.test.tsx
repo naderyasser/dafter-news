@@ -89,4 +89,22 @@ describe("ArrowCarousel", () => {
     expect(screen.getByLabelText("السابق")).toBeDisabled();
     expect(screen.getByLabelText("التالي")).toBeDisabled();
   });
+
+  it("overlayArrows swaps the row-above pair for large circles pinned to the track's own edges", async () => {
+    render(
+      <ArrowCarousel lang="ar" overlayArrows>
+        {items}
+      </ArrowCarousel>,
+    );
+    const track = stubTrack();
+    await act(async () => fireEvent.scroll(track));
+
+    // Same controls, same labels, same scroll wiring — only the shape moves.
+    const next = screen.getByLabelText("التالي");
+    expect(next).toHaveClass("absolute", "rounded-full", "bg-accent");
+    expect(next.parentElement).not.toHaveClass("justify-end");
+
+    await act(async () => next.click());
+    expect(track.scrollBy).toHaveBeenCalledWith(expect.objectContaining({ left: -340 }));
+  });
 });

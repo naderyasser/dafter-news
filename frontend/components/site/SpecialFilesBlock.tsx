@@ -81,13 +81,16 @@ export default function SpecialFilesBlock({
             <Link key={f.href} href={f.href} className="group block no-underline">
               <div className="relative overflow-hidden rounded-card ring-1 ring-paper/15 transition-shadow duration-fast group-hover:ring-gold">
                 {/* Poster ratio, not the news 16:9 — a file is a cover, not a frame grab. */}
-                <div className="relative aspect-[3/4]">
+                <div className="relative aspect-[3/4] max-h-[480px]">
                   <CoverImage src={f.imageSrc} alt={f.title} placeholder={t.drop} className="absolute inset-0" sizes="264px" />
                 </div>
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(6,20,32,.94)] via-[rgba(6,20,32,.35)] to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 p-4">
-                  <h3 className={`${fontDisplay} m-0 text-[16px] font-extrabold leading-[1.5] text-paper`}>{f.title}</h3>
-                  <JournalistChip name={f.authorName} avatar={f.authorAvatar} initial={f.authorInitial} />
+                  <h3 className={`${fontDisplay} m-0 line-clamp-3 text-[16px] font-extrabold leading-[1.35] text-paper`}>{f.title}</h3>
+                  <div className="flex items-center justify-between gap-2">
+                    <JournalistChip name={f.authorName} avatar={f.authorAvatar} initial={f.authorInitial} />
+                    {f.time && <span className="tnum flex-shrink-0 text-[11px] font-semibold text-paper/70">{f.time}</span>}
+                  </div>
                 </div>
               </div>
             </Link>

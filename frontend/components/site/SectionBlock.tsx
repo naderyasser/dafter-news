@@ -50,6 +50,12 @@ export default function SectionBlock({
   tagline?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
+  // Every sibling block on the homepage (HeroSlider, VideoShowcase,
+  // SportsBlock, SpecialFilesBlock, WorldNewsBlock) hides itself instead of
+  // showing a heading over an empty grid on a quiet day — this is the
+  // fallback block for anything the dashboard adds later, so it is the one
+  // most likely to actually hit zero, and it was the one block that didn't.
+  if (!cards.length) return null;
   const isAr = lang === "ar";
   const limit = initialCount ?? cards.length;
   const canExpand = cards.length > limit;

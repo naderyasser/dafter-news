@@ -53,7 +53,25 @@ async function copyToClipboard(url: string): Promise<boolean> {
   }
 }
 
-export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: string }) {
+export default function ShareRow({
+  lang,
+  title,
+  shareUrl,
+}: {
+  lang: "ar" | "en";
+  title: string;
+  /**
+   * The link every action here shares/copies, in place of the page's own
+   * (Arabic-slug) address — «رابط قصير ونظيف»: an Arabic slug pasted into
+   * WhatsApp round-trips through percent-encoding and turns into a wall of
+   * `%D8%AA%D8…`, which reads as broken/spammy next to every other link in
+   * the chat. The article itself still lives at, and is indexed under, its
+   * slug URL (SEO wants the readable one as canonical) — this only changes
+   * what a reader hands someone else. Falls back to the current page's own
+   * URL when omitted, so any other caller of this component is unaffected.
+   */
+  shareUrl?: string;
+}) {
   const isAr = lang === "ar";
   // "copied" / "failed" drive the confirmation chip. Without it the copy
   // action gave no feedback at all, so even a *successful* copy looked
@@ -73,7 +91,7 @@ export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: st
 
   const share = async (network: Network) => {
     if (typeof window === "undefined") return;
-    const url = window.location.href;
+    const url = shareUrl || window.location.href;
 
     if (network === "copy") {
       // The native share sheet is what a phone reader actually expects
@@ -97,7 +115,7 @@ export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: st
       return;
     }
 
-    const shareUrl = {
+    const intentUrl = {
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       x: `https://x.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
       // Threads' documented intent takes one `text` param — url and title
@@ -107,7 +125,7 @@ export default function ShareRow({ lang, title }: { lang: "ar" | "en"; title: st
       // to send it to, unlike the footer's fixed-number "advertise" link.
       whatsapp: `https://wa.me/?text=${encodeURIComponent(`${title} ${url}`)}`,
     }[network];
-    window.open(shareUrl, "_blank", "noopener,noreferrer");
+    window.open(intentUrl, "_blank", "noopener,noreferrer");
   };
 
   const copyLabel = isAr ? "نسخ الرابط" : "Copy link";

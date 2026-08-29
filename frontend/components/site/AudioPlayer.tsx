@@ -9,6 +9,26 @@ function fmt(seconds: number) {
 }
 
 /**
+ * A freshly generated narration file (edge-tts's raw streamed MP3, written
+ * straight to disk with no VBR/Xing header) reports `duration: Infinity` in
+ * Chromium until the browser has scanned enough of the file — sometimes not
+ * until a seek forces it to. `Infinity` is truthy, so the plain `||`
+ * fallback this used to be (`audioRef.current?.duration || durationSeconds`)
+ * never caught it: the transport silently adopted an infinite total, the
+ * progress bar sat frozen at 0% forever (any finite time ÷ Infinity is 0),
+ * and the "0:00 / Infinity:NaN" reading looked exactly like "nothing is
+ * happening" — audio could be playing the whole time and there was no way
+ * to tell. `durationSeconds` (the real, known-good length from the server,
+ * computed once by mutagen when the file was generated) is always the
+ * correct value to fall back to; a *finite*, positive browser-reported
+ * duration is only ever preferred because it's occasionally a few
+ * milliseconds more exact.
+ */
+function finiteDuration(d: number | undefined, fallback: number): number {
+  return typeof d === "number" && Number.isFinite(d) && d > 0 ? d : fallback;
+}
+
+/**
  * "استمع للمقال" — matches Article.dc.html's player. Plays real audio when
  * the article has a TTS file (tts_audio); otherwise the transport still
  * works against a simulated duration so the interaction is demonstrable
@@ -19,6 +39,13 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [speed, setSpeed] = useState(1);
+  // A play() call — or the file itself — can fail (a network blip, a
+  // browser that refuses the codec, a load error on a bad file) with
+  // nothing else in this component's state changing: onPlay simply never
+  // fires, so the button silently does nothing. That read as "the feature
+  // is broken" rather than "this one request failed" — surfacing it here is
+  // what tells the two apart.
+  const [error, setError] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   // The simulated-progress interval below is created once per play() and its
@@ -26,7 +53,7 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
   // ref, cycling the speed while already playing would keep advancing
   // progress at the old rate until the reader paused and resumed.
   const speedRef = useRef(speed);
-  const total = audioSrc ? (audioRef.current?.duration || durationSeconds) : durationSeconds;
+  const total = audioSrc ? finiteDuration(audioRef.current?.duration, durationSeconds) : durationSeconds;
 
   useEffect(() => {
     speedRef.current = speed;
@@ -38,8 +65,16 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
 
   const togglePlay = () => {
     if (audioSrc && audioRef.current) {
-      if (playing) audioRef.current.pause();
-      else audioRef.current.play();
+      if (playing) {
+        audioRef.current.pause();
+      } else {
+        setError(false);
+        // play() returns a promise that rejects on a real failure (a
+        // network error, an unsupported/corrupt file) — unhandled, that
+        // rejection is invisible: the button just never flips to "playing"
+        // and nothing tells a reader why.
+        audioRef.current.play().catch(() => setError(true));
+      }
       return;
     }
     if (playing) {
@@ -88,10 +123,15 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
         <audio
           ref={audioRef}
           src={audioSrc}
+          preload="metadata"
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
-          onTimeUpdate={(e) => setProgress(((e.currentTarget.currentTime || 0) / (e.currentTarget.duration || total)) * 100)}
+          onTimeUpdate={(e) => setProgress(((e.currentTarget.currentTime || 0) / finiteDuration(e.currentTarget.duration, total)) * 100)}
           onEnded={() => setPlaying(false)}
+          // The file itself can fail to load (a bad upload, a network drop
+          // mid-fetch) after play() already resolved — this is the other
+          // half of the same "don't fail silently" fix.
+          onError={() => setError(true)}
         />
       )}
       <button
@@ -117,6 +157,11 @@ export default function AudioPlayer({ lang, audioSrc, durationSeconds = 255 }: {
         x{speed}
       </button>
       </div>
+      {error && (
+        <div role="alert" className="mt-1.5 text-xs font-semibold text-down">
+          {isAr ? "تعذّر تشغيل الصوت — حاول مرة أخرى." : "Couldn't play the audio — try again."}
+        </div>
+      )}
     </div>
   );
 }

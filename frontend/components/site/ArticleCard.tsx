@@ -1,6 +1,8 @@
 import Link from "next/link";
 
+import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
+import TimeAgo from "@/components/ui/TimeAgo";
 import type { Badge } from "@/lib/types";
 
 const T = {
@@ -19,7 +21,13 @@ function BadgeChip({ badge, lang, size = "md" }: { badge: Badge; lang: "ar" | "e
   const b = map[badge];
   return (
     <span
-      className={`absolute start-2 top-2 z-10 flex items-center rounded-badge ${b.bg} px-[9px] font-bold text-paper ${
+      // shadow-2 + the ring: a solid-colour pill dropped straight onto a
+      // photo has no guaranteed contrast against it — a bright sky or a
+      // white shirt behind "عاجل" left the badge reading as a smudge. The
+      // shadow lifts it off the image and the 1px ring keeps its own edge
+      // crisp against a background close to its own colour (the gold badge
+      // on a sand-toned photo, mainly).
+      className={`absolute start-2 top-2 z-10 flex items-center rounded-badge ${b.bg} px-[9px] font-bold text-paper shadow-2 ring-1 ring-inset ring-white/15 ${
         size === "sm" ? "py-[2px] text-[10px]" : "py-[3px] text-xs"
       }`}
     >
@@ -30,17 +38,38 @@ function BadgeChip({ badge, lang, size = "md" }: { badge: Badge; lang: "ar" | "e
 }
 
 /**
- * Solid label riding the photo's bottom-start corner — the country on
- * «الخليج»/«عرب وعالم» cards. Bottom-start because «عاجل»/«خاص» owns
- * top-start, so a breaking Kuwait story wears both without stacking.
+ * Solid label on the photo — the country on «الخليج»/«عرب وعالم» cards.
+ * Never in the top-start corner, which «عاجل»/«خاص» owns, so a breaking
+ * Kuwait story wears both without stacking.
+ *
+ * Same shadow/ring treatment as BadgeChip, for one consistent "tag on a
+ * photo" language across the whole home page rather than two different
+ * badge styles depending on which corner a reader is looking at.
+ *
+ * Placement follows what else is on the photo:
+ *
+ * - `corner` — flush in the bottom-start corner, for the standard and
+ *   compact cards, whose photo carries no text at all. Nothing can collide
+ *   with it there.
+ * - `row` — an ordinary flex item beside the timestamp, for the hero card,
+ *   which sets its headline and time INTO the photo. Anchoring the chip to
+ *   that same corner is what laid the red tag across the time and made it
+ *   unreadable; as flex siblings the two cannot overlap. See the hero
+ *   branch below.
  */
-function PhotoChip({ label, accent }: { label?: string; accent?: string }) {
+function PhotoChip({ label, accent, placement = "corner" }: { label?: string; accent?: string; placement?: "corner" | "row" }) {
   if (!label) return null;
+  const paint = "bg-brand px-2.5 py-1 text-[11px] font-extrabold text-paper shadow-2 ring-1 ring-inset ring-white/15";
+  const style = accent ? { backgroundColor: accent } : undefined;
+  if (placement === "row") {
+    return (
+      <span className={`rounded-badge ${paint}`} style={style}>
+        {label}
+      </span>
+    );
+  }
   return (
-    <span
-      className="absolute bottom-0 start-0 z-10 bg-brand px-2.5 py-1 text-[11px] font-extrabold text-paper"
-      style={accent ? { backgroundColor: accent } : undefined}
-    >
+    <span className={`absolute bottom-0 start-0 z-10 max-w-full truncate ${paint}`} style={style}>
       {label}
     </span>
   );
@@ -52,7 +81,12 @@ type CardProps = {
   href: string;
   title: string;
   section?: string;
+  /** Pre-formatted elapsed-time string. Legacy: prefer `iso`, which renders
+   *  the same phrase inside a machine-readable <time datetime>. Ignored when
+   *  `iso` is set, so a caller migrating to `iso` can't print two stamps. */
   time?: string;
+  /** The story's published_at, verbatim from the API. Renders via TimeAgo. */
+  iso?: string | null;
   excerpt?: string;
   badge?: Badge;
   imageSrc?: string | null;
@@ -77,6 +111,7 @@ export default function ArticleCard({
   title,
   section,
   time,
+  iso,
   excerpt,
   badge = "none",
   imageSrc,
@@ -89,21 +124,40 @@ export default function ArticleCard({
   const t = T[lang];
   const fontDisplay = lang === "ar" ? "font-display-ar" : "font-display-en";
   const accentVar = accent ? ({ "--card-accent": accent } as React.CSSProperties) : undefined;
+  // `iso` wins where both are supplied — see the prop's own note. `hasTime`
+  // is what the wrapper rows below test, so a card with neither doesn't
+  // render an empty meta row that still costs its margin.
+  const stamp = iso ? <TimeAgo iso={iso} lang={lang} /> : time ? <>{time}</> : null;
+  const hasTime = Boolean(iso || time);
 
   if (variant === "hero") {
     return (
       <Link href={href} className="relative block overflow-hidden rounded-card">
-        <div className="relative aspect-[16/10]">
+        <div className="relative aspect-[16/10] max-h-[480px]">
           <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(10,11,13,.88)] via-[rgba(10,11,13,.15)] to-transparent" />
         </div>
         <BadgeChip badge={badge} lang={lang} />
-        <PhotoChip label={chip} accent={accent} />
         <div className="absolute inset-x-0 bottom-0 p-5">
           {section && <span className="text-xs font-bold text-navy-tint">{section}</span>}
-          <h3 className={`${fontDisplay} m-0 mt-1.5 text-[clamp(1.25rem,1rem+1.6vw,1.75rem)] font-extrabold leading-[1.4] text-paper`}>
+          <h3 className={`${fontDisplay} m-0 mt-1.5 line-clamp-3 text-[clamp(1.0625rem,0.9rem+1vw,1.5rem)] font-extrabold leading-[1.3] text-paper`}>
             {title}
           </h3>
+          {/* Chip at the inline start, time pushed to the inline end — the
+              one row that used to be two elements stacked on the same
+              corner. flex-wrap so a long label and the time stack instead
+              of colliding on a narrow phone. */}
+          {(chip || hasTime) && (
+            <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+              <PhotoChip label={chip} accent={accent} placement="row" />
+              {hasTime && (
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-paper/85">
+                  <ClockIcon />
+                  {stamp}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </Link>
     );
@@ -121,7 +175,7 @@ export default function ArticleCard({
         </div>
         <div className="min-w-0 flex-1">
           <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-bold leading-[1.45] text-ink`}>{title}</h3>
-          {time && <div className="mt-1.5 text-xs text-ink-3">{time}</div>}
+          {hasTime && <div className="mt-1.5 text-xs text-ink-3">{stamp}</div>}
         </div>
       </Link>
     );
@@ -132,7 +186,7 @@ export default function ArticleCard({
       <Link href={href} className="card-link block border-b border-line py-3.5 no-underline" style={accentVar}>
         <h3 className={`${fontDisplay} card-title m-0 text-h3 font-bold leading-[1.5] text-ink`}>{title}</h3>
         {excerpt && <div className="mt-1.5 text-[14px] leading-[1.6] text-ink-2">{excerpt}</div>}
-        {time && <div className="mt-2 text-caption text-ink-3">{time}</div>}
+        {hasTime && <div className="mt-2 text-caption text-ink-3">{stamp}</div>}
       </Link>
     );
   }
@@ -169,10 +223,13 @@ export default function ArticleCard({
           </span>
         )}
         <h3 className={`${fontDisplay} card-title m-0 mt-2 text-h3 font-bold leading-[1.5] text-ink`}>{title}</h3>
-        {time && <div className="mt-1.5 text-caption text-ink-3">{time}</div>}
+        {hasTime && <div className="mt-1.5 text-caption text-ink-3">{stamp}</div>}
         {isVideo && (
           <div className="mt-2 flex gap-3.5 text-caption text-ink-3">
-            <span>💬 {comments ?? 0}</span>
+            {/* «٠ تعليق» is not a fact worth printing — an empty counter reads
+                as "nobody is here" and actively costs the card credibility.
+                Shown only once there is something to report. */}
+            {comments ? <span>💬 {comments}</span> : null}
             <span>
               {t.shareGlyph} {t.share}
             </span>

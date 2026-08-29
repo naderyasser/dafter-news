@@ -47,4 +47,19 @@ describe("CoverImage", () => {
     expect(img).toHaveClass("opacity-100");
     expect(img).not.toHaveClass("opacity-0");
   });
+  /**
+   * The "3 of 94 broken images" on the homepage: a src that 404s never fires
+   * onLoad, so the <Image> stayed at opacity-0 over the wrapper's grey and
+   * the card kept a permanently empty box. A dead URL must degrade to the
+   * same branded slot a missing URL already got.
+   */
+  it("falls back to the placeholder when the image fails to load", () => {
+    render(<CoverImage {...props} src="/media/covers/gone.jpg" />);
+
+    expect(screen.getByRole("img")).toBeInTheDocument();
+    fireEvent.error(screen.getByRole("img"));
+
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByText("أفلت صورة الخبر هنا")).toBeInTheDocument();
+  });
 });

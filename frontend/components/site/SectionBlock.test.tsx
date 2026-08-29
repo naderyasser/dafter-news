@@ -114,4 +114,14 @@ describe("SectionBlock", () => {
     expect(screen.queryByText("آخر تطورات المشهد السياسي")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /عرض الكل/ })).toBeInTheDocument();
   });
+
+  it("renders nothing for an empty list, rather than a heading over an empty grid", () => {
+    // Every sibling homepage block (HeroSlider, VideoShowcase, SportsBlock,
+    // SpecialFilesBlock, WorldNewsBlock) hides itself the same way on a
+    // quiet day — this is the fallback block for a dashboard-added section,
+    // so it's the one most likely to actually hit zero.
+    const { container } = render(<SectionBlock lang="ar" title="قسم جديد" seeAllHref="/section/brand-new" cards={[]} />);
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

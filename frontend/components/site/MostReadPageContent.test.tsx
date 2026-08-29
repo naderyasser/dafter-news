@@ -54,4 +54,24 @@ describe("MostReadPageContent", () => {
     const monthTitles = screen.getAllByText(/^خبر رقم/).map((el) => el.textContent);
     expect(monthTitles).toEqual(dayTitles);
   });
+
+  it("captions a row with its section alone, never the read count", () => {
+    // This page is the widget's «عرض الكل» destination and follows the same
+    // caption rule: section only, even when the caller passes `views`.
+    render(<MostReadPageContent rows={[{ ...rows[0], views: 150 }]} />);
+
+    const row = screen.getByText("خبر رقم 1").closest("a")!;
+    expect(row).toHaveTextContent("قسم");
+    expect(row.textContent).not.toContain("قراءة");
+    expect(row.textContent).not.toContain("١٥٠");
+    expect(row.textContent).not.toContain("·");
+  });
+
+  it("renders a row with no count at all, leaving no stray separator", () => {
+    render(<MostReadPageContent rows={[{ title: "بلا عداد", section: "قسم", href: "/article/y" }]} />);
+
+    const row = screen.getByText("بلا عداد").closest("a")!;
+    expect(row).toHaveTextContent("قسم");
+    expect(row.textContent).not.toContain("·");
+  });
 });

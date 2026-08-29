@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import StoriesRail from "./StoriesRail";
+import StoriesRail, { MAX_STORIES } from "./StoriesRail";
 import { STORY_MS } from "./StoryViewer";
 import type { Story } from "@/lib/types";
 
@@ -39,6 +39,28 @@ describe("StoriesRail", () => {
     expect(screen.getByText("قرار الفائدة")).toBeInTheDocument();
   });
 
+  it("never shows more than ten cards, however many it is handed", () => {
+    const many = Array.from({ length: 25 }, (_, i) => story({ id: i + 1, title: `قصة ${i + 1}` }));
+
+    render(<StoriesRail lang="ar" stories={many} />);
+
+    expect(screen.getAllByRole("link")).toHaveLength(MAX_STORIES);
+    expect(screen.getAllByRole("link")).toHaveLength(10);
+    // The first ten — the newest, since the API hands them over
+    // newest-first — not a slice from somewhere in the middle.
+    expect(screen.getByText("قصة 1")).toBeInTheDocument();
+    expect(screen.queryByText("قصة 11")).not.toBeInTheDocument();
+  });
+
+  it("counts the capped list, not the list it was given", () => {
+    // «1/10», never «1/25» — the counter and the rail have to agree.
+    const many = Array.from({ length: 25 }, (_, i) => story({ id: i + 1, title: `قصة ${i + 1}` }));
+
+    render(<StoriesRail lang="ar" stories={many} />);
+
+    expect(screen.getByText("1/10")).toBeInTheDocument();
+  });
+
   it("shows the section label on the card", () => {
     render(<StoriesRail lang="ar" stories={[story()]} />);
 
@@ -60,10 +82,44 @@ describe("StoriesRail", () => {
     expect(track?.className).toContain("snap-x");
   });
 
-  it("uses tall portrait cards", () => {
+  it("uses tall portrait cards, sized explicitly rather than by ratio", () => {
+    // regression (iOS): the card carried `aspect-[9/16]` while being both a
+    // flex item and a flex container — the one place on the page with that
+    // combination. WebKit resolves it unreliably, and a card that loses its
+    // height collapses onto its neighbours, which is the "jumbled" rail
+    // reported on iPhone. The width was already fixed at both breakpoints,
+    // so 128×228 / 142×252 is the same design with nothing left to resolve.
     const { container } = render(<StoriesRail lang="ar" stories={[story()]} />);
 
-    expect(container.querySelector(".aspect-\\[9\\/16\\]")).not.toBeNull();
+    const card = container.querySelector("a")!;
+    expect(card.className).toContain("h-[228px]");
+    expect(card.className).toContain("w-[128px]");
+    expect(card.className).toContain("sm:h-[252px]");
+    expect(card.className).toContain("sm:w-[142px]");
+    expect(card.className).not.toContain("aspect-");
+  });
+
+  it("keeps every card at its declared size on a narrow screen", () => {
+    // flex-shrink-0 is what stops five cards squeezing to fit a phone.
+    const { container } = render(<StoriesRail lang="ar" stories={[story(), story({ id: 2 })]} />);
+
+    for (const card of container.querySelectorAll("a")) {
+      expect(card.className).toContain("flex-shrink-0");
+    }
+  });
+
+  it("does not let the row stretch its cards", () => {
+    // align-items: stretch is what WebKit resolves ahead of the card's own
+    // height; nothing in this rail wants it — every card is one size.
+    const { container } = render(<StoriesRail lang="ar" stories={[story()]} />);
+
+    expect(container.querySelector(".overflow-x-auto")!.className).toContain("items-start");
+  });
+
+  it("keeps a flick past the end of the rail from triggering Safari's back-swipe", () => {
+    const { container } = render(<StoriesRail lang="ar" stories={[story()]} />);
+
+    expect(container.querySelector(".overflow-x-auto")!.className).toContain("overscroll-x-contain");
   });
 
   it("falls back to # when a story has no destination", () => {

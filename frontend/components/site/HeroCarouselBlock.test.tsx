@@ -40,9 +40,9 @@ describe("HeroCarouselBlock", () => {
 
     const lead = screen.getByRole("link", { name: /عنوان 0/ });
     expect(lead).toBeInTheDocument();
-    // Only the lead's headline sits inside its own link as an h3 sized for
-    // the overlay treatment — distinguishing it from the smaller tiles.
-    expect(lead.querySelector("h3")).toHaveClass("text-paper");
+    // The lead's headline sits in the plain flow under its photo, in ink —
+    // same shape as a tile's, just a bigger size class.
+    expect(lead.querySelector("h3")).toHaveClass("text-ink");
   });
 
   it("shows exactly two tiles per page from the remaining cards", () => {
@@ -68,6 +68,30 @@ describe("HeroCarouselBlock", () => {
     // ...the one without simply shows nothing there, rather than a blank pill.
     const secondTile = screen.getByRole("link", { name: /عنوان 1/ });
     expect(secondTile.querySelector(".bg-badge-breaking")).toBeNull();
+  });
+
+  it("colours a plain topic chip the same red as a real badge — regression: the client's own reference showed both flat red", () => {
+    render(
+      <HeroCarouselBlock
+        lang="ar"
+        title="سياسة"
+        href="/section/pol"
+        cards={[{ ...cards[0] }, { ...cards[1], chip: "حرب إيران" }, { ...cards[2], badge: "breaking" }]}
+      />,
+    );
+
+    const topicChip = screen.getByText("حرب إيران");
+    expect(topicChip).toHaveClass("bg-badge-breaking");
+
+    const urgentTile = screen.getByRole("link", { name: /عنوان 2/ });
+    expect(urgentTile.querySelector(".bg-badge-breaking")).not.toBeNull();
+  });
+
+  it("shows a timestamp under a carousel tile — regression: only the lead card had one", () => {
+    render(<HeroCarouselBlock lang="ar" title="سياسة" href="/section/pol" cards={cards} />);
+
+    const tile = screen.getByRole("link", { name: /عنوان 1/ });
+    expect(tile).toHaveTextContent("منذ ساعة");
   });
 
   it("advances a full page (two cards) per arrow click, and disables at each end", () => {

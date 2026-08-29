@@ -240,6 +240,17 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
           <span className="text-[13px] text-ink-3">
             {isAr ? "الدفتر نيوز © جميع الحقوق محفوظة" : "Al Daftar News — all rights reserved"}
           </span>
+          <span className="text-[13px] text-ink-3">
+            {isAr ? "تطوير " : "Built by "}
+            <a
+              href="https://master.dev.educore.software/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-ink-3 no-underline hover:text-header-ink"
+            >
+              Master Development
+            </a>
+          </span>
         </div>
       </div>
     </footer>

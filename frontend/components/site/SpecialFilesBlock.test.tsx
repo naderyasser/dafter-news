@@ -93,4 +93,17 @@ describe("SpecialFilesBlock", () => {
     expect(screen.getByText("See all")).toBeInTheDocument();
     expect(screen.getByText("Investigations & in-depth reports")).toBeInTheDocument();
   });
+
+  it("shows the publish time — regression: the type carried it but nothing rendered it", () => {
+    render(
+      <SpecialFilesBlock
+        lang="ar"
+        title="ملف خاص"
+        href="/section/special"
+        items={[{ ...items[0], time: "منذ يومين" }]}
+      />,
+    );
+
+    expect(screen.getByText("منذ يومين")).toBeInTheDocument();
+  });
 });

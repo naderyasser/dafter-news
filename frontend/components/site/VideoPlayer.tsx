@@ -38,8 +38,8 @@ function embedUrl(raw: string): string | null {
 }
 
 const T = {
-  ar: { play: "تشغيل", unavailable: "الفيديو غير متاح حالياً", exclusive: "حصري" },
-  en: { play: "Play", unavailable: "This video is currently unavailable", exclusive: "Exclusive" },
+  ar: { play: "تشغيل", exclusive: "حصري" },
+  en: { play: "Play", exclusive: "Exclusive" },
 };
 
 export default function VideoPlayer({
@@ -50,6 +50,7 @@ export default function VideoPlayer({
   title,
   isExclusive,
   durationLabel,
+  onPlayingChange,
 }: {
   lang?: "ar" | "en";
   src?: string;
@@ -58,6 +59,8 @@ export default function VideoPlayer({
   title: string;
   isExclusive?: boolean;
   durationLabel?: string;
+  /** Told when this instance starts playing, so a host carousel can stop advancing under it. */
+  onPlayingChange?: (playing: boolean) => void;
 }) {
   const t = T[lang];
   const [playing, setPlaying] = useState(false);
@@ -65,6 +68,10 @@ export default function VideoPlayer({
   // An uploaded file wins over a link: it's served from our own origin, so it
   // needs no third party and no embed rules.
   const playable = Boolean(src) || Boolean(embed);
+  const start = () => {
+    setPlaying(true);
+    onPlayingChange?.(true);
+  };
 
   if (playing && src) {
     return (
@@ -104,7 +111,7 @@ export default function VideoPlayer({
       {playable ? (
         <button
           type="button"
-          onClick={() => setPlaying(true)}
+          onClick={start}
           aria-label={`${t.play}: ${title}`}
           className="absolute inset-0 flex items-center justify-center"
         >
@@ -112,15 +119,16 @@ export default function VideoPlayer({
             <span className="inline-block -scale-x-100">▶</span>
           </span>
         </button>
-      ) : (
-        // No source at all — keep the poster, but don't offer a control that
-        // would do nothing.
-        <div className="pointer-events-none absolute inset-0 flex items-end justify-center pb-4">
-          <span className="rounded-badge bg-[rgba(23,26,31,.7)] px-3 py-1.5 text-xs font-semibold text-paper">
-            {t.unavailable}
-          </span>
-        </div>
-      )}
+      ) : null}
+      {/* No source: the poster alone stands in, with no control offered —
+          a play button that does nothing is worse than none.
+
+          What is deliberately NOT rendered here is the old
+          «الفيديو غير متاح حالياً» badge. A reader has no use for a systems
+          status message: it reads as the site being broken rather than as
+          this one clip lacking a file, and it was surfacing in the middle of
+          the section's shop window. The tile still links to the video's own
+          page, which is where an explanation belongs if one is needed. */}
 
       {isExclusive && (
         <span className="absolute start-3 top-3 rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">{t.exclusive}</span>

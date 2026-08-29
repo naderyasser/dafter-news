@@ -6,7 +6,9 @@ import { useState } from "react";
 
 import { toEasternNumerals } from "@/lib/format";
 
-export type MostReadRow = { title: string; section: string; href: string; imageSrc?: string };
+/** Same caption rule as the sidebar widget — section only, no read count.
+ *  See MostReadItem for why. */
+export type MostReadRow = { title: string; section: string; href: string; views?: number; imageSrc?: string };
 
 const PERIODS = [
   { key: "day", label: "اليوم" },
@@ -51,7 +53,7 @@ export default function MostReadPageContent({ rows }: { rows: MostReadRow[] }) {
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="text-[15px] font-semibold leading-[1.5] text-ink">{it.title}</span>
-              <span className="text-xs text-ink-3">{it.section}</span>
+              <span className="tnum flex flex-wrap items-center gap-x-1.5 text-xs text-ink-3">{it.section}</span>
             </span>
             {/* The homepage widget carries these thumbs, and this page —
                 the widget's own «عرض الكل» destination — showed bare text,

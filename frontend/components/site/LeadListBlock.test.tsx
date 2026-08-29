@@ -118,13 +118,65 @@ describe("LeadListBlock", () => {
     expect(screen.getByRole("link", { name: /عرض المزيد/ })).toHaveAttribute("href", "/section/gulf");
   });
 
-  it("sits on the same navy band as «لقطة وتعليق», with the heading readable on it", () => {
+  it("sits on plain white, not the navy band — regression: the client reverted that call", () => {
     const { container } = render(
       <LeadListBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" sectionKey="egypt" cards={cards} />,
     );
 
-    expect(container.querySelector("section")?.className).toContain("bg-navy");
-    // rule-on-dark is SectionHeading's own signal that it was given tone="dark".
-    expect(container.querySelector(".rule-on-dark")).not.toBeNull();
+    expect(container.querySelector("section")?.className).toContain("bg-paper");
+    expect(container.querySelector("section")?.className).not.toContain("bg-navy");
+    // rule-on-dark would be SectionHeading's signal that it was given
+    // tone="dark" — on a white block the heading must NOT ask for that.
+    expect(container.querySelector(".rule-on-dark")).toBeNull();
+  });
+
+  /**
+   * The client's own report: «الخليج العربي» rows carried the section name
+   * as their label everywhere, so every card in the block read the same
+   * regardless of which country the story was actually about. `chip`
+   * (country) rides the photo now, same as عرب وعالم; `section` (Egypt's
+   * only label) still runs the text-column kicker underneath it unchanged.
+   */
+  describe("country chip", () => {
+    const gulfCards = [
+      { ...cards[0], chip: "السعودية" },
+      { ...cards[1], chip: "الإمارات" },
+      { ...cards[2] }, // no country set — must not show an empty pill
+    ];
+
+    it("floats the country on the lead photo", () => {
+      render(<LeadListBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" sectionKey="gulf" cards={gulfCards} />);
+
+      expect(screen.getByText("السعودية")).toBeInTheDocument();
+    });
+
+    it("floats the country on a list row's own thumbnail", () => {
+      render(<LeadListBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" sectionKey="gulf" cards={gulfCards} />);
+
+      expect(screen.getByText("الإمارات")).toBeInTheDocument();
+    });
+
+    it("colours the chip with the section's own accent, not a hardcoded one", () => {
+      render(<LeadListBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" sectionKey="gulf" cards={gulfCards} />);
+
+      expect(screen.getByText("السعودية")).toHaveStyle({ backgroundColor: sectionColor("gulf") });
+    });
+
+    it("shows no pill on a row with no country, rather than an empty one", () => {
+      render(<LeadListBlock lang="ar" title="الخليج العربي" seeAllHref="/section/gulf" sectionKey="gulf" cards={gulfCards} />);
+
+      // Third card (the second list row) carries no chip; its text-column
+      // kicker («شؤون مصر» here, reused from the shared fixture) is
+      // unaffected either way — both list rows still show it.
+      expect(screen.getAllByText("شؤون مصر")).toHaveLength(2);
+    });
+
+    it("leaves Egypt's rows exactly as they were — no chip means nothing new renders", () => {
+      const { container } = render(
+        <LeadListBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" sectionKey="egypt" cards={cards} />,
+      );
+
+      expect(container.querySelector(".ring-white\\/15")).toBeNull();
+    });
   });
 });

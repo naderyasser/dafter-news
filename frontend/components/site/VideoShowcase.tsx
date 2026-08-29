@@ -27,6 +27,7 @@ export type ShowcaseVideo = {
 };
 
 const SWIPE_PX = 44;
+const AUTOPLAY_MS = 6000;
 
 const T = {
   ar: {
@@ -73,8 +74,9 @@ const T = {
  * Navigation wraps, matching HeroSlider: this is a playlist of eight, with the
  * position spelled out in the counter and every item present in the strip, so
  * an arrow that dead-ends at the edge would just be a control that stopped
- * working. Unlike the hero it never advances on its own — a stage that changed
- * clips while someone was reading the synopsis would be a fault, not a feature.
+ * working. It advances on its own too, same as the hero — but only while the
+ * stage is showing a poster: once a clip is actually playing, autoplay stands
+ * down so it never yanks the stage out from under someone watching.
  */
 export default function VideoShowcase({
   lang,
@@ -90,11 +92,18 @@ export default function VideoShowcase({
   const isAr = lang === "ar";
   const t = T[lang];
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const reducedMotion = useRef(false);
   const stripRef = useRef<HTMLDivElement>(null);
   const touchX = useRef<number | null>(null);
   // The strip is only scrolled in response to a change of selection. Doing it
   // on mount would drag the page to the rail the moment it hydrates.
   const settled = useRef(false);
+
+  useEffect(() => {
+    reducedMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }, []);
 
   /**
    * The stage is the section's shop window, and the API hands these over
@@ -118,15 +127,39 @@ export default function VideoShowcase({
     [count],
   );
 
+  /**
+   * Bring thumbnail `i` into view within the strip only.
+   *
+   * Deliberately `scrollBy` with a delta measured off getBoundingClientRect,
+   * not `scrollIntoView`: scrollIntoView is free to scroll ancestors to bring
+   * the target on screen — and since this fires from the autoplay timer below
+   * regardless of whether the section is even in the viewport, it was
+   * dragging the whole page down to whatever slide autoplay had just
+   * advanced to. Same fix, same reasoning, as StoriesRail's scrollToIndex.
+   */
+  const scrollThumbToIndex = useCallback((i: number) => {
+    const strip = stripRef.current;
+    const item = strip?.children[i] as HTMLElement | undefined;
+    if (!strip || !item) return;
+    const delta = item.getBoundingClientRect().left - strip.getBoundingClientRect().left;
+    strip.scrollBy({ left: delta, behavior: "smooth" });
+  }, []);
+
   useEffect(() => {
     if (!settled.current) {
       settled.current = true;
       return;
     }
-    const strip = stripRef.current;
-    const active = strip?.querySelector<HTMLElement>("[data-active='true']");
-    active?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [index]);
+    scrollThumbToIndex(index);
+    // A fresh slide always opens on its poster, never mid-playback.
+    setVideoPlaying(false);
+  }, [index, scrollThumbToIndex]);
+
+  useEffect(() => {
+    if (paused || videoPlaying || reducedMotion.current || count < 2) return;
+    const id = window.setInterval(() => go(1), AUTOPLAY_MS);
+    return () => window.clearInterval(id);
+  }, [paused, videoPlaying, go, count]);
 
   if (!count) return null;
   const active = ordered[Math.min(index, count - 1)];
@@ -142,6 +175,10 @@ export default function VideoShowcase({
       className="bg-navy py-8"
       aria-roledescription="carousel"
       aria-label={title}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
       onKeyDown={(e) => {
         // Scoped to focus inside the section, so it never fights the page.
         if (e.key === "ArrowRight") go(isAr ? -1 : 1);
@@ -178,6 +215,7 @@ export default function VideoShowcase({
               title={active.title}
               isExclusive={active.isExclusive}
               durationLabel={active.isLive ? undefined : active.durationLabel}
+              onPlayingChange={setVideoPlaying}
             />
 
             {active.isLive ? (

@@ -119,7 +119,7 @@ export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides
       {/* sm:px-16 clears the arrow buttons (they end 56px in): the kicker
           pill sits at the arrows' height on desktop, and 36px of padding put
           it underneath them. */}
-      <div className="relative z-[1] flex min-h-[440px] flex-col justify-end px-5 pb-4 pt-28 sm:min-h-[430px] sm:px-16 sm:pb-5 lg:min-h-[490px]">
+      <div className="relative z-[1] flex min-h-[440px] flex-col justify-end px-5 pb-4 pt-28 sm:min-h-[430px] sm:px-16 sm:pb-5 lg:min-h-[480px]">
         {/* Keyed by slide so the text arrives with a soft fade in step with
             the photo behind it. */}
         <div key={slide.href + index} className="flex animate-fade-in flex-col gap-3">
@@ -139,7 +139,7 @@ export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides
 
           <Link
             href={slide.href}
-            className={`${isAr ? "font-display-ar" : "font-display-en"} max-w-[820px] text-[clamp(1.5rem,1.15rem+1.8vw,2.375rem)] font-extrabold leading-[1.5] text-paper no-underline`}
+            className={`${isAr ? "font-display-ar" : "font-display-en"} max-w-[820px] text-[clamp(1.1875rem,0.95rem+1.5vw,2.375rem)] font-extrabold leading-[1.3] text-paper no-underline`}
           >
             {slide.title}
           </Link>

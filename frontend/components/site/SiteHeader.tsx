@@ -5,10 +5,10 @@ import BetaBadge from "@/components/site/BetaBadge";
 import NavDrawer from "@/components/site/NavDrawer";
 import PrayerStrip from "@/components/site/PrayerStrip";
 import BreakingAlertsToggle from "@/components/site/BreakingAlertsToggle";
+import MainNav from "@/components/site/MainNav";
 import SearchBox from "@/components/site/SearchBox";
 import StickyHeader from "@/components/site/StickyHeader";
 import { getBreakingNews, getPrayerTimes, getSections, getSiteSettings, mediaUrl } from "@/lib/api";
-import { sectionColor } from "@/lib/sections";
 
 type NavItem = { key: string; label: string; href: string };
 
@@ -114,7 +114,10 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
       <StickyHeader>
       {/* masthead — hamburger at the inline start, search at the inline end */}
       <div className="border-b border-line bg-paper">
-        <div className="mx-auto flex max-w-container items-center gap-4 px-6 py-4">
+        {/* py-2 and a 44px mark: the masthead was 104px on its own (py-4 plus a
+            72px logo), which alone blew most of the ~110px budget the whole
+            sticky block is allowed. */}
+        <div className="mx-auto flex max-w-container items-center gap-4 px-6 py-2">
           <NavDrawer lang={lang} sections={sections} extraLinks={drawerExtras} active={active} logoSrc={logoSrc} />
 
           {/* The masthead shows the uploaded brand mark when Settings has one,
@@ -132,7 +135,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
                 width={240}
                 height={72}
                 priority
-                className="h-[52px] w-auto object-contain sm:h-[64px] lg:h-[72px]"
+                className="h-[38px] w-auto object-contain sm:h-[42px] lg:h-[46px]"
               />
             ) : (
               <span className={`${fontDisplay} rule-accent flex flex-col ps-3.5`}>
@@ -161,34 +164,12 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
 
       {/* nav — the active item is underlined in its own section's colour, so
           the bar reads as part of the section you are standing in rather than
-          as one more red element competing with «عاجل» below it. */}
-      <nav className="border-b border-line bg-paper shadow-1">
-        {/* Wraps on wide screens: thirteen Arabic section names do not fit
-            1200px on one line, and `overflow-x-auto` was silently pushing the
-            tail of the list — «الخليج» among them — off the end of a bar with
-            no affordance to scroll it. On phones the same wrap produced five
-            stacked rows, so there the bar is a single swipeable row instead —
-            a reader with a touchscreen has the affordance built in, and the
-            drawer still lists every section. */}
-        <div className="scrollbar-none mx-auto flex max-w-container items-stretch gap-x-5 overflow-x-auto px-6 py-0.5 sm:flex-wrap sm:gap-x-6 sm:gap-y-0 sm:overflow-x-visible">
-          {nav.map((item) => {
-            const isActive = item.key === active;
-            const color = sectionColor(item.key === "home" ? undefined : item.key);
-            return (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={`flex h-10 flex-shrink-0 items-center whitespace-nowrap border-b-[3px] px-1 text-[14px] no-underline ${
-                  isActive ? "font-bold" : "border-transparent font-semibold text-ink hover:text-accent"
-                }`}
-                style={isActive ? { borderColor: color, color } : undefined}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+          as one more red element competing with «عاجل» below it.
+
+          One line at every desktop width: MainNav measures the bar and moves
+          the tail into a «المزيد ⌄» menu rather than wrapping to a second
+          row, which is what pushed the sticky chrome to 190px. */}
+      <MainNav items={nav} active={active} />
       </StickyHeader>
 
       {/* breaking marquee */}

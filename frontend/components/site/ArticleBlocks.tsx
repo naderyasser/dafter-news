@@ -39,7 +39,7 @@ function MidArticleRelated({ lang, cards }: { lang: "ar" | "en"; cards: SectionB
       </div>
       <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
         {cards.map((c, i) => (
-          <ArticleCard key={c.href + i} lang={lang} variant="compact" href={c.href} title={c.title} time={c.time} badge={c.badge} imageSrc={c.imageSrc} />
+          <ArticleCard key={c.href + i} lang={lang} variant="compact" href={c.href} title={c.title} badge={c.badge} imageSrc={c.imageSrc} />
         ))}
       </div>
     </aside>

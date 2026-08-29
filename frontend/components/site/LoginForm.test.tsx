@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { DASHBOARD } from "@/lib/routes";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import LoginForm, { safeNext } from "./LoginForm";
@@ -45,7 +46,7 @@ const submitLogin = async (user = "m.eladawy", pass = "hunter2") => {
 describe("safeNext", () => {
   it.each([
     ["/", "/"],
-    ["/dashboard", "/dashboard"],
+    [DASHBOARD, DASHBOARD],
     ["/section/egypt?page=2", "/section/egypt?page=2"],
     ["/article/x#comments", "/article/x#comments"],
     // A path that merely *mentions* a host is still a path.
@@ -100,7 +101,7 @@ describe("LoginForm", () => {
     await submitLogin();
 
     expect(login).toHaveBeenCalledWith("m.eladawy", "hunter2");
-    expect(push).toHaveBeenCalledWith("/dashboard");
+    expect(push).toHaveBeenCalledWith(DASHBOARD);
   });
 
   it("sends a reader to the front page, not the newsroom", async () => {
@@ -109,16 +110,16 @@ describe("LoginForm", () => {
     await submitLogin();
 
     expect(push).toHaveBeenCalledWith("/");
-    expect(push).not.toHaveBeenCalledWith("/dashboard");
+    expect(push).not.toHaveBeenCalledWith(DASHBOARD);
   });
 
   it("returns the reader to the page that sent them to sign in", async () => {
-    search = new URLSearchParams("next=/dashboard/articles");
+    search = new URLSearchParams(`next=${DASHBOARD}/articles`);
     login.mockResolvedValue({ is_staff_member: true });
     render(<LoginForm />);
     await submitLogin();
 
-    expect(push).toHaveBeenCalledWith("/dashboard/articles");
+    expect(push).toHaveBeenCalledWith(`${DASHBOARD}/articles`);
   });
 
   /**

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Chevron from "@/components/ui/Chevron";
 
-export type OpinionItem = { name: string; quote: string; href: string; initial: string };
+export type OpinionItem = { name: string; quote: string; href: string; initial: string; avatar?: string; time?: string };
 
 const AUTOPLAY_MS = 5000;
 const CARD_STEP = 316; // card width + gap
@@ -59,6 +59,17 @@ export default function OpinionCarousel({
     return () => window.clearInterval(id);
   }, [paused, scroll, items.length]);
 
+  // Every sibling band on the homepage (HeroSlider, VideoShowcase,
+  // SportsBlock, SpecialFilesBlock) hides itself rather than showing a
+  // heading over nothing on a quiet day — this one didn't, and the opinion
+  // desk is thin enough right now (a couple of live pieces at a time) for
+  // that gap to be a real, not just theoretical, risk. Arrow buttons over
+  // an empty scroller read as broken, not quiet. After the hooks, not
+  // before: an early return ahead of useCallback/useEffect would skip them
+  // on an empty render and violate the Rules of Hooks the moment items
+  // goes from empty to non-empty between renders.
+  if (!items.length) return null;
+
   return (
     <section
       className={`${fontBody} bg-navy py-10`}
@@ -108,11 +119,19 @@ export default function OpinionCarousel({
             <span className="font-serif text-[40px] font-extrabold leading-[.6] text-brand">&ldquo;</span>
             <div className="flex-1 text-[16px] font-semibold leading-[1.6] text-paper">{op.quote}</div>
             <div className="mt-2 flex items-center gap-2.5">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border-2 border-brand bg-navy text-[15px] font-extrabold text-header-ink">
-                {op.initial}
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-brand bg-navy text-[15px] font-extrabold text-header-ink">
+                {op.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={op.avatar} alt={op.name} className="h-full w-full object-cover" />
+                ) : (
+                  op.initial
+                )}
               </div>
-              <span className="text-[13px] text-header-muted">{op.name}</span>
-              <Chevron lang={lang} className="ms-auto h-4 w-4 text-brand" />
+              <span className="flex min-w-0 flex-col">
+                <span className="text-[13px] text-header-muted">{op.name}</span>
+                {op.time && <span className="tnum text-[11.5px] text-header-muted/70">{op.time}</span>}
+              </span>
+              <Chevron lang={lang} className="ms-auto h-4 w-4 flex-shrink-0 text-brand" />
             </div>
           </Link>
         ))}

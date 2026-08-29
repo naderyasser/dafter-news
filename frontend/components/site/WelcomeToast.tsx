@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { isArabicScript } from "@/lib/format";
 import { useEffect, useState } from "react";
 
 import type { WelcomeAlert } from "@/lib/types";
@@ -13,7 +14,6 @@ const T = {
 };
 
 /** True when the string is written in Arabic script. */
-const isArabicText = (t: string) => /[؀-ۿ]/.test(t);
 
 /**
  * The site's greeting/announcement box, as a corner toast. The copy is
@@ -53,7 +53,7 @@ export default function WelcomeToast({ alert, lang = "ar" }: { alert: WelcomeAle
   // English edition would break the page's language the same way the Arabic
   // stories rail did. Same rule as everywhere else: content renders only on
   // the edition whose script it is written in.
-  const wrongEdition = alert?.title ? isArabicText(alert.title) !== (lang === "ar") : false;
+  const wrongEdition = alert?.title ? isArabicScript(alert.title) !== (lang === "ar") : false;
 
   useEffect(() => {
     if (!alert?.active || !alert.title || wrongEdition) return;

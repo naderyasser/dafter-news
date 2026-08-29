@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
 import Chevron from "@/components/ui/Chevron";
 import SectionHeading from "@/components/site/SectionHeading";
@@ -12,6 +13,12 @@ export type LeadListCard = {
   section?: string;
   time?: string;
   imageSrc?: string | null;
+  /** Country label riding the photo itself — set only by «الخليج العربي»,
+   *  the one caller of this block with geographic desks. `section` stays the
+   *  plain-text kicker in the text column regardless (Egypt's only label,
+   *  and Gulf's topic when it has one) — same "chip on the photo, kicker
+   *  beside the headline" split WorldNewsBlock already uses. */
+  chip?: string;
 };
 
 const T = {
@@ -19,13 +26,27 @@ const T = {
   en: { drop: "Drop image here", more: "More stories" },
 };
 
-/** A plain stroked clock — the block's only icon, so it stays a single line. */
-function ClockIcon({ className = "h-3 w-3" }: { className?: string }) {
+/**
+ * Same floating-tag language as ArticleCard's PhotoChip and WorldNewsBlock's
+ * own Chip — solid fill, shadow, a hairline ring for edge definition on a
+ * photo of any brightness. Renders nothing for Egypt's rows, which never set
+ * a chip.
+ *
+ * Top-start, not bottom-start like those two: the lead here already anchors
+ * its headline and time to the photo's *bottom* edge (see below), so a
+ * bottom chip would sit on top of that text on a short headline. Top-start
+ * is clear on both the lead and the plain list thumbnails, which have
+ * nothing else in that corner either way.
+ */
+function PhotoChip({ label, accent }: { label?: string; accent: string }) {
+  if (!label) return null;
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
-      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M12 7v5l3.3 1.9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span
+      className="absolute start-2 top-2 z-10 rounded-badge px-2.5 py-1 text-[11px] font-extrabold text-paper shadow-2 ring-1 ring-inset ring-white/15"
+      style={{ backgroundColor: accent }}
+    >
+      {label}
+    </span>
   );
 }
 
@@ -37,6 +58,11 @@ function ClockIcon({ className = "h-3 w-3" }: { className?: string }) {
  * for «الخليج العربي» on the client's explicit request that the two
  * sections share one design rather than Gulf keeping the plain card grid
  * every other section still uses.
+ *
+ * The block itself sits on plain white (`bg-paper`), not a navy band — the
+ * client tried the full navy backdrop and reverted to white on later
+ * review; only the lead photo keeps its navy tint, since that one is
+ * legibility for the overlaid headline, not the section's background.
  *
  * The list rows put the image last in the markup rather than first: this
  * site is RTL throughout, so the last child in a flex row lands at the
@@ -74,18 +100,18 @@ export default function LeadListBlock({
   if (!lead) return null;
 
   return (
-    <section className="bg-navy py-8">
+    <section className="bg-paper py-8">
     <div className="mx-auto max-w-container px-6">
       {coverImage ? (
         <SectionMasthead lang={lang} title={title} tagline={tagline} imageSrc={coverImage} sectionKey={sectionKey} href={seeAllHref} />
       ) : (
-        <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} tone="dark" />
+        <SectionHeading lang={lang} title={title} href={seeAllHref} sectionKey={sectionKey} />
       )}
 
       <div className="overflow-hidden rounded-card border border-line">
         {/* Lead: full-bleed photo, headline and time set directly into it. */}
         <Link href={lead.href} className="card-link relative block no-underline" style={accentVar}>
-          <div className="relative aspect-[16/10] sm:aspect-[21/9]">
+          <div className="relative aspect-[16/10] max-h-[480px] sm:aspect-[21/9]">
             <CoverImage
               src={lead.imageSrc}
               alt={lead.title}
@@ -100,10 +126,17 @@ export default function LeadListBlock({
               aria-hidden
               className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(7,50,82,.93)] via-[rgba(7,50,82,.45)] to-[rgba(7,50,82,.18)]"
             />
+            <PhotoChip label={lead.chip} accent={accent} />
           </div>
           <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
+            {/* line-clamp-3, not just a smaller size: a long headline
+                otherwise keeps wrapping until it eats the whole photo — on a
+                narrow phone (aspect-[16/10], no room to grow) a long enough
+                sentence covered the image almost edge to edge. Capping the
+                lines is what actually guarantees the photo stays visible,
+                independent of how long the headline is. */}
             <h3
-              className={`${fontDisplay} m-0 text-[clamp(1.25rem,1rem+1.6vw,1.875rem)] font-extrabold leading-[1.4] text-paper`}
+              className={`${fontDisplay} m-0 line-clamp-3 text-[clamp(1.0625rem,0.9rem+1vw,1.5rem)] font-extrabold leading-[1.3] text-paper`}
             >
               {lead.title}
             </h3>
@@ -147,6 +180,14 @@ export default function LeadListBlock({
                 {c.imageSrc && (
                   <div className="relative h-[64px] w-[92px] flex-shrink-0 overflow-hidden rounded-[3px] sm:h-[72px] sm:w-[104px]">
                     <CoverImage src={c.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="104px" />
+                    {c.chip && (
+                      <span
+                        className="absolute start-1 top-1 z-10 rounded-badge px-1.5 py-0.5 text-[9px] font-extrabold text-paper shadow-1 ring-1 ring-inset ring-white/15"
+                        style={{ backgroundColor: accent }}
+                      >
+                        {c.chip}
+                      </span>
+                    )}
                   </div>
                 )}
               </Link>

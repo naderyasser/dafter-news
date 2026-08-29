@@ -124,6 +124,12 @@ describe("ArticleCard", () => {
       expect(container.querySelector(".aspect-\\[16\\/10\\]")).not.toBeNull();
     });
 
+    it("shows the timestamp on the hero variant — regression: it was the one card shape with no time at all", () => {
+      render(<ArticleCard {...base} variant="hero" time="منذ ٣ ساعات" />);
+
+      expect(screen.getByText("منذ ٣ ساعات")).toBeInTheDocument();
+    });
+
     it("renders the compact variant with a 120px side image", () => {
       const { container } = render(<ArticleCard {...base} variant="compact" time="منذ ساعتين" />);
 
@@ -202,6 +208,33 @@ describe("ArticleCard", () => {
       const { container } = render(<ArticleCard {...base} variant="standard" />);
 
       expect(container.querySelector(".bottom-0.start-0")).toBeNull();
+    });
+
+    it("regression: on the hero card it shares a row with the time instead of lying across it", () => {
+      // The hero sets its headline and time INTO the photo, so a chip
+      // anchored to the bottom-start corner landed on top of the timestamp
+      // — the client's report, on «ثقافة وفن»'s carousel and «عرب وعالم».
+      render(<ArticleCard {...base} variant="hero" chip="آسيا" time="منذ ساعة" />);
+
+      const chip = screen.getByText("آسيا");
+      expect(chip.className).not.toContain("absolute");
+      const row = chip.parentElement!;
+      expect(row.className).toContain("justify-between");
+      expect(row.className).toContain("flex-wrap");
+      expect(row).toHaveTextContent("منذ ساعة");
+    });
+
+    it("keeps the hero's time in place when the card has no chip", () => {
+      render(<ArticleCard {...base} variant="hero" time="منذ ساعة" />);
+
+      expect(screen.getByText("منذ ساعة")).toBeInTheDocument();
+      expect(document.querySelectorAll(".justify-between > *")).toHaveLength(1);
+    });
+
+    it("truncates a long label on the corner-placed chip rather than overflowing the photo", () => {
+      render(<ArticleCard {...base} variant="compact" chip="أمريكا اللاتينية" />);
+
+      expect(screen.getByText("أمريكا اللاتينية").className).toContain("truncate");
     });
   });
 

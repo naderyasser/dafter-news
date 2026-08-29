@@ -105,6 +105,62 @@
    * gimmick instead of a watermark. Opacity lives in the SVG's own stroke so
    * the block's text keeps full contrast.
    */
+  /*
+   * «جوّه الجون» — a floodlit pitch, drawn rather than photographed.
+   *
+   * Three layers, and each earns its place: a cool floodlight thrown from
+   * the top corner, mown stripes running across the turf, and the deep
+   * green ground underneath. All of it is gradients, so it costs no request,
+   * scales to any block height, and never competes with the photographs
+   * sitting on it — which is why the stripes are two points of lightness
+   * apart rather than a pattern you could name.
+   *
+   * The whole surface is one place on the home page that isn't paper or
+   * navy: this desk is the client's flagship and asked to look like it.
+   */
+  .pitch-surface {
+    background-color: theme("colors.pitch.deep");
+    background-image:
+      radial-gradient(90% 70% at 88% -10%, rgb(74 222 128 / 22%), transparent 62%),
+      repeating-linear-gradient(
+        100deg,
+        rgb(255 255 255 / 3%) 0 44px,
+        transparent 44px 88px
+      ),
+      linear-gradient(170deg, theme("colors.pitch.DEFAULT") 0%, theme("colors.pitch.deep") 58%);
+  }
+
+  /*
+   * The touchlines over that surface: centre line, centre circle and the two
+   * penalty boxes, at roughly true proportions. Borders only, and hidden
+   * from assistive tech — a reader who cannot see it loses nothing, and a
+   * reader who can knows what desk they are on before reading a word.
+   */
+  .pitch-markings::before,
+  .pitch-markings::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    border: 2px solid theme("colors.pitch.line");
+  }
+  /* Centre circle. */
+  .pitch-markings::before {
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    width: 168px;
+    height: 168px;
+    border-radius: 999px;
+    transform: translate(50%, -50%);
+  }
+  /* Halfway line — a single stroke, so only one edge is drawn. */
+  .pitch-markings::after {
+    inset-block: 0;
+    inset-inline-start: 50%;
+    width: 0;
+    border-width: 0;
+    border-inline-start-width: 2px;
+  }
+
   .section-watermark {
     position: relative;
     isolation: isolate;
@@ -189,6 +245,24 @@
   .card-link:hover,
   .card-link:focus-within {
     border-color: var(--card-accent);
+  }
+
+  /*
+   * SectionDivider's tear line — the homepage break between sections reads
+   * as tearing a sheet out of «الدفتر» itself rather than a generic rule.
+   * Needs a background-image (perforation dots), which a Tailwind utility
+   * can't express, so it lives here where `theme()` can still reach the
+   * token instead of a raw hex landing in the component.
+   *
+   * ink.3 rather than the fainter line.strong: on the surface-2 band this is
+   * the whole legibility of the perforation, and line.strong nearly
+   * disappeared against it.
+   */
+  .section-divider-perf {
+    background-image: radial-gradient(circle, theme("colors.ink.3") 1.6px, transparent 1.8px);
+    background-size: 15px 100%;
+    background-repeat: repeat-x;
+    background-position: center;
   }
 }
 

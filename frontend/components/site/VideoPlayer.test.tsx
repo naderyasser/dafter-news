@@ -79,8 +79,14 @@ describe("VideoPlayer — embed allow-list", () => {
   ])("refuses to embed %s, and offers no control that pretends otherwise", (_label, url) => {
     renderWith(url);
 
+    // The invariant that matters: a rejected URL leaves no control claiming
+    // it can play something, and no frame is mounted for it.
     expect(screen.queryByLabelText("تشغيل: فيديو")).not.toBeInTheDocument();
-    expect(screen.getByText("الفيديو غير متاح حالياً")).toBeInTheDocument();
+    expect(screen.queryByTitle("فيديو")).not.toBeInTheDocument();
+    // ...and it says so by showing nothing, not by printing a systems status
+    // message at the reader. See the component's own note where the old
+    // «الفيديو غير متاح حالياً» badge used to render.
+    expect(screen.queryByText(/غير متاح/)).not.toBeInTheDocument();
   });
 
   it("plays a direct media file inline rather than in an iframe", async () => {
@@ -121,8 +127,10 @@ describe("VideoPlayer — chrome", () => {
   it("keeps the poster visible while unplayable", () => {
     const { container } = render(<VideoPlayer lang="ar" poster="/media/cover.jpg" title="فيديو" />);
 
+    // The poster carries the tile on its own — no error string over it.
     expect(container.querySelector("img")).toHaveAttribute("src", "/media/cover.jpg");
-    expect(screen.getByText("الفيديو غير متاح حالياً")).toBeInTheDocument();
+    expect(screen.queryByText(/غير متاح/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("تشغيل: فيديو")).not.toBeInTheDocument();
   });
 
   it("shows the exclusive badge and the duration", () => {
@@ -142,6 +150,7 @@ describe("VideoPlayer — chrome", () => {
     render(<VideoPlayer lang="en" title="Clip" isExclusive />);
 
     expect(screen.getByText("Exclusive")).toBeInTheDocument();
-    expect(screen.getByText("This video is currently unavailable")).toBeInTheDocument();
+    // Both editions dropped the unavailable-status string, not just Arabic.
+    expect(screen.queryByText(/currently unavailable/i)).not.toBeInTheDocument();
   });
 });

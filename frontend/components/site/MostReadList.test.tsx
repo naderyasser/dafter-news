@@ -96,4 +96,35 @@ describe("MostReadList", () => {
     expect(screen.getByText("الأكثر قراءة")).toBeInTheDocument();
     expect(screen.queryAllByRole("link")).toHaveLength(0);
   });
+
+  it("captions a row with its section alone, never the read count", () => {
+    // The caption has carried a timestamp and then a read count; the newsroom
+    // asked for both to go. Callers still pass `views` (it is what the API
+    // returns and what the ranking is built on), so the guard is that passing
+    // it changes nothing on screen.
+    render(<MostReadList lang="ar" items={[{ ...items[0], views: 150 }]} />);
+
+    const row = screen.getByText("الحكومة تعلن حزمة دعم").closest("a")!;
+    expect(row).toHaveTextContent("مصر");
+    expect(row.textContent).not.toContain("قراءة");
+    expect(row.textContent).not.toContain("١٥٠");
+    expect(row.textContent).not.toContain("·");
+  });
+
+  it("drops the count on the English edition too", () => {
+    render(<MostReadList lang="en" items={[{ title: "A story", href: "/en/article/x", section: "Egypt", views: 1500 }]} />);
+
+    const row = screen.getByText("A story").closest("a")!;
+    expect(row).toHaveTextContent("Egypt");
+    expect(row.textContent).not.toContain("reads");
+    expect(row.textContent).not.toContain("1,500");
+  });
+
+  it("leaves a sectionless row with no empty caption line", () => {
+    render(<MostReadList lang="ar" items={[{ title: "خبر بلا قسم", href: "/article/x", views: 9 }]} />);
+
+    const row = screen.getByText("خبر بلا قسم").closest("a")!;
+    expect(row.textContent).not.toContain("·");
+    expect(row.textContent).not.toContain("قراءات");
+  });
 });

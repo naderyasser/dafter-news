@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DASHBOARD } from "@/lib/routes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -50,7 +51,7 @@ export default function LoginForm() {
     try {
       const account = mode === "login" ? await login(email, password) : await register(email, password, name);
       // Staff land in the newsroom; readers go back where they came from.
-      router.push(next !== "/" ? next : account.is_staff_member ? "/dashboard" : "/");
+      router.push(next !== "/" ? next : account.is_staff_member ? DASHBOARD : "/");
       router.refresh();
     } catch (err) {
       // ApiError.status, not a substring of its message: `includes("401")`

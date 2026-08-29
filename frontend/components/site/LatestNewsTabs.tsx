@@ -4,7 +4,10 @@ import { useState } from "react";
 
 import ArticleCard from "@/components/site/ArticleCard";
 
-export type NewsRow = { href: string; title: string; time: string };
+/** `iso` renders a real <time datetime> stamp; `time` stays for the rows
+ *  whose caption is NOT a timestamp (the «الأكثر تعليقاً» tab reuses this
+ *  slot for a comment count), which must not be marked up as one. */
+export type NewsRow = { href: string; title: string; time?: string; iso?: string | null };
 
 export default function LatestNewsTabs({
   lang,
@@ -42,7 +45,7 @@ export default function LatestNewsTabs({
       </div>
       <div>
         {rows.map((n, i) => (
-          <ArticleCard key={n.href + i} lang={lang} variant="text" href={n.href} title={n.title} time={n.time} />
+          <ArticleCard key={n.href + i} lang={lang} variant="text" href={n.href} title={n.title} time={n.time} iso={n.iso} />
         ))}
       </div>
     </div>

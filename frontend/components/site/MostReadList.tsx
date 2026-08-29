@@ -4,7 +4,17 @@ import Link from "next/link";
 const EASTERN = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
 const toRank = (n: number, isAr: boolean) => (isAr ? String(n).split("").map((d) => EASTERN[+d]).join("") : String(n));
 
-export type MostReadItem = { title: string; href: string; section?: string; imageSrc?: string };
+/**
+ * The caption is the section name alone — neither a timestamp nor a read count.
+ *
+ * Time was dropped first: the list ranks by read count, so a relative timestamp
+ * was the one visible fact the ordering ignores, and it read as a broken
+ * chronological sort. The read count that replaced it is now gone too, at the
+ * newsroom's request — the raw numbers are small enough on a young site that
+ * printing them undersells the stories. The rank digit already carries the
+ * order, and `views` stays on the type because callers still pass it.
+ */
+export type MostReadItem = { title: string; href: string; section?: string; views?: number; imageSrc?: string };
 
 export default function MostReadList({
   lang,
@@ -34,7 +44,11 @@ export default function MostReadList({
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="text-[14px] font-semibold leading-[1.5] text-ink">{it.title}</span>
-              {it.section && <span className="text-caption text-ink-3">{it.section}</span>}
+              {it.section && (
+                <span className="tnum flex flex-wrap items-center gap-x-1.5 text-caption text-ink-3">
+                  {it.section}
+                </span>
+              )}
             </span>
             {/* Thumbnail sits at the inline end so the rank column stays the
                 reading anchor and the numbers line up down the list. */}

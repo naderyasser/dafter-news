@@ -49,6 +49,13 @@ const config: Config = {
         // clear 6.6:1 and 5.5:1. Direction is never carried by the colour
         // alone in either mode: every figure ships with a ▲/▼ and a signed
         // percentage, so a red/green pair stays legible to a CVD reader.
+        // «جوّه الجون» builds its own surface — a floodlit pitch — so it needs
+        // its green as tokens rather than as the section-map colour every
+        // other desk gets. `DEFAULT` is that map's #12793F, which is tuned
+        // for paper; `bright` is the on-dark step (7.1:1 on `deep`) used for
+        // kickers and live markers on the band, and `line` is the pitch
+        // marking, deliberately faint so it reads as a surface not a border.
+        pitch: { DEFAULT: "#12793F", deep: "#07351F", bright: "#4ADE80", line: "rgba(255,255,255,.14)" },
         up: { DEFAULT: "#0E8A4C", tint: "#E7F4ED", dark: "#3FBF7F" },
         down: { DEFAULT: "#C93030", tint: "#FBEDED", dark: "#F0736B" },
         gold: { DEFAULT: "#A97E14", dark: "#E0B54A" },

@@ -103,10 +103,10 @@ export default function SectionNewswire({
             </div>
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(10,11,13,.9)] via-[rgba(10,11,13,.2)] to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-5">
-              <h2 className={`${fontDisplay} m-0 text-[clamp(1.25rem,1rem+1.4vw,1.75rem)] font-extrabold leading-[1.45] text-paper`}>
+              <h2 className={`${fontDisplay} m-0 line-clamp-3 text-[clamp(1.0625rem,0.9rem+1vw,1.75rem)] font-extrabold leading-[1.3] text-paper`}>
                 {lead.title}
               </h2>
-              <div className="mt-2 text-[13px] text-paper/75">{lead.time}</div>
+              {lead.time && <div className="mt-2 text-[13px] text-paper/75">{lead.time}</div>}
             </div>
           </div>
         </Link>

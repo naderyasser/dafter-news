@@ -102,7 +102,7 @@ export default function PoliticsFront({ lang, accent, sectionKey, title, tagline
                   {lead.subject}
                 </span>
               )}
-              <h2 className={`${fontDisplay} m-0 text-[clamp(1.375rem,1rem+2.1vw,2.375rem)] font-extrabold leading-[1.35] text-paper`}>
+              <h2 className={`${fontDisplay} m-0 line-clamp-3 text-[clamp(1.125rem,0.9rem+1.5vw,2.375rem)] font-extrabold leading-[1.25] text-paper`}>
                 {lead.title}
               </h2>
               {lead.time && <div className="tnum mt-2.5 text-[13px] font-semibold text-paper/80">{lead.time}</div>}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import CoverImage from "@/components/ui/CoverImage";
-import { relativeTime, toEasternNumerals } from "@/lib/format";
+import { toEasternNumerals } from "@/lib/format";
 import type { Paginated, Video } from "@/lib/types";
 import type { FrontProps } from "./types";
 
@@ -87,7 +87,6 @@ export default function WatchFront({ lang, title, tagline, videos }: FrontProps 
               <h2 className={`${fontDisplay} mt-4 text-[clamp(1.25rem,1rem+1.5vw,1.875rem)] font-extrabold leading-[1.45] text-paper transition-colors duration-fast group-hover:text-white/75`}>
                 {feature.title}
               </h2>
-              <div className="mt-2 text-[13px] font-semibold text-white/55">{relativeTime(feature.created_at, lang)}</div>
             </article>
           </Link>
         )}
@@ -111,14 +110,11 @@ export default function WatchFront({ lang, title, tagline, videos }: FrontProps 
                   <h3 className={`${fontDisplay} mt-2.5 line-clamp-2 text-[14px] font-extrabold leading-[1.6] text-paper transition-colors duration-fast group-hover:text-white/75`}>
                     {v.title}
                   </h3>
-                  <div className="mt-1.5 flex items-center gap-2 text-[11.5px] font-semibold text-white/50">
-                    <span>{relativeTime(v.created_at, lang)}</span>
-                    {v.comment_count > 0 && (
-                      <span className="tnum">
-                        · {isAr ? toEasternNumerals(v.comment_count) : v.comment_count} {t.comments}
-                      </span>
-                    )}
-                  </div>
+                  {v.comment_count > 0 && (
+                    <div className="tnum mt-1.5 text-[11.5px] font-semibold text-white/50">
+                      {isAr ? toEasternNumerals(v.comment_count) : v.comment_count} {t.comments}
+                    </div>
+                  )}
                 </Link>
               ))}
             </div>

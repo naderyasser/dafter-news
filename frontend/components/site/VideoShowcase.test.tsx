@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import VideoShowcase, { type ShowcaseVideo } from "./VideoShowcase";
 
@@ -36,6 +36,10 @@ beforeAll(() => {
 });
 
 describe("VideoShowcase", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders nothing when there are no videos", () => {
     const { container } = render(<VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={[]} />);
 
@@ -139,5 +143,50 @@ describe("VideoShowcase", () => {
 
     expect(screen.getByLabelText("Next video")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Watch the full video" })).toBeInTheDocument();
+  });
+
+  it("auto-advances on a timer", async () => {
+    vi.useFakeTimers();
+    render(<VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={videos} />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent(videos[1].title);
+  });
+
+  it("pauses autoplay while the stage is hovered", async () => {
+    vi.useFakeTimers();
+    const { container } = render(<VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={videos} />);
+    const section = container.querySelector("section")!;
+
+    fireEvent.mouseEnter(section);
+    await act(async () => {
+      vi.advanceTimersByTime(20000);
+    });
+
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent(videos[0].title);
+  });
+
+  it("stands down once a clip is actually playing, and resumes on the next slide", async () => {
+    vi.useFakeTimers();
+    render(<VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={videos} />);
+
+    await act(async () => screen.getByLabelText(`تشغيل: ${videos[0].title}`).click());
+
+    // Playing the staged clip must not be interrupted by the timer.
+    await act(async () => {
+      vi.advanceTimersByTime(20000);
+    });
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent(videos[0].title);
+
+    // Once the reader moves on themselves, the fresh slide opens on its poster
+    // and autoplay is free to run again.
+    await act(async () => screen.getByLabelText("الفيديو التالي").click());
+    await act(async () => {
+      vi.advanceTimersByTime(6000);
+    });
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent(videos[2].title);
   });
 });
