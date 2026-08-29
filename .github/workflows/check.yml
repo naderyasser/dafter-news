@@ -76,10 +76,11 @@ jobs:
       - name: typecheck
         run: npx tsc --noEmit -p tsconfig.json
 
-      # --max-warnings=0: the config was absent for months and the codebase
-      # is clean today, so the floor is "no new warnings", not "some".
+      # `next lint` was removed in Next 16; eslint runs directly against the
+      # flat config. Errors fail the build; the React-19 compiler rules are
+      # held at warn (see eslint.config.mjs) so they surface without gating.
       - name: lint
-        run: npx next lint --max-warnings=0
+        run: npx eslint .
 
       - name: tests
         run: npx vitest run
