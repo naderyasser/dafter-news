@@ -48,13 +48,20 @@ def revalidate_site() -> None:
     """
     Flush the public site's cached renders.
 
-    Fired on a daemon thread so a publish never waits on the front end. The
-    editor's save should not hang because Next is mid-restart, and the cron
-    publisher should not stall its whole batch on one slow call.
+    Fired on a background thread so a publish never waits on the front end:
+    the editor's save should not hang because Next is mid-restart.
+
+    NOT a daemon thread, deliberately. A daemon is killed the moment the
+    interpreter exits, which is fine under gunicorn (long-lived) and silently
+    useless in a short-lived process — `manage.py publish_scheduled` on cron
+    would fire the request and exit before it left the socket, so the one
+    publish path that has no human watching it would never have revalidated.
+    That was the original bug in a new disguise. The 5s timeout bounds how
+    long any process can be held at exit.
     """
     if not REVALIDATE_TOKEN:
         # Not configured — the deployment has not opted in. Silent by design:
         # this is the normal state in tests and local runs, and a warning per
         # save would drown the log.
         return
-    threading.Thread(target=_post, daemon=True).start()
+    threading.Thread(target=_post, daemon=False).start()
