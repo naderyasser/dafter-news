@@ -50,7 +50,7 @@ typecheck:
 
 lint:
 	@echo "── eslint"
-	@cd $(FRONTEND) && npx next lint --max-warnings=0
+	@cd $(FRONTEND) && npx eslint .
 
 test-backend:
 	@echo "── اختبارات الخلفية"

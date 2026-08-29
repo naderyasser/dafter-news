@@ -138,7 +138,7 @@ async function serverCookieHeader(): Promise<Record<string, string>> {
   if (typeof window !== "undefined") return {};
   try {
     const { headers } = await import("next/headers");
-    const cookie = headers().get("cookie");
+    const cookie = (await headers()).get("cookie");
     return cookie ? { cookie } : {};
   } catch {
     // Outside a request scope (build-time prerender) there is no caller to

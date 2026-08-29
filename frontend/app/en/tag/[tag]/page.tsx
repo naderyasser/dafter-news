@@ -18,8 +18,9 @@ export const revalidate = 60;
  * regardless. This mirrors that page with language=en and English chrome.
  */
 /** Same reason as the Arabic tag page: the tag is the title. */
-export async function generateMetadata({ params }: { params: { tag: string } }) {
-  const tagSlug = decodeParam(params.tag);
+export async function generateMetadata({ params }: { params: Promise<{ tag: string }> }) {
+  const _params = await params;
+  const tagSlug = decodeParam(_params.tag);
   const tag = (await getTags()).results.find((t) => t.slug === tagSlug);
   const name = tag?.name || tagSlug;
   return {
@@ -29,10 +30,11 @@ export async function generateMetadata({ params }: { params: { tag: string } }) 
   };
 }
 
-export default async function TagEnPage({ params }: { params: { tag: string } }) {
+export default async function TagEnPage({ params }: { params: Promise<{ tag: string }> }) {
+  const _params = await params;
   // Arabic slugs arrive percent-encoded (twice, once via middleware); Latin
   // ones don't need it, but decoding is a no-op for them either way.
-  const tagSlug = decodeParam(params.tag);
+  const tagSlug = decodeParam(_params.tag);
   const [tags, articles, mostRead] = await Promise.all([
     getTags(),
     getArticles(`?language=en&tags__slug=${encodeURIComponent(tagSlug)}&ordering=-published_at&page_size=24`),

@@ -12,8 +12,9 @@ import { SITE_NAME, SITE_URL } from "@/lib/seo";
 export const revalidate = 30;
 
 /** Existence decided before the stream starts — see app/article/[slug]. */
-export async function generateMetadata({ params }: { params: { slug: string } }) {
-  const video = await getVideo(params.slug);
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const video = await getVideo(_params.slug);
   if (!video) notFound();
   const url = `${SITE_URL}/video/${encodeURIComponent(video.slug)}`;
   const poster = mediaUrl(video.cover_image);
@@ -34,8 +35,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function VideoPage({ params }: { params: { slug: string } }) {
-  const video = await getVideo(params.slug);
+export default async function VideoPage({ params }: { params: Promise<{ slug: string }> }) {
+  const _params = await params;
+  const video = await getVideo(_params.slug);
   if (!video) notFound();
 
   const suggestedRes = await getVideos(`?page_size=5`);

@@ -10,8 +10,9 @@ export const revalidate = 300;
 
 /** The byline is the title — a writer's page is the one a reader reaches by
  *  searching their name, and it had no title of its own to match against. */
-export async function generateMetadata({ params }: { params: { username: string } }) {
-  const author = await getAuthor(params.username);
+export async function generateMetadata({ params }: { params: Promise<{ username: string }> }) {
+  const _params = await params;
+  const author = await getAuthor(_params.username);
   if (!author) return { title: "الكاتب" };
   return {
     title: author.name,
@@ -20,8 +21,9 @@ export async function generateMetadata({ params }: { params: { username: string 
   };
 }
 
-export default async function AuthorPage({ params }: { params: { username: string } }) {
-  const author = await getAuthor(params.username);
+export default async function AuthorPage({ params }: { params: Promise<{ username: string }> }) {
+  const _params = await params;
+  const author = await getAuthor(_params.username);
   if (!author) notFound();
 
   // Filtered server-side by author__username (see ArticleViewSet.filterset_fields):

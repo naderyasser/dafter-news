@@ -19,8 +19,9 @@ export const revalidate = 60;
  * clearly-titled section pages as the site structure sitelinks get decided
  * from (see lib/seo.ts's sectionMetadata/sectionsItemListJsonLd).
  */
-export async function generateMetadata({ params }: { params: { key: string } }) {
-  const section = await getSection(params.key);
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
+  const _params = await params;
+  const section = await getSection(_params.key);
   if (!section) return {};
   return sectionMetadata(section, "ar");
 }
@@ -39,16 +40,17 @@ export async function generateMetadata({ params }: { params: { key: string } }) 
  * and a desk can be moved onto a different front from lib/sectionLayout.ts
  * without this file changing at all.
  */
-export default async function SectionPage({ params }: { params: { key: string } }) {
-  const front = sectionFront(params.key);
+export default async function SectionPage({ params }: { params: Promise<{ key: string }> }) {
+  const _params = await params;
+  const front = sectionFront(_params.key);
 
   const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
-    getSection(params.key),
+    getSection(_params.key),
     // Strictly newest-first. This led with `-pinned` and so did the home
     // page's blocks, which is how «الخليج العربي» came to show a 22-hour-old
     // story above one published an hour before — see app/page.tsx's
     // sectionFeed. «الظهور في الرئيسية» still leads the hero.
-    getSectionFeed("ar", params.key, 24),
+    getSectionFeed("ar", _params.key, 24),
     getMostRead("ar"),
     getArticles("?language=ar&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),
@@ -58,7 +60,7 @@ export default async function SectionPage({ params }: { params: { key: string } 
 
   if (!section) notFound();
 
-  const accent = sectionColor(params.key);
+  const accent = sectionColor(_params.key);
   // CTR ask: a relative-time caption on a browsing card discourages a click
   // when the story doesn't look brand-new, so no front-facing card carries
   // one — the article's own byline is still where a reader reads the real
@@ -108,7 +110,7 @@ export default async function SectionPage({ params }: { params: { key: string } 
     .slice(0, 6);
 
   return (
-    <SiteShell lang="ar" active={params.key}>
+    <SiteShell lang="ar" active={_params.key}>
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
         <main className="min-w-0 flex-[2_1_560px]">
           <SectionFrontBody
@@ -118,9 +120,9 @@ export default async function SectionPage({ params }: { params: { key: string } 
             more={more}
             lang="ar"
             accent={accent}
-            sectionKey={params.key}
+            sectionKey={_params.key}
             title={section.name_ar}
-            tagline={sectionTagline(params.key, "ar")}
+            tagline={sectionTagline(_params.key, "ar")}
             stories={stories}
           />
         </main>

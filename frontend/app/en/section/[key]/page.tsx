@@ -13,8 +13,9 @@ import { sectionMetadata } from "@/lib/seo";
 export const revalidate = 60;
 
 /** See app/section/[key]/page.tsx's own generateMetadata for why. */
-export async function generateMetadata({ params }: { params: { key: string } }) {
-  const section = await getSection(params.key);
+export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
+  const _params = await params;
+  const section = await getSection(_params.key);
   if (!section) return {};
   return sectionMetadata(section, "en");
 }
@@ -28,13 +29,14 @@ export async function generateMetadata({ params }: { params: { key: string } }) 
  * precisely so it cannot drift between the two editions, which it did while
  * each page carried its own copy.
  */
-export default async function SectionEnPage({ params }: { params: { key: string } }) {
-  const front = sectionFront(params.key);
+export default async function SectionEnPage({ params }: { params: Promise<{ key: string }> }) {
+  const _params = await params;
+  const front = sectionFront(_params.key);
 
   const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
-    getSection(params.key),
+    getSection(_params.key),
     // Newest-first — mirrors the Arabic section page; see its own comment.
-    getSectionFeed("en", params.key, 24),
+    getSectionFeed("en", _params.key, 24),
     getMostRead("en"),
     getArticles("?language=en&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),
@@ -44,7 +46,7 @@ export default async function SectionEnPage({ params }: { params: { key: string 
 
   if (!section) notFound();
 
-  const accent = sectionColor(params.key);
+  const accent = sectionColor(_params.key);
   // CTR ask: no relative-time caption on a browsing card — see the Arabic
   // section page's own comment for the full reasoning. `iso` stays wired
   // for Politics/Security only, where it drives the front's own dated
@@ -87,7 +89,7 @@ export default async function SectionEnPage({ params }: { params: { key: string 
     .slice(0, 6);
 
   return (
-    <SiteShell lang="en" active={params.key}>
+    <SiteShell lang="en" active={_params.key}>
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
         <main className="min-w-0 flex-[2_1_560px]">
           <SectionFrontBody
@@ -97,9 +99,9 @@ export default async function SectionEnPage({ params }: { params: { key: string 
             more={more}
             lang="en"
             accent={accent}
-            sectionKey={params.key}
+            sectionKey={_params.key}
             title={section.name_en || section.name_ar}
-            tagline={sectionTagline(params.key, "en")}
+            tagline={sectionTagline(_params.key, "en")}
             stories={stories}
           />
         </main>

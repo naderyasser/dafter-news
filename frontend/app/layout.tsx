@@ -11,7 +11,7 @@ import "./globals.css";
 // below. As a static export they were Arabic on every route, which put an
 // Arabic <title> on the English edition's tab and in its search snippet.
 export async function generateMetadata(): Promise<Metadata> {
-  const isEn = headers().get("x-locale") === "en";
+  const isEn = (await headers()).get("x-locale") === "en";
   // Next only shallow-merges `openGraph`/`twitter` between a layout and a
   // page: a route with its own (an article, via lib/seo.ts's
   // articleMetadata) fully replaces this, images and all. This is purely
@@ -83,7 +83,7 @@ export async function generateMetadata(): Promise<Metadata> {
 // <html lang> as authoritative) — middleware.ts tags each request with the
 // locale implied by its URL so it isn't hardcoded to Arabic on /en/*.
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const locale = headers().get("x-locale") === "en" ? "en" : "ar";
+  const locale = (await headers()).get("x-locale") === "en" ? "en" : "ar";
   // Logo and profile links come from the dashboard's own settings, so the
   // publisher Google reads is whatever the newsroom last saved. Same cached
   // fetch generateMetadata above already made — Next dedupes it within the

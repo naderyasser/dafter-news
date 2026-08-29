@@ -9,10 +9,11 @@ export const metadata = { title: "بحث", description: "ابحث في أرشي�
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { q?: string; section?: string };
+  searchParams: Promise<{ q?: string; section?: string }>;
 }) {
-  const q = (searchParams.q || "").trim();
-  const section = searchParams.section || "all";
+  const _searchParams = await searchParams;
+  const q = (_searchParams.q || "").trim();
+  const section = _searchParams.section || "all";
 
   // Render the first page of results on the server so a shared /search?q=…
   // link arrives with its answer already on screen.

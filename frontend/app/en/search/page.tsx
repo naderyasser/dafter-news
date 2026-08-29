@@ -17,10 +17,11 @@ export const metadata = { title: "Search", description: "Search Al Daftar News f
 export default async function SearchEnPage({
   searchParams,
 }: {
-  searchParams: { q?: string; section?: string };
+  searchParams: Promise<{ q?: string; section?: string }>;
 }) {
-  const q = (searchParams.q || "").trim();
-  const section = searchParams.section || "all";
+  const _searchParams = await searchParams;
+  const q = (_searchParams.q || "").trim();
+  const section = _searchParams.section || "all";
 
   // Render the first page of results on the server so a shared
   // /en/search?q=… link arrives with its answer already on screen.
