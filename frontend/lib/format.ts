@@ -1,3 +1,17 @@
+/**
+ * The Arabic locale every formatter on the site uses.
+ *
+ * `-u-nu-latn` is the whole point: it keeps Arabic month and weekday names
+ * («أغسطس», «الجمعة») while forcing Western digits. Plain AR_LOCALE gives
+ * Eastern digits (٢٠٢٦), which the newsroom asked to drop everywhere —
+ * readers here are used to 2026, and mixed digit systems across a page
+ * (Eastern in a date, Western in a view count) read as a bug either way.
+ *
+ * One constant rather than the string repeated at each call site, so the
+ * next change to this decision is one line.
+ */
+export const AR_LOCALE = "ar-EG-u-nu-latn";
+
 export function relativeTime(iso: string | null | undefined, lang: "ar" | "en"): string {
   if (!iso) return "";
   const then = new Date(iso).getTime();
@@ -35,7 +49,7 @@ export function dayBucket(iso: string | null | undefined, lang: "ar" | "en"): st
   const days = Math.round((startOf(new Date()) - startOf(then)) / 86400000);
   if (days <= 0) return isAr ? "اليوم" : "Today";
   if (days === 1) return isAr ? "أمس" : "Yesterday";
-  return new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", { day: "numeric", month: "long" }).format(then);
+  return new Intl.DateTimeFormat(isAr ? AR_LOCALE : "en-US", { day: "numeric", month: "long" }).format(then);
 }
 
 /** Clock time for a spine entry — «١٤:٢٠». Empty for an undated story. */
@@ -46,7 +60,7 @@ export function clockTime(iso: string | null | undefined, lang: "ar" | "en"): st
   // h23, not `hour12: false` — the latter resolves to the h24 cycle, where
   // midnight is written «٢٤:٠٤» instead of «٠٠:٠٤». Every story filed in the
   // small hours would have carried a time that does not exist.
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-US", {
+  return new Intl.DateTimeFormat(lang === "ar" ? AR_LOCALE : "en-US", {
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
@@ -55,7 +69,7 @@ export function clockTime(iso: string | null | undefined, lang: "ar" | "en"): st
 
 export function formatDate(iso: string | null | undefined, lang: "ar" | "en"): string {
   if (!iso) return "";
-  return new Intl.DateTimeFormat(lang === "ar" ? "ar-EG" : "en-US", {
+  return new Intl.DateTimeFormat(lang === "ar" ? AR_LOCALE : "en-US", {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -80,7 +94,7 @@ export function publishedLine(iso: string | null | undefined, lang: "ar" | "en")
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   const isAr = lang === "ar";
-  const locale = isAr ? "ar-EG" : "en-US";
+  const locale = isAr ? AR_LOCALE : "en-US";
   const weekday = new Intl.DateTimeFormat(locale, { weekday: "long" }).format(d);
   const rest = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" }).format(d);
   const time = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", hour12: true }).format(d);
@@ -106,8 +120,15 @@ export function publishedLine(iso: string | null | undefined, lang: "ar" | "en")
 export const isArabicScript = (text: string) => /[؀-ۿ]/.test(text);
 export const isLatinScript = (text: string) => !isArabicScript(text);
 
-const EASTERN = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
-export const toEasternNumerals = (n: number | string) => String(n).split("").map((d) => (EASTERN[+d] ?? d)).join("");
+
+/**
+ * Digits as the site prints them: Western, in both editions.
+ *
+ * Kept as a function rather than deleted at the call sites because it is the
+ * one place the decision lives — if Eastern numerals are ever wanted back,
+ * this returns them again and every counter follows.
+ */
+export const toDisplayNumerals = (n: number | string) => String(n);
 
 /**
  * A story's read count, as «الأكثر قراءة» prints it beside the eye mark.
@@ -123,17 +144,16 @@ export const toEasternNumerals = (n: number | string) => String(n).split("").map
  * than a digit at all — «قراءة واحدة», not «١ قراءة». Hence the tail test on
  * `n % 100`: 103 reads is «١٠٣ قراءات» while 111 is «١١١ قراءة».
  *
- * ar-EG for the digits and the thousands mark, matching formatDate and the
- * rest of this file — the widget already prints its rank numbers in Eastern
- * numerals, and a Western-digit count beside them would read as a leak from
- * another system.
+ * AR_LOCALE for the thousands mark, matching formatDate and the rest of this
+ * file, so the count sits in the same number system as every other figure on
+ * the page.
  */
 export function readCount(views: number | null | undefined, lang: "ar" | "en"): string {
   const n = Math.max(0, Math.floor(Number(views) || 0));
   if (lang !== "ar") return `${n.toLocaleString("en-US")} ${n === 1 ? "read" : "reads"}`;
   if (n === 1) return "قراءة واحدة";
   if (n === 2) return "قراءتان";
-  const num = new Intl.NumberFormat("ar-EG").format(n);
+  const num = new Intl.NumberFormat(AR_LOCALE).format(n);
   const tail = n % 100;
   return tail >= 3 && tail <= 10 ? `${num} قراءات` : `${num} قراءة`;
 }

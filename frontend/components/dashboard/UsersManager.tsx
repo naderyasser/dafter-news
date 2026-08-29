@@ -5,6 +5,7 @@ import { useState } from "react";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { dashMutate, describeApiError } from "@/lib/api";
 import type { DashUser, Role } from "@/lib/types";
+import { AR_LOCALE } from "@/lib/format";
 
 const ROLES: { key: Role; label: string }[] = [
   { key: "admin", label: "مدير" },
@@ -198,7 +199,7 @@ export default function UsersManager({ users: initial }: { users: DashUser[] }) 
             <div className="px-3.5">
               <StatusBadge status={u.role} />
             </div>
-            <div className="px-3.5 text-[14.5px] text-ink-3">{u.last_login ? new Date(u.last_login).toLocaleDateString("ar-EG") : "—"}</div>
+            <div className="px-3.5 text-[14.5px] text-ink-3">{u.last_login ? new Date(u.last_login).toLocaleDateString(AR_LOCALE) : "—"}</div>
             <div className="px-3.5">
               {u.is_active ? (
                 <span className="text-[13px] font-bold text-up">نشط</span>

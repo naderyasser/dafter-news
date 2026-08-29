@@ -5,7 +5,7 @@ import Link from "next/link";
 import SiteShell from "@/components/site/SiteShell";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { getAuthors, mediaUrl } from "@/lib/api";
-import { toEasternNumerals } from "@/lib/format";
+import { toDisplayNumerals } from "@/lib/format";
 
 export const revalidate = 300;
 
@@ -35,7 +35,7 @@ async function AuthorsContent() {
               </div>
               <span className="text-[16px] font-bold text-ink">{a.name}</span>
               <span className="mt-1.5 text-[13px] leading-[1.6] text-ink-3">{a.title || a.bio}</span>
-              <span className="tnum mt-2.5 text-xs font-bold text-brand">{toEasternNumerals(a.article_count)} مقال</span>
+              <span className="tnum mt-2.5 text-xs font-bold text-brand">{toDisplayNumerals(a.article_count)} مقال</span>
             </Link>
           ))}
         </div>

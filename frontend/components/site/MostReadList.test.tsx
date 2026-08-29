@@ -26,26 +26,28 @@ describe("MostReadList", () => {
     expect(screen.getAllByRole("link")).toHaveLength(3);
   });
 
-  it("numbers the Arabic list with Eastern Arabic numerals", () => {
-    // Brief §3: ranked lists use ١ ٢ ٣ in Arabic, Latin digits in English.
+  it("numbers the Arabic list with Western numerals", () => {
+    // The newsroom dropped Eastern numerals site-wide; both editions now
+    // rank with Western digits (see lib/format's AR_LOCALE).
     render(<MostReadList lang="ar" items={items} />);
 
-    expect(screen.getByText("١")).toBeInTheDocument();
-    expect(screen.getByText("٢")).toBeInTheDocument();
-    expect(screen.getByText("٣")).toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+    expect(screen.getByText("2")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("numbers the English list with Latin digits", () => {
     render(<MostReadList lang="en" items={items} />);
 
     expect(screen.getByText("1")).toBeInTheDocument();
+    // The Eastern digit must not appear in either edition any more.
     expect(screen.queryByText("١")).not.toBeInTheDocument();
   });
 
   it("gives the rank tabular figures so numbers align", () => {
     render(<MostReadList lang="ar" items={items} />);
 
-    expect(screen.getByText("١").className).toContain("tnum");
+    expect(screen.getByText("1").className).toContain("tnum");
   });
 
   it("uses the default heading per language", () => {

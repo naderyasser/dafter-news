@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
-import { toEasternNumerals } from "@/lib/format";
+import { toDisplayNumerals } from "@/lib/format";
 
 /** Same caption rule as the sidebar widget — section only, no read count.
  *  See MostReadItem for why. */
@@ -49,7 +49,7 @@ export default function MostReadPageContent({ rows }: { rows: MostReadRow[] }) {
         {ordered.map((it, i) => (
           <Link key={it.href + i} href={it.href} className="flex items-start gap-3.5 border-b border-line py-4 no-underline">
             <span className="tnum min-w-[34px] flex-shrink-0 text-[30px] font-extrabold leading-none text-brand">
-              {toEasternNumerals(i + 1)}
+              {toDisplayNumerals(i + 1)}
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="text-[15px] font-semibold leading-[1.5] text-ink">{it.title}</span>

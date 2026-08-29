@@ -207,40 +207,58 @@ async function HomeContent() {
   const heroSide = recent.results.filter((a) => !heroIds.has(a.id)).slice(0, 4);
 
   /**
-   * Page-level "already shown" set. A story used to be able to appear in the
-   * hero, again in its own section block, and a third time in «آخر الأخبار»
-   * — one article occupying three slots on a page whose whole job is breadth.
+   * Page-level "already shown" set, for the CROSS-SECTION blocks only.
    *
-   * `claim` is order-sensitive by design: it is called in render order, so
-   * the highest block on the page keeps the story and every later block
-   * silently skips it. Blocks are read top-to-bottom below for that reason —
-   * moving a call changes which block wins, which is the intended knob.
+   * The distinction matters and was got wrong once already. There are two
+   * kinds of block on this page:
    *
-   * The breaking ticker is deliberately NOT filtered through this (a story
-   * can be both the lead and breaking); it dedupes within its own loop.
+   *  - Aggregate blocks (the hero, its side rail, «آخر الأخبار», the tail)
+   *    draw from the whole paper. Two of them showing the same story is
+   *    pure repetition, so they filter through `claim`.
+   *
+   *  - A SECTION block is that desk's own feed. Its job is to answer "what
+   *    is newest in سياسة", and the honest answer does not change because
+   *    the hero happens to be running the same story. These use `mark`.
+   *
+   * Filtering section blocks was a real, reported bug: a freshly published
+   * story is by definition the newest thing on the site, so the hero took it
+   * first and its own section silently dropped it. The editor published to
+   * سياسة, could not find it in سياسة, and reasonably concluded the page was
+   * serving stale cache. It was not — the story was on the page, in the
+   * hero, and deliberately withheld from the one block being checked.
+   *
+   * Section blocks still MARK what they show, so the aggregate blocks below
+   * them («آخر الأخبار», the tail) do not repeat it a third time.
+   *
+   * The breaking ticker is exempt from both (a story can be the lead and
+   * breaking at once); it dedupes within its own loop.
    */
   const seenIds = new Set<number>([...heroIds, ...heroSide.map((a) => a.id)]);
+  /** Filter out anything already shown, then mark what survives. */
   const claim = <T extends { id: number }>(items: T[], limit?: number): T[] => {
     const kept = items.filter((a) => !seenIds.has(a.id));
     const out = typeof limit === "number" ? kept.slice(0, limit) : kept;
     out.forEach((a) => seenIds.add(a.id));
     return out;
   };
+  /** Show everything, but record it so later aggregate blocks skip it. */
+  const mark = <T extends { id: number }>(items: T[]): T[] => {
+    items.forEach((a) => seenIds.add(a.id));
+    return items;
+  };
 
-  // Claimed in the order the blocks actually render further down — which is
-  // now reader-value order (B7), not nav order: شؤون مصر and سياسة lead,
-  // then the high-intent desks (economy, sports), then the rest.
-  const politicsCards = claim(politics.results);
-  const egyptCards = claim(egypt.results);
-  const worldCards = claim(world.results);
-  const gulfCards = claim(gulf.results);
-  const econCards = claim(econ.results);
-  const sportsCards = claim(sports.results);
-  const artCards = claim(art.results);
-  const guideCards = claim(guide.results);
-  const techCards = claim(tech.results);
-  const securityCards = claim(security.results);
-  const specialCards = claim(special.results);
+  // Section blocks: their own newest, unfiltered — see `mark` above.
+  const politicsCards = mark(politics.results);
+  const egyptCards = mark(egypt.results);
+  const worldCards = mark(world.results);
+  const gulfCards = mark(gulf.results);
+  const econCards = mark(econ.results);
+  const sportsCards = mark(sports.results);
+  const artCards = mark(art.results);
+  const guideCards = mark(guide.results);
+  const techCards = mark(tech.results);
+  const securityCards = mark(security.results);
+  const specialCards = mark(special.results);
   // The tail renders last, so it claims last — and a tail section left with
   // nothing after dedup is dropped entirely rather than rendered as a bare
   // heading over an empty grid.

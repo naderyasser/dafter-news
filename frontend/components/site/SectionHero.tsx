@@ -1,4 +1,4 @@
-import { toEasternNumerals } from "@/lib/format";
+import { toDisplayNumerals } from "@/lib/format";
 import { sectionArtUrl, sectionColor } from "@/lib/sections";
 
 const T = {
@@ -34,7 +34,7 @@ export default function SectionHero({
   // White stroke, so the mark reads as chalk on the coloured band.
   const art = sectionArtUrl(sectionKey, "rgba(255,255,255,.9)", 4);
   const t = T[lang];
-  const countLabel = count === undefined ? null : count === 1 ? t.one : t.many(isAr ? toEasternNumerals(count) : String(count));
+  const countLabel = count === undefined ? null : count === 1 ? t.one : t.many(isAr ? toDisplayNumerals(count) : String(count));
 
   return (
     <div className="relative mb-7 overflow-hidden rounded-card" style={{ backgroundColor: color }}>

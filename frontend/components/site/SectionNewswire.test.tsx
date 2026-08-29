@@ -59,14 +59,14 @@ describe("SectionNewswire", () => {
 
     // 14 cards: 1 lead + 13 rows → two pages of 8.
     expect(screen.queryByText("خبر رقم 12")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("٢"));
+    fireEvent.click(screen.getByText("2"));
     expect(screen.getByText("خبر رقم 12")).toBeInTheDocument();
   });
 
   it("drops the lead on later pages so the list keeps its place", () => {
     render(<SectionNewswire lang="ar" cards={cards} />);
 
-    fireEvent.click(screen.getByText("٢"));
+    fireEvent.click(screen.getByText("2"));
     expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
   });
 

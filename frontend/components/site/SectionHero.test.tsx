@@ -35,10 +35,10 @@ describe("SectionHero", () => {
     expect(screen.getByText("تحقيقات معمّقة تأخذ وقتها")).toBeInTheDocument();
   });
 
-  it("counts the desk's stories in Eastern numerals on the Arabic edition", () => {
+  it("counts the desk's stories in Western numerals on the Arabic edition", () => {
     render(<SectionHero lang="ar" title="شؤون مصر" sectionKey="egypt" count={11} />);
 
-    expect(screen.getByText("١١ خبر")).toBeInTheDocument();
+    expect(screen.getByText("11 خبر")).toBeInTheDocument();
   });
 
   it("counts in Latin numerals on the English edition", () => {

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import CoverImage from "@/components/ui/CoverImage";
-import { formatDate, toEasternNumerals } from "@/lib/format";
+import { formatDate, toDisplayNumerals } from "@/lib/format";
 import { sectionArtUrl } from "@/lib/sections";
 import type { FrontProps } from "./types";
 
@@ -109,7 +109,7 @@ export default function CultureFront({ lang, accent, sectionKey, title, tagline,
 
           {stories.length > 1 && (
             <div className="tnum flex justify-center gap-1 border-t border-line bg-paper py-2 text-[11px] font-semibold text-ink-3">
-              {isAr ? toEasternNumerals(index + 1) : index + 1} / {isAr ? toEasternNumerals(stories.length) : stories.length}
+              {isAr ? toDisplayNumerals(index + 1) : index + 1} / {isAr ? toDisplayNumerals(stories.length) : stories.length}
             </div>
           )}
         </div>

@@ -1,8 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const EASTERN = ["٠", "١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩"];
-const toRank = (n: number, isAr: boolean) => (isAr ? String(n).split("").map((d) => EASTERN[+d]).join("") : String(n));
+import { toDisplayNumerals } from "@/lib/format";
+
+/** Rank numeral. Western digits in both editions — see lib/format's
+ *  AR_LOCALE for why the site dropped Eastern numerals everywhere. This
+ *  file used to carry its own private digit table, which is exactly how a
+ *  site ends up with two number systems on one page. */
+const toRank = (n: number) => toDisplayNumerals(n);
 
 /**
  * The caption is the section name alone — neither a timestamp nor a read count.
@@ -40,7 +45,7 @@ export default function MostReadList({
             className={`flex items-start gap-3.5 py-3.5 no-underline ${i === items.length - 1 ? "" : "border-b border-line"}`}
           >
             <span className="tnum min-w-[28px] flex-shrink-0 text-[26px] font-extrabold leading-none text-brand">
-              {toRank(i + 1, isAr)}
+              {toRank(i + 1)}
             </span>
             <span className="flex min-w-0 flex-1 flex-col gap-1">
               <span className="text-[14px] font-semibold leading-[1.5] text-ink">{it.title}</span>

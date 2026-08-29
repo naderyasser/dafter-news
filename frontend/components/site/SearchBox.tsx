@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { API_URL, mediaUrl } from "@/lib/api";
-import { relativeTime, toEasternNumerals } from "@/lib/format";
+import { relativeTime, toDisplayNumerals } from "@/lib/format";
 import type { ArticleCard, Paginated, Section } from "@/lib/types";
 
 const RECENT_KEY = "aldaftar:recent-searches";
@@ -368,7 +368,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
                   )}
 
                   <div className="px-5 pb-2 pt-3 text-[11.5px] font-bold uppercase tracking-wide text-header-muted">
-                    {query ? `${t.results} · ${isAr ? toEasternNumerals(total) : total}` : t.latest}
+                    {query ? `${t.results} · ${isAr ? toDisplayNumerals(total) : total}` : t.latest}
                   </div>
 
                   {rows.map((r, i) => (
@@ -412,7 +412,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
                       onClick={() => submit()}
                       className="w-full px-5 py-3.5 text-start text-[13px] font-bold text-brand hover:bg-navy-2"
                     >
-                      {t.seeAll} ({isAr ? toEasternNumerals(total) : total})
+                      {t.seeAll} ({isAr ? toDisplayNumerals(total) : total})
                     </button>
                   )}
                 </>

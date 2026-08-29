@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import CoverImage from "@/components/ui/CoverImage";
-import { toEasternNumerals } from "@/lib/format";
+import { toDisplayNumerals } from "@/lib/format";
 import type { Paginated, Video } from "@/lib/types";
 import type { FrontProps } from "./types";
 
@@ -112,7 +112,7 @@ export default function WatchFront({ lang, title, tagline, videos }: FrontProps 
                   </h3>
                   {v.comment_count > 0 && (
                     <div className="tnum mt-1.5 text-[11.5px] font-semibold text-white/50">
-                      {isAr ? toEasternNumerals(v.comment_count) : v.comment_count} {t.comments}
+                      {isAr ? toDisplayNumerals(v.comment_count) : v.comment_count} {t.comments}
                     </div>
                   )}
                 </Link>

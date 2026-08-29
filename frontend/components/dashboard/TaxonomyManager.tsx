@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 
 import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
-import { toEasternNumerals } from "@/lib/format";
+import { toDisplayNumerals } from "@/lib/format";
 import type { Section, Tag } from "@/lib/types";
 
 const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand";
@@ -217,7 +217,7 @@ export default function TaxonomyManager({
                 {s.key}
               </span>
               {/* Counted server-side off the article table. */}
-              <span className="tnum text-xs text-ink-3">{toEasternNumerals(s.article_count)} مقال</span>
+              <span className="tnum text-xs text-ink-3">{toDisplayNumerals(s.article_count)} مقال</span>
               <button onClick={() => setEditingSection(s)} aria-label={`تعديل ${s.name_ar}`} className="text-ink-3 hover:text-brand">
                 ✎
               </button>

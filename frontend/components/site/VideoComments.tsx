@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { apiMutate, describeApiError } from "@/lib/api";
 import type { VideoComment } from "@/lib/types";
+import { AR_LOCALE } from "@/lib/format";
 
 const T = {
   ar: {
@@ -12,7 +13,7 @@ const T = {
     post: "نشر",
     you: "أنت",
     failed: "تعذّر نشر التعليق. تحقّق من الاتصال ثم حاول مرة أخرى.",
-    dateLocale: "ar-EG",
+    dateLocale: AR_LOCALE,
     font: "font-display-ar",
   },
   en: {

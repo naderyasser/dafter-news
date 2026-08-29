@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { apiMutate, describeApiError } from "@/lib/api";
 import type { ArticleComment } from "@/lib/types";
+import { AR_LOCALE } from "@/lib/format";
 
 const T = {
   ar: {
@@ -16,7 +17,7 @@ const T = {
     pendingNote: "وصل تعليقك — سيظهر هنا بعد موافقة فريق التحرير.",
     failed: "تعذّر إرسال التعليق. تحقّق من الاتصال ثم حاول مرة أخرى.",
     empty: "لا توجد تعليقات بعد — كن أول من يعلّق.",
-    dateLocale: "ar-EG",
+    dateLocale: AR_LOCALE,
     font: "font-display-ar",
   },
   en: {

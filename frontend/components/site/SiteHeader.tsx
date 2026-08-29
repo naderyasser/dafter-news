@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { AR_LOCALE } from "@/lib/format";
 import Link from "next/link";
 
 import BetaBadge from "@/components/site/BetaBadge";
@@ -74,7 +75,7 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
           { text: "Central bank holds interest rates steady", href: "" },
         ];
 
-  const today = new Intl.DateTimeFormat(isAr ? "ar-EG" : "en-US", {
+  const today = new Intl.DateTimeFormat(isAr ? AR_LOCALE : "en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",

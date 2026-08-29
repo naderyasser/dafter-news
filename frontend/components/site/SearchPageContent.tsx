@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import ArticleCard from "@/components/site/ArticleCard";
 import { API_URL, mediaUrl } from "@/lib/api";
-import { relativeTime, toEasternNumerals } from "@/lib/format";
+import { relativeTime, toDisplayNumerals } from "@/lib/format";
 import type { ArticleCard as ArticleCardType, Paginated, Section } from "@/lib/types";
 
 const T = {
@@ -203,7 +203,7 @@ export default function SearchPageContent({
         <>
           <div className="mb-4 flex items-center gap-2 text-[14px] text-ink-3">
             <span className="tnum">
-              {isAr ? toEasternNumerals(total) : total} {t.results}
+              {isAr ? toDisplayNumerals(total) : total} {t.results}
             </span>
             {query ? (
               <span>

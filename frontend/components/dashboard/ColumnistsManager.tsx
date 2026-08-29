@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
-import { formatDate, toEasternNumerals } from "@/lib/format";
+import { formatDate, toDisplayNumerals } from "@/lib/format";
 import type { ArticleCard, ArticleStatus, Author } from "@/lib/types";
 
 const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand";
@@ -242,7 +242,7 @@ function AuthorCard({
       <span className="text-[14.5px] font-bold">{author.name}</span>
       {author.title && <span className="text-[12px] text-ink-3">{author.title}</span>}
       {/* Counted server-side from the article table, so it can't drift. */}
-      <span className="text-[12.5px] text-ink-3">{toEasternNumerals(author.opinion_count)} مقال رأي</span>
+      <span className="text-[12.5px] text-ink-3">{toDisplayNumerals(author.opinion_count)} مقال رأي</span>
       {author.is_hidden && (
         <span className="rounded-badge bg-surface-2 px-2 py-0.5 text-[11.5px] font-bold text-ink-3">مخفي من الموقع</span>
       )}

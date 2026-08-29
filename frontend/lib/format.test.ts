@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 
-import { clockTime, dayBucket, decodeParam, formatDate, publishedLine, readCount, relativeTime, standfirstFor, toEasternNumerals, withoutSectionPrefix, isArabicScript, isLatinScript } from "./format";
+import { clockTime, dayBucket, decodeParam, formatDate, publishedLine, readCount, relativeTime, standfirstFor, toDisplayNumerals, withoutSectionPrefix, isArabicScript, isLatinScript } from "./format";
 
 describe("decodeParam", () => {
   it("returns a plain ASCII slug unchanged", () => {
@@ -38,19 +38,25 @@ describe("decodeParam", () => {
   });
 });
 
-describe("toEasternNumerals", () => {
-  it("converts Western digits to Eastern Arabic digits", () => {
-    expect(toEasternNumerals(1)).toBe("١");
-    expect(toEasternNumerals(10)).toBe("١٠");
-    expect(toEasternNumerals(214)).toBe("٢١٤");
+/**
+ * The site prints Western digits in both editions — the newsroom's call.
+ * These pin that the helper does NOT reintroduce Eastern numerals, which is
+ * what it used to do under its old name (toEasternNumerals).
+ */
+describe("toDisplayNumerals", () => {
+  it("keeps Western digits as they are", () => {
+    expect(toDisplayNumerals(1)).toBe("1");
+    expect(toDisplayNumerals(10)).toBe("10");
+    expect(toDisplayNumerals(214)).toBe("214");
   });
 
-  it("converts every digit", () => {
-    expect(toEasternNumerals("0123456789")).toBe("٠١٢٣٤٥٦٧٨٩");
+  it("never emits an Eastern Arabic digit", () => {
+    expect(toDisplayNumerals("0123456789")).toBe("0123456789");
+    expect(/[٠-٩]/.test(toDisplayNumerals("0123456789"))).toBe(false);
   });
 
   it("leaves non-digit characters untouched", () => {
-    expect(toEasternNumerals("12-34")).toBe("١٢-٣٤");
+    expect(toDisplayNumerals("12-34")).toBe("12-34");
   });
 });
 
@@ -286,23 +292,23 @@ describe("script detection", () => {
 
 describe("readCount", () => {
   it("uses the Arabic plural for a tail of three to ten", () => {
-    // ٣–١٠ take the plural: «٥ قراءات», not «٥ قراءة».
-    expect(readCount(5, "ar")).toBe("٥ قراءات");
-    expect(readCount(9, "ar")).toBe("٩ قراءات");
-    expect(readCount(10, "ar")).toBe("١٠ قراءات");
+    // 3–10 take the plural: «5 قراءات», not «5 قراءة».
+    expect(readCount(5, "ar")).toBe("5 قراءات");
+    expect(readCount(9, "ar")).toBe("9 قراءات");
+    expect(readCount(10, "ar")).toBe("10 قراءات");
   });
 
   it("uses the Arabic singular from eleven upward", () => {
-    expect(readCount(11, "ar")).toBe("١١ قراءة");
-    expect(readCount(150, "ar")).toBe("١٥٠ قراءة");
+    expect(readCount(11, "ar")).toBe("11 قراءة");
+    expect(readCount(150, "ar")).toBe("150 قراءة");
   });
 
   it("counts by the last two digits, not the magnitude", () => {
     // The rule that catches people out: 103 is plural because its tail is 3,
     // while 111 is singular because its tail is 11.
-    expect(readCount(103, "ar")).toBe("١٠٣ قراءات");
-    expect(readCount(111, "ar")).toBe("١١١ قراءة");
-    expect(readCount(100, "ar")).toBe("١٠٠ قراءة");
+    expect(readCount(103, "ar")).toBe("103 قراءات");
+    expect(readCount(111, "ar")).toBe("111 قراءة");
+    expect(readCount(100, "ar")).toBe("100 قراءة");
   });
 
   it("gives one and two their own forms rather than a digit", () => {
@@ -311,11 +317,13 @@ describe("readCount", () => {
   });
 
   it("prints zero rather than pretending a story has no count", () => {
-    expect(readCount(0, "ar")).toBe("٠ قراءة");
+    expect(readCount(0, "ar")).toBe("0 قراءة");
   });
 
-  it("groups thousands in Eastern numerals", () => {
-    expect(readCount(31822, "ar")).toMatch(/^٣١.٨٢٢ قراءة$/);
+  it("groups thousands in Western numerals", () => {
+    // The separator is whatever ar-EG uses (a comma or U+066C); the digits
+    // either side of it are what this pins.
+    expect(readCount(31822, "ar")).toMatch(/^31.822 قراءة$/);
   });
 
   it("reads plainly in English", () => {
@@ -327,8 +335,45 @@ describe("readCount", () => {
   it("treats a missing or negative count as zero", () => {
     // ArticleCard.views is non-null from the API, but the prop is optional on
     // the widget and a negative count is not a thing to render literally.
-    expect(readCount(null, "ar")).toBe("٠ قراءة");
+    expect(readCount(null, "ar")).toBe("0 قراءة");
     expect(readCount(undefined, "en")).toBe("0 reads");
     expect(readCount(-5, "en")).toBe("0 reads");
+  });
+});
+
+/**
+ * The site-wide decision, pinned at the source.
+ *
+ * Eastern numerals used to leak in from two places: the "ar-EG" locale
+ * (Intl's default numbering system for it) and a hand-rolled digit table
+ * that had been copied into a component. Both are gone; these assert the
+ * formatters themselves, so a future call site cannot reintroduce them by
+ * reaching for a plain "ar-EG".
+ */
+describe("Western digits, site-wide", () => {
+  const EASTERN = /[٠-٩]/;
+
+  it("formats a date with Arabic month names but Western digits", () => {
+    const out = formatDate("2026-08-29T12:00:00Z", "ar");
+
+    expect(out).toContain("أغسطس");
+    expect(out).toContain("2026");
+    expect(EASTERN.test(out)).toBe(false);
+  });
+
+  it("keeps the publish line free of Eastern digits", () => {
+    const out = publishedLine("2026-08-29T17:37:00Z", "ar");
+
+    expect(out).toContain("نُشر في");
+    expect(EASTERN.test(out)).toBe(false);
+  });
+
+  it("keeps the clock and the day bucket free of Eastern digits", () => {
+    expect(EASTERN.test(clockTime("2026-08-29T09:05:00Z", "ar"))).toBe(false);
+    expect(EASTERN.test(dayBucket("2026-01-14T09:05:00Z", "ar"))).toBe(false);
+  });
+
+  it("keeps read counts free of Eastern digits, separator included", () => {
+    expect(EASTERN.test(readCount(31822, "ar"))).toBe(false);
   });
 });

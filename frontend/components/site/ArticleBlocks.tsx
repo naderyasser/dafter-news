@@ -9,7 +9,7 @@ import Rich from "@/components/site/RichText";
 import type { SectionBlockCard } from "@/components/site/SectionBlock";
 import { mediaUrl } from "@/lib/api";
 import { paginateBlocks, splitLongParagraph } from "@/lib/richtext";
-import { toEasternNumerals } from "@/lib/format";
+import { toDisplayNumerals } from "@/lib/format";
 import type { ArticleBlock } from "@/lib/types";
 
 /** Physical, not logical — the editor's alignment menu means "this literal
@@ -203,7 +203,7 @@ export default function ArticleBlocks({
                   i === current ? "border-accent bg-accent text-paper" : "border-line bg-paper text-ink hover:border-accent"
                 }`}
               >
-                {isAr ? toEasternNumerals(i + 1) : i + 1}
+                {isAr ? toDisplayNumerals(i + 1) : i + 1}
               </button>
             ))}
           </div>

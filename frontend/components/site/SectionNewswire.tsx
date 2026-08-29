@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import ArticleCard from "@/components/site/ArticleCard";
 import CoverImage from "@/components/ui/CoverImage";
-import { toEasternNumerals } from "@/lib/format";
+import { toDisplayNumerals } from "@/lib/format";
 import Link from "next/link";
 import type { Badge } from "@/lib/types";
 
@@ -141,7 +141,7 @@ export default function SectionNewswire({
               }`}
               style={n === currentPage ? activeFill : undefined}
             >
-              {isAr ? toEasternNumerals(n) : n}
+              {isAr ? toDisplayNumerals(n) : n}
             </button>
           ))}
         </div>

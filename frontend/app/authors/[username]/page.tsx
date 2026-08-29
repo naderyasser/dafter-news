@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import SectionBlock from "@/components/site/SectionBlock";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticles, getAuthor, mediaUrl } from "@/lib/api";
-import { relativeTime, toEasternNumerals } from "@/lib/format";
+import { relativeTime, toDisplayNumerals } from "@/lib/format";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -59,7 +59,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ usernam
             <h1 className="font-display-ar mb-1.5 text-[24px] font-extrabold text-ink">{author.name}</h1>
             <p className="mb-2.5 max-w-[520px] text-[14px] leading-[1.7] text-ink-3">{author.title || author.bio}</p>
             <div className="flex gap-4 text-[13px] font-semibold text-ink-2">
-              <span className="tnum">{toEasternNumerals(author.article_count)} مقال</span>
+              <span className="tnum">{toDisplayNumerals(author.article_count)} مقال</span>
               <span>•</span>
               <span>انضم في {new Date(author.date_joined).getFullYear()}</span>
             </div>
