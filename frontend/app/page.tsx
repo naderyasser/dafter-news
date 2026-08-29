@@ -136,7 +136,22 @@ function toArtCard(a: ArticleCardType) {
  * for. A section block is a chronological feed; if a story deserves the top
  * of the page, that is the hero's job.
  */
-const sectionFeed = (key: string, size = 6) => getSectionFeed("ar", key, size);
+/** The client's standard: every category block on the home page shows
+ *  exactly this many stories, with «المزيد» at its foot for the rest. */
+const BLOCK_SIZE = 5;
+
+const sectionFeed = (key: string, size = BLOCK_SIZE) => getSectionFeed("ar", key, size);
+
+/**
+ * A photo-led block needs enough stories to look like a block.
+ *
+ * With one story, «شؤون مصر»'s lead-plus-list shape degrades to a single
+ * large photograph with a headline under it and nothing else — which is
+ * exactly the "broken/ugly layout" the newsroom reported on the quieter
+ * desks. Below this threshold a section falls back to the plain headline
+ * list, which reads as a deliberate compact block at any length.
+ */
+const MIN_FOR_PHOTO_LED = 2;
 
 async function HomeContent() {
   const [pinnedRes, recent, politics, egypt, gulf, world, econ, sports, art, tech, special, security, guide, videos, opinion, mostRead, tags, popular, stories, matches, sections] =
@@ -146,12 +161,12 @@ async function HomeContent() {
       sectionFeed("pol"),
       sectionFeed("egypt"),
       sectionFeed("gulf"),
-      sectionFeed("world", 7),
+      sectionFeed("world"),
       sectionFeed("economy"),
       sectionFeed("sports"),
-      sectionFeed("art", 7),
+      sectionFeed("art"),
       sectionFeed("tech"),
-      sectionFeed("special", 8),
+      sectionFeed("special"),
       sectionFeed("security"),
       sectionFeed("guide"),
       // Deeper than the four a grid needed: the showcase's thumbnail strip is
@@ -186,7 +201,7 @@ async function HomeContent() {
   // The tail: every section without a bespoke block above. Empty ones are
   // dropped rather than rendered as a bare heading.
   const tailSections = sections.results.filter((s) => !CURATED_KEYS.includes(s.key));
-  const tailFeeds = await Promise.all(tailSections.map((s) => sectionFeed(s.key, 4)));
+  const tailFeeds = await Promise.all(tailSections.map((s) => sectionFeed(s.key, BLOCK_SIZE)));
   const tail = tailSections
     .map((section, i) => ({ section, articles: tailFeeds[i].results }))
     .filter(({ articles }) => articles.length);
@@ -372,14 +387,6 @@ async function HomeContent() {
               />
             </div>
           ))}
-
-          {/* «الأكثر قراءة» sat at the very bottom of the page, past every
-              section — a ranking nobody scrolled far enough to read. Beside
-              the hero it is inside the first screen, which is where a
-              most-read list is actually useful for navigation. */}
-          <div className="mt-5 border-t border-line pt-5">
-            <MostReadList lang="ar" items={mostReadItems} />
-          </div>
         </div>
       </div>
 
@@ -401,6 +408,9 @@ async function HomeContent() {
       {/* 1. سياسة — صورة قائد بعنوان فوقها، ثم شريط بطاقتين بأسهم ونقاط. */}
       {politicsCards.length ? (
         <>
+          {politicsCards.length < MIN_FOR_PHOTO_LED ? (
+            <CompactListBlock lang="ar" title="سياسة" href="/section/pol" sectionKey="pol" cards={politicsCards} showTime={false} />
+          ) : (
           <HeroCarouselBlock
             lang="ar"
             title="سياسة"
@@ -408,19 +418,25 @@ async function HomeContent() {
             sectionKey="pol"
             cards={politicsCards.map(toHeroCarouselCard)}
           />
+          )}
           <SectionDivider />
         </>
       ) : null}
 
-      {/* 2. شؤون مصر — lead photo + white list. */}
-      <LeadListBlock
-        lang="ar"
-        title="شؤون مصر"
-        seeAllHref="/section/egypt"
-        sectionKey="egypt"
-        cards={egyptCards.map(toSectionCard)}
-        {...masthead("egypt")}
-      />
+      {/* 2. شؤون مصر — lead photo + white list, or the plain list on a quiet
+          day (see MIN_FOR_PHOTO_LED). */}
+      {egyptCards.length >= MIN_FOR_PHOTO_LED ? (
+        <LeadListBlock
+          lang="ar"
+          title="شؤون مصر"
+          seeAllHref="/section/egypt"
+          sectionKey="egypt"
+          cards={egyptCards.map(toSectionCard)}
+          {...masthead("egypt")}
+        />
+      ) : (
+        <CompactListBlock lang="ar" title="شؤون مصر" href="/section/egypt" sectionKey="egypt" cards={egyptCards} showTime={false} />
+      )}
       {egyptCards.length ? <SectionDivider /> : null}
 
       {/* 3. عرب وعالم — its own front-page treatment (lead + rail + tiles,
@@ -434,14 +450,18 @@ async function HomeContent() {
           adjacent to it, so the repeat never reads as a repeat. */}
       {gulfCards.length ? (
         <>
-          <LeadListBlock
-            lang="ar"
-            title="الخليج العربي"
-            seeAllHref="/section/gulf"
-            sectionKey="gulf"
-            cards={gulfCards.map(toGulfCard)}
-            {...masthead("gulf")}
-          />
+          {gulfCards.length >= MIN_FOR_PHOTO_LED ? (
+            <LeadListBlock
+              lang="ar"
+              title="الخليج العربي"
+              seeAllHref="/section/gulf"
+              sectionKey="gulf"
+              cards={gulfCards.map(toGulfCard)}
+              {...masthead("gulf")}
+            />
+          ) : (
+            <CompactListBlock lang="ar" title="الخليج العربي" href="/section/gulf" sectionKey="gulf" cards={gulfCards} showTime={false} />
+          )}
           <SectionDivider />
         </>
       ) : null}
@@ -449,7 +469,7 @@ async function HomeContent() {
       {/* ---- البقية، والأقل تحديثاً في الأسفل ---- */}
 
       {/* حركة السوق — V2 equal grid. */}
-      <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econCards.map(toSectionCard)} initialCount={4} sectionKey="economy" />
+      <SectionBlock lang="ar" title="حركة السوق" seeAllHref="/section/economy" cards={econCards.map(toSectionCard)} initialCount={BLOCK_SIZE} sectionKey="economy" />
       {econCards.length ? <SectionDivider /> : null}
 
       {/* جوّه الجون — its own floodlit surface rather than a fourth grid. */}
@@ -520,7 +540,7 @@ async function HomeContent() {
             title={section.name_ar}
             seeAllHref={`/section/${section.key}`}
             cards={articles.map(toSectionCard)}
-            initialCount={4}
+            initialCount={BLOCK_SIZE}
             sectionKey={section.key}
           />
         </div>
@@ -530,9 +550,13 @@ async function HomeContent() {
 
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-8 px-6 py-8">
         <LatestNewsTabs lang="ar" latest={newsLatest} popular={newsPopular} />
-        {/* «الأكثر قراءة» used to be repeated here as well; it now lives
-            beside the hero (see above) and this rail keeps the tag cloud. */}
+        {/* «الأكثر قراءة» belongs down here beside «أحدث الأخبار», not at the
+            top of the page. It briefly led the home page and the newsroom
+            was right to send it back: no news front opens on a popularity
+            ranking — a reader arrives for what is new, and what is most read
+            is what they browse once the news itself is spent. */}
         <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-5">
+          <MostReadList lang="ar" items={mostReadItems} />
           <div className="rounded-card border border-line bg-paper p-5">
             <div className="rule-accent ps-3.5 font-display-ar text-[15px] font-extrabold text-ink">وسوم رائجة</div>
             <div className="mt-3.5 flex flex-wrap gap-2">

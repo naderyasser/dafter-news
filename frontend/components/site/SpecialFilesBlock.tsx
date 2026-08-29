@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SectionMore from "@/components/site/SectionMore";
 
 import ArrowCarousel from "@/components/site/ArrowCarousel";
 import Chevron from "@/components/ui/Chevron";
@@ -17,8 +18,8 @@ export type SpecialFileCard = {
 };
 
 const T = {
-  ar: { kicker: "تحقيقات وتقارير معمّقة", more: "عرض الكل", drop: "أفلت صورة الملف هنا" },
-  en: { kicker: "Investigations & in-depth reports", more: "See all", drop: "Drop cover here" },
+  ar: { kicker: "تحقيقات وتقارير معمّقة", drop: "أفلت صورة الملف هنا" },
+  en: { kicker: "Investigations & in-depth reports", drop: "Drop cover here" },
 };
 
 /**
@@ -70,10 +71,6 @@ export default function SpecialFilesBlock({
             <h2 className={`${fontDisplay} m-0 text-[clamp(1.25rem,1.05rem+0.9vw,1.625rem)] font-extrabold text-paper`}>{title}</h2>
             <div className="mt-1 text-[13px] text-paper/60">{t.kicker}</div>
           </div>
-          <Link href={href} className="flex items-center gap-1.5 text-[13px] font-bold text-gold no-underline hover:text-paper">
-            {t.more}
-            <Chevron lang={lang} className="h-3.5 w-3.5" />
-          </Link>
         </div>
 
         <ArrowCarousel lang={lang} itemClassName="w-[240px] sm:w-[264px]">
@@ -96,6 +93,7 @@ export default function SpecialFilesBlock({
             </Link>
           ))}
         </ArrowCarousel>
+        <SectionMore lang={lang} href={href} tone="dark" />
       </div>
     </section>
   );

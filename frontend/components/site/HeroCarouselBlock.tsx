@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSwipe } from "@/lib/useSwipe";
 import { useState } from "react";
 
 import ClockIcon from "@/components/ui/ClockIcon";
 import Chevron from "@/components/ui/Chevron";
 import CoverImage from "@/components/ui/CoverImage";
 import SectionHeading from "@/components/site/SectionHeading";
+import SectionMore from "@/components/site/SectionMore";
 import type { Badge } from "@/lib/types";
 
 export type HeroCarouselCard = {
@@ -140,6 +142,12 @@ export default function HeroCarouselBlock({
 }) {
   const perPage = 2;
   const [page, setPage] = useState(0);
+  // Finger swipe, same paging the arrows drive. Without it a phone reader had
+  // only two 36px arrows to move through the desk.
+  const swipe = useSwipe(
+    (dir) => setPage((p) => (dir === "next" ? Math.min(pageCount - 1, p + 1) : Math.max(0, p - 1))),
+    lang === "ar",
+  );
   if (!cards.length) return null;
 
   const [lead, ...rest] = cards;
@@ -160,7 +168,7 @@ export default function HeroCarouselBlock({
       <Hero card={lead} lang={lang} />
 
       {rest.length > 0 && (
-        <div className="relative mt-5">
+        <div className="relative mt-5" {...swipe}>
           {pageCount > 1 && (
             <button
               type="button"
@@ -217,6 +225,7 @@ export default function HeroCarouselBlock({
           ))}
         </div>
       )}
+      <SectionMore lang={lang} href={href} />
     </section>
   );
 }

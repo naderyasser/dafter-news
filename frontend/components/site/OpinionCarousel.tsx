@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Chevron from "@/components/ui/Chevron";
+import SectionMore from "@/components/site/SectionMore";
 
 export type OpinionItem = { name: string; quote: string; href: string; initial: string; avatar?: string; time?: string };
 
@@ -87,9 +88,6 @@ export default function OpinionCarousel({
             <span className={`${fontDisplay} rule-accent rule-on-dark ps-3.5 text-h2 font-extrabold text-paper`}>
               {isAr ? "بالعقل والمنطق" : "By Reason & Logic"}
             </span>
-            <a href={seeAllHref} className="text-[13px] text-header-muted no-underline hover:text-paper">
-              {isAr ? "عرض الكل" : "See all"}
-            </a>
           </div>
         )}
         <div className="flex gap-2">
@@ -135,6 +133,9 @@ export default function OpinionCarousel({
             </div>
           </Link>
         ))}
+      </div>
+      <div className="mx-auto max-w-container px-6">
+        <SectionMore lang={lang} href={seeAllHref} tone="dark" />
       </div>
     </section>
   );

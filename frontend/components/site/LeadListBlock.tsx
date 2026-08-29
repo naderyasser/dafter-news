@@ -4,6 +4,7 @@ import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
 import Chevron from "@/components/ui/Chevron";
 import SectionHeading from "@/components/site/SectionHeading";
+import SectionMore from "@/components/site/SectionMore";
 import SectionMasthead from "@/components/site/SectionMasthead";
 import { sectionColor } from "@/lib/sections";
 
@@ -196,15 +197,7 @@ export default function LeadListBlock({
         )}
       </div>
 
-      <div className="mt-4 text-center">
-        <Link
-          href={seeAllHref}
-          className="inline-flex items-center gap-2 rounded-pill border border-line bg-paper px-7 py-2.5 text-[14px] font-semibold text-ink no-underline transition-colors duration-fast hover:border-accent hover:text-accent"
-        >
-          {t.more}
-          <Chevron lang={lang} className="h-3.5 w-3.5" />
-        </Link>
-      </div>
+      <SectionMore lang={lang} href={seeAllHref} />
     </div>
     </section>
   );

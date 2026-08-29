@@ -74,10 +74,12 @@ describe("SpecialFilesBlock", () => {
     expect(screen.getByText("م.ش")).toBeInTheDocument();
   });
 
-  it("links the heading's «عرض الكل» to the section archive", () => {
+  it("links the foot «المزيد» button to the section archive", () => {
+    // The top-corner link moved to a real button at the foot of the block,
+    // the same one every other section block now carries.
     render(<SpecialFilesBlock lang="ar" title="ملف خاص" href="/section/special" items={items} />);
 
-    expect(screen.getByText("عرض الكل").closest("a")).toHaveAttribute("href", "/section/special");
+    expect(screen.getByRole("link", { name: /المزيد/ })).toHaveAttribute("href", "/section/special");
   });
 
   it("sits on the dark band with gold accents, not the news red", () => {
@@ -90,7 +92,7 @@ describe("SpecialFilesBlock", () => {
   it("speaks English on the English edition", () => {
     render(<SpecialFilesBlock lang="en" title="Special Files" href="/en/section/special" items={items} />);
 
-    expect(screen.getByText("See all")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /More/ })).toHaveAttribute("href", "/en/section/special");
     expect(screen.getByText("Investigations & in-depth reports")).toBeInTheDocument();
   });
 

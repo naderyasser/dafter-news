@@ -1,6 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+
+import { CONTENT_TAG } from "@/lib/api";
 
 /**
  * Drops the cached render of every public page.
@@ -23,5 +25,11 @@ import { revalidatePath } from "next/cache";
  * never surface as a failed save, since the write itself already landed.
  */
 export async function revalidateSite(): Promise<void> {
+  // updateTag, not revalidateTag: this runs inside a Server Action, where
+  // Next gives updateTag read-your-own-writes semantics — the editor's very
+  // next read sees the story it just saved, rather than the one after that.
+  // See app/revalidate/route.ts (a route handler, so it uses revalidateTag
+  // with an explicit { expire: 0 }) for why the tag matters at all.
+  updateTag(CONTENT_TAG);
   revalidatePath("/", "layout");
 }

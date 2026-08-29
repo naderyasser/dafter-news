@@ -1,9 +1,6 @@
-"use client";
-
-import { useState } from "react";
-
 import ArticleCard from "@/components/site/ArticleCard";
 import SectionHeading from "@/components/site/SectionHeading";
+import SectionMore from "@/components/site/SectionMore";
 import SectionMasthead from "@/components/site/SectionMasthead";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { Badge } from "@/lib/types";
@@ -49,17 +46,15 @@ export default function SectionBlock({
   coverImage?: string | null;
   tagline?: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
   // Every sibling block on the homepage (HeroSlider, VideoShowcase,
   // SportsBlock, SpecialFilesBlock, WorldNewsBlock) hides itself instead of
   // showing a heading over an empty grid on a quiet day — this is the
   // fallback block for anything the dashboard adds later, so it is the one
   // most likely to actually hit zero, and it was the one block that didn't.
   if (!cards.length) return null;
-  const isAr = lang === "ar";
-  const limit = initialCount ?? cards.length;
-  const canExpand = cards.length > limit;
-  const visible = expanded || !canExpand ? cards : cards.slice(0, limit);
+  // Hard cap, not an expander: the block shows a fixed number of stories and
+  // sends a reader who wants more to the desk itself, via the button below.
+  const visible = cards.slice(0, initialCount ?? cards.length);
   const accent = sectionColor(sectionKey);
 
   return (
@@ -93,22 +88,7 @@ export default function SectionBlock({
           />
         ))}
       </div>
-      {canExpand && !expanded && (
-        <div className="mt-6 text-center">
-          {/* Stays put and reveals more cards, so it takes a downward chevron
-              rather than the heading's forward one — «عرض الكل» goes to the
-              archive, this does not, and the two must not look alike. */}
-          <button
-            onClick={() => setExpanded(true)}
-            className="inline-flex items-center gap-2 rounded-pill border border-line bg-paper px-7 py-2.5 text-[14px] font-semibold text-ink transition-colors duration-fast hover:border-accent hover:text-accent"
-          >
-            {isAr ? "عرض المزيد" : "Show more"}
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden className="h-3.5 w-3.5">
-              <path d="m5 9 7 7 7-7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      )}
+      <SectionMore lang={lang} href={seeAllHref} />
     </section>
   );
 }

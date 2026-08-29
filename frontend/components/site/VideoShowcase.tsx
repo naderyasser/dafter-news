@@ -8,6 +8,7 @@ import Chevron from "@/components/ui/Chevron";
 import SectionHeading from "@/components/site/SectionHeading";
 import VideoPlayer from "@/components/site/VideoPlayer";
 import { sectionArtUrl } from "@/lib/sections";
+import { useSwipe } from "@/lib/useSwipe";
 import { stripInline } from "@/lib/richtext";
 
 export type ShowcaseVideo = {
@@ -26,7 +27,6 @@ export type ShowcaseVideo = {
   time?: string;
 };
 
-const SWIPE_PX = 44;
 const AUTOPLAY_MS = 6000;
 
 const T = {
@@ -96,7 +96,6 @@ export default function VideoShowcase({
   const [videoPlaying, setVideoPlaying] = useState(false);
   const reducedMotion = useRef(false);
   const stripRef = useRef<HTMLDivElement>(null);
-  const touchX = useRef<number | null>(null);
   // The strip is only scrolled in response to a change of selection. Doing it
   // on mount would drag the page to the rail the moment it hydrates.
   const settled = useRef(false);
@@ -126,6 +125,10 @@ export default function VideoShowcase({
     (delta: number) => setIndex((i) => (count ? (i + delta + count) % count : 0)),
     [count],
   );
+
+  // One shared gesture for every paged carousel — this file used to carry
+  // its own copy of the same left/right maths (see lib/useSwipe).
+  const swipe = useSwipe((dir) => go(dir === "next" ? 1 : -1), isAr);
 
   /**
    * Bring thumbnail `i` into view within the strip only.
@@ -193,18 +196,7 @@ export default function VideoShowcase({
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] lg:gap-6">
           <div
             className="relative"
-            onTouchStart={(e) => {
-              touchX.current = e.touches[0]?.clientX ?? null;
-            }}
-            onTouchEnd={(e) => {
-              if (touchX.current === null) return;
-              const dx = (e.changedTouches[0]?.clientX ?? touchX.current) - touchX.current;
-              touchX.current = null;
-              if (Math.abs(dx) < SWIPE_PX) return;
-              // The next clip lives on the inline-end side, so the finger
-              // drags toward the start edge to fetch it — mirrored per script.
-              go((isAr ? dx > 0 : dx < 0) ? 1 : -1);
-            }}
+            {...swipe}
           >
             <VideoPlayer
               key={active.id}

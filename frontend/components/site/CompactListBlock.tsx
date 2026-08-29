@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import SectionHeading from "@/components/site/SectionHeading";
+import SectionMore from "@/components/site/SectionMore";
 import TimeAgo from "@/components/ui/TimeAgo";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
 
@@ -96,6 +97,7 @@ export default function CompactListBlock({
             </li>
           ))}
         </ol>
+        <SectionMore lang={lang} href={href} tone={tone} />
       </div>
     </section>
   );

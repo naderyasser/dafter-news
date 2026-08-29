@@ -110,9 +110,9 @@ export default function ShowcasePage() {
               <span className="rounded-pill border border-line bg-paper px-4 py-2 text-[13px] font-semibold text-ink">الأكثر قراءة</span>
             </div>
             <div className="flex gap-2">
-              <span className="tnum flex h-9 w-9 items-center justify-center rounded-md bg-brand font-bold text-paper">١</span>
-              <span className="tnum flex h-9 w-9 items-center justify-center rounded-md border border-line bg-paper font-bold text-ink">٢</span>
-              <span className="tnum flex h-9 w-9 items-center justify-center rounded-md border border-line bg-paper font-bold text-ink">٣</span>
+              <span className="tnum flex h-9 w-9 items-center justify-center rounded-md bg-brand font-bold text-paper">1</span>
+              <span className="tnum flex h-9 w-9 items-center justify-center rounded-md border border-line bg-paper font-bold text-ink">2</span>
+              <span className="tnum flex h-9 w-9 items-center justify-center rounded-md border border-line bg-paper font-bold text-ink">3</span>
             </div>
           </div>
         </section>

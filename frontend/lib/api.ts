@@ -147,6 +147,13 @@ async function serverCookieHeader(): Promise<Record<string, string>> {
   }
 }
 
+/**
+ * The one cache tag every public read carries. Revalidating it invalidates
+ * the site's whole view of the API in a single call — see app/revalidate and
+ * lib/revalidate.
+ */
+export const CONTENT_TAG = "content";
+
 async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
   const { revalidate, ...init } = options;
   const forwarded = revalidate === 0 ? await serverCookieHeader() : {};
@@ -157,7 +164,17 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
     credentials: "include",
     headers: { "Content-Type": "application/json", ...forwarded, ...(init.headers || {}) },
     // Public pages read fresh-ish data; dashboard mutations opt out via revalidate:0/no-store.
-    next: revalidate !== undefined ? { revalidate } : { revalidate: 60 },
+    //
+    // Every cached read is TAGGED. The `revalidate` window alone is only a
+    // ceiling on staleness — it cannot be cut short, and `revalidatePath`
+    // clears the rendered route while these fetch entries live on in the Data
+    // Cache under their own TTL. That is why a story published in the
+    // dashboard could appear on its section page and not on the home page:
+    // the two routes had cached the same query at different moments.
+    //
+    // With the tag, one revalidateTag(CONTENT_TAG) drops every cached read of
+    // the API at once, so a publish is visible on the next request everywhere.
+    next: revalidate !== undefined ? { revalidate, tags: [CONTENT_TAG] } : { revalidate: 60, tags: [CONTENT_TAG] },
     cache: revalidate === 0 ? "no-store" : undefined,
   });
   if (!res.ok) {

@@ -24,24 +24,22 @@ const cards = Array.from({ length: 6 }, (_, i) => ({
 }));
 
 describe("SectionBlock", () => {
-  it("shows only the initial slice and reveals the rest on request", async () => {
+  it("caps the block at its limit rather than expanding in place", () => {
+    // The newsroom asked for a fixed number of stories per block, with a
+    // reader who wants more sent to the desk itself.
     render(<SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={cards} initialCount={4} />);
 
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(4);
     expect(screen.queryByText("خبر رقم 5")).not.toBeInTheDocument();
-
-    await act(async () => screen.getByRole("button", { name: /عرض المزيد/ }).click());
-
-    expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(6);
-    // The control is gone once there is nothing left behind it.
-    expect(screen.queryByRole("button", { name: /عرض المزيد/ })).not.toBeInTheDocument();
+    // No in-place expander any more — the only way on is the desk link.
+    expect(screen.queryByRole("button", { name: /المزيد/ })).not.toBeInTheDocument();
   });
 
-  it("offers no expander when everything already fits", () => {
+  it("still offers the desk link when everything already fits", () => {
     render(<SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={cards.slice(0, 3)} initialCount={4} />);
 
-    expect(screen.queryByRole("button", { name: /عرض المزيد/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(3);
+    expect(screen.getByRole("link", { name: /المزيد/ })).toHaveAttribute("href", "/section/egypt");
   });
 
   it("shows every card when no limit is given", () => {
@@ -50,14 +48,14 @@ describe("SectionBlock", () => {
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(6);
   });
 
-  it("keeps «عرض المزيد» distinct from «عرض الكل» — one expands, the other leaves", () => {
+  it("puts «المزيد» at the foot of the block as a real link", () => {
     render(<SectionBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" cards={cards} initialCount={4} />);
 
-    // The archive link navigates.
-    expect(screen.getByRole("link", { name: /عرض الكل/ })).toHaveAttribute("href", "/section/egypt");
-    // The expander does not — it is a button, and a link would have sent the
-    // reader away from the cards they asked to see.
-    expect(screen.getByRole("button", { name: /عرض المزيد/ }).tagName).toBe("BUTTON");
+    // It navigates to the desk — the top-corner «عرض الكل» it replaced was
+    // the least-pressed control on the block.
+    const more = screen.getByRole("link", { name: /المزيد/ });
+    expect(more).toHaveAttribute("href", "/section/egypt");
+    expect(more.tagName).toBe("A");
   });
 
   it("dresses the block in the section's own colour", () => {
@@ -85,8 +83,8 @@ describe("SectionBlock", () => {
   it("speaks English on the English edition", () => {
     render(<SectionBlock lang="en" title="Egypt" seeAllHref="/en/section/egypt" cards={cards} initialCount={4} />);
 
-    expect(screen.getByRole("button", { name: /Show more/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /See all/ })).toBeInTheDocument();
+    // The foot button is the only "onward" control now, in both editions.
+    expect(screen.getByRole("link", { name: /More/ })).toHaveAttribute("href", "/en/section/egypt");
   });
 
   it("swaps the plain heading for the photo masthead once a cover image is set", () => {
@@ -112,7 +110,8 @@ describe("SectionBlock", () => {
     render(<SectionBlock lang="ar" title="سياسة" seeAllHref="/section/pol" cards={cards} sectionKey="pol" />);
 
     expect(screen.queryByText("آخر تطورات المشهد السياسي")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /عرض الكل/ })).toBeInTheDocument();
+    // The nameplate links to the desk, and so does the foot button.
+    expect(screen.getAllByRole("link", { name: /سياسة|المزيد/ }).length).toBeGreaterThan(0);
   });
 
   it("renders nothing for an empty list, rather than a heading over an empty grid", () => {

@@ -72,10 +72,10 @@ describe("LeadListBlock", () => {
     expect(kickers[1]).toHaveStyle({ color: sectionColor("egypt") });
   });
 
-  it("points the see-all link at the section page", () => {
+  it("points the foot button at the section page", () => {
     render(<LeadListBlock lang="ar" title="شؤون مصر" seeAllHref="/section/egypt" sectionKey="egypt" cards={cards} />);
 
-    const links = screen.getAllByRole("link", { name: /عرض/ });
+    const links = screen.getAllByRole("link", { name: /المزيد/ });
     expect(links.some((l) => l.getAttribute("href") === "/section/egypt")).toBe(true);
   });
 
@@ -115,7 +115,7 @@ describe("LeadListBlock", () => {
 
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(1);
     expect(screen.getAllByRole("heading", { level: 4 })).toHaveLength(4);
-    expect(screen.getByRole("link", { name: /عرض المزيد/ })).toHaveAttribute("href", "/section/gulf");
+    expect(screen.getByRole("link", { name: /المزيد/ })).toHaveAttribute("href", "/section/gulf");
   });
 
   it("sits on plain white, not the navy band — regression: the client reverted that call", () => {

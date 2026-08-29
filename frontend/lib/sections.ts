@@ -142,6 +142,28 @@ export function sectionArtUrl(key: string | null | undefined, stroke: string, st
   return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
 }
 
+/**
+ * The desk's mark as a small inline icon, for the section header pill.
+ *
+ * Same paths the watermark uses (`SECTION_IDENTITY.art`), just drawn at
+ * badge size with a heavier stroke — a 3px stroke tuned for a 200px
+ * watermark disappears at 18px. Returned as a data URI so the caller can
+ * drop it straight into `background-image` and needs no per-section
+ * component or sprite sheet.
+ *
+ * Null for a section with no mark, which is the signal to render the pill
+ * with its title alone rather than an empty icon slot.
+ */
+export function sectionIconUrl(key: string | null | undefined, stroke: string): string | null {
+  const identity = key ? SECTION_IDENTITY[key] : undefined;
+  if (!identity?.art) return null;
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 120" fill="none" ` +
+    `stroke="${stroke}" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">` +
+    `${identity.art}</svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
 export function sectionStyle(key?: string | null): React.CSSProperties {
   const color = sectionColor(key);
   const identity = key ? SECTION_IDENTITY[key] : undefined;

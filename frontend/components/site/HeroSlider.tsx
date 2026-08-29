@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useSwipe } from "@/lib/useSwipe";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Chevron from "@/components/ui/Chevron";
@@ -16,7 +17,6 @@ type Slide = {
 };
 
 const AUTOPLAY_MS = 6000;
-const SWIPE_PX = 44;
 
 /**
  * Auto-advancing hero in the الشرق live-coverage style the client pointed at:
@@ -39,7 +39,6 @@ export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useRef(false);
-  const touchX = useRef<number | null>(null);
 
   useEffect(() => {
     reducedMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -49,6 +48,10 @@ export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides
     (delta: number) => setIndex((i) => (slides.length ? (i + delta + slides.length) % slides.length : 0)),
     [slides.length],
   );
+
+  // One shared gesture for every paged carousel — this file used to carry
+  // its own copy of the same left/right maths (see lib/useSwipe).
+  const swipe = useSwipe((dir) => go(dir === "next" ? 1 : -1), isAr);
 
   useEffect(() => {
     if (paused || reducedMotion.current || slides.length < 2) return;
@@ -66,18 +69,7 @@ export default function HeroSlider({ lang, slides }: { lang: "ar" | "en"; slides
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
       onBlurCapture={() => setPaused(false)}
-      onTouchStart={(e) => {
-        touchX.current = e.touches[0]?.clientX ?? null;
-      }}
-      onTouchEnd={(e) => {
-        if (touchX.current === null) return;
-        const dx = (e.changedTouches[0]?.clientX ?? touchX.current) - touchX.current;
-        touchX.current = null;
-        if (Math.abs(dx) < SWIPE_PX) return;
-        // Mirrored per direction: the "next" slide lives on the inline-end
-        // side, so the finger drags toward the start edge to fetch it.
-        go((isAr ? dx > 0 : dx < 0) ? 1 : -1);
-      }}
+            {...swipe}
       aria-roledescription="carousel"
       aria-label={isAr ? "أهم الأخبار" : "Top stories"}
     >

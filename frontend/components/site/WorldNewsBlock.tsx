@@ -3,6 +3,7 @@ import Link from "next/link";
 import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
 import SectionHeading from "@/components/site/SectionHeading";
+import SectionMore from "@/components/site/SectionMore";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 
 type Lang = "ar" | "en";
@@ -204,7 +205,7 @@ export default function WorldNewsBlock({
 
   return (
     <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle(sectionKey)}>
-      <SectionHeading lang={lang} title={title} href={href} moreLabel={MORE[lang]} sectionKey={sectionKey} />
+      <SectionHeading lang={lang} title={title} href={href} sectionKey={sectionKey} />
 
       <div className="flex flex-wrap gap-6">
         <div className="min-w-0 flex-[3_1_420px]">
@@ -230,6 +231,7 @@ export default function WorldNewsBlock({
           ))}
         </div>
       ) : null}
+      <SectionMore lang={lang} href={href} />
     </section>
   );
 }
