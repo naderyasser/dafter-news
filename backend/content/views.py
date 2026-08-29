@@ -34,20 +34,46 @@ from .serializers import (
 )
 
 
+class ArticleViewRateThrottle(SimpleRateThrottle):
+    """
+    Rate limit for the per-article read beacon, keyed on the caller's IP.
+
+    A scope of its own rather than reusing "visits": that one is per browser
+    session, this one fires per article, so a reader working through a dozen
+    stories is normal traffic here and would look like abuse there. Rate
+    lives in settings.DEFAULT_THROTTLE_RATES["article_views"].
+
+    A plain SimpleRateThrottle subclass rather than ScopedRateThrottle with
+    `throttle_scope` on the @action: DRF validates an action's extra kwargs
+    against the viewset's own attributes and rejects `throttle_scope`, which
+    APIView doesn't declare.
+    """
+
+    scope = "article_views"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}
+
+
 class StoryViewSet(viewsets.ModelViewSet):
     """The homepage stories rail — curated promo cards, editor-ordered."""
 
     queryset = Story.objects.select_related("section")
     serializer_class = StorySerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
     filterset_fields = ["active", "section__key"]
-    ordering_fields = ["order"]
+    # `created_at` is here so the rail can ask for newest-first. DRF's
+    # OrderingFilter validates `?ordering=` against this list and silently
+    # DROPS anything missing from it — falling back to Meta.ordering with no
+    # error — so a caller asking for `-created_at` while this said ["order"]
+    # got the default sort and no indication that its request was ignored.
+    ordering_fields = ["order", "created_at"]
 
 
 class SectionViewSet(viewsets.ModelViewSet):
     queryset = Section.objects.all()
     serializer_class = SectionSerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
     lookup_field = "key"
     ordering_fields = ["order"]
 
@@ -55,7 +81,7 @@ class SectionViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
     lookup_field = "slug"
 
 
@@ -82,9 +108,14 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     # articles and filtering them client-side by author_username — so any
     # author whose latest piece wasn't in that global top-12 got an empty
     # "مقالات الكاتب" block despite article_count showing a nonzero total.
-    filterset_fields = ["status", "kind", "language", "section__key", "badge", "tags__slug", "pinned", "author__username"]
+    # Now a FilterSet rather than a field list, so it can carry
+    # `published_within` too — see content/filters.py.
+    filterset_class = ArticleFilterSet
     search_fields = ["title", "standfirst"]
-    ordering_fields = ["published_at", "views", "created_at", "comment_count", "pinned"]
+    ordering_fields = ["published_at", "views", "created_at", "comment_count", "pinned", "trending_score"]
+    # Ordering goes through StableOrderingFilter so `?ordering=-views` can't
+    # return tied rows in a different order every query — see aldaftar/filters.py.
+    filter_backends = [DjangoFilterBackend, SearchFilter, StableOrderingFilter]
     lookup_field = "slug"
 
     def get_serializer_class(self):
@@ -113,7 +144,47 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
         is_staff = user.is_authenticated and (user.is_staff or user.is_superuser)
         if not is_staff:
             qs = qs.filter(status=Article.Status.PUBLISHED)
-        return qs
+        return qs.annotate(**self._trending_annotations())
+
+    @staticmethod
+    def _trending_annotations():
+        """
+        `?ordering=-trending_score` — «الأكثر قراءة», ranked by what's being
+        read *now* rather than by lifetime total.
+
+        `views ÷ hours_since_published` decays a steady, months-old
+        accumulator toward the noise floor once it stops earning new reads,
+        while a handful of reads in a fresh article's first hour still beats
+        it — which is the point of a trending list. Computed fresh on every
+        request (never on the class-level `queryset`, which is built once at
+        import time and would freeze "now" at server start) so a long-lived
+        worker never serves a stale score.
+        On its own this formula is NOT enough, though: a lifetime accumulator
+        only fully decays after it stops gaining reads, so an old story that
+        is still steadily read (or — as every row in this seed data is —
+        carries a large one-time seeded view count) keeps a high score
+        indefinitely. The frontend pairs this ordering with a short
+        `published_within` window (see lib/api.ts's getMostRead) so the
+        ranking only ever competes among genuinely recent stories in the
+        first place; the decay is what orders *within* that window.
+        `Greatest(hours, 1.0)` floors the divisor at one hour so a story
+        published a minute ago with a single read doesn't divide by
+        near-zero and rocket to the top on one click. `Coalesce` guards a
+        NULL `published_at` — unreachable from a public request (those are
+        always status=PUBLISHED, which Article.save() never leaves without
+        a stamped published_at) but reachable from a staff-authenticated
+        one listing drafts, where a NULL would otherwise poison the sort
+        instead of just scoring that row at 0.
+        """
+        now = timezone.now()
+        age = ExpressionWrapper(Value(now) - Coalesce(F("published_at"), Value(now)), output_field=DurationField())
+        hours_since_published = ExpressionWrapper(Extract(age, "epoch") / 3600.0, output_field=FloatField())
+        return {
+            "hours_since_published": hours_since_published,
+            "trending_score": ExpressionWrapper(
+                F("views") / Greatest(F("hours_since_published"), 1.0), output_field=FloatField()
+            ),
+        }
 
     @action(detail=True, methods=["get"])
     def related(self, request, slug=None):
@@ -135,6 +206,9 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
             # ArticleCardSerializer.comment_count has nothing to read and
             # silently falls back to its default of 0 for every card here.
             .annotate(comment_count=Count("comments", distinct=True))
+            # ...and its blocks prefetch, which get_excerpt reads: without it
+            # every card in this box costs its own query for the paragraph.
+            .prefetch_related("blocks")
         )
 
         tag_ids = list(article.tags.values_list("id", flat=True))
@@ -157,6 +231,43 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
         data = ArticleCardSerializer(picked, many=True, context=self.get_serializer_context()).data
         return Response({"count": len(data), "results": data})
 
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="track-view",
+        permission_classes=[AllowAny],
+        # Same posture as siteconfig's VisitTrackView, and for the same
+        # reason: with Session auth in the list, a signed-in editor reading
+        # the public site would fail CSRF here and silently drop out of the
+        # count. The view reads nothing from the caller and echoes nothing
+        # back, so there is nothing for CSRF to protect.
+        authentication_classes=[],
+        throttle_classes=[ArticleViewRateThrottle],
+    )
+    def track_view(self, request, slug=None):
+        """
+        POST /api/articles/<slug>/track-view/ — the writer `views` never had.
+
+        Nothing in this codebase has ever incremented Article.views: the only
+        values in that column came from seed_demo_data, which is why
+        «الأكثر قراءة» was frozen on a handful of three-week-old demo rows
+        and a genuinely popular new story could never appear in it however
+        much traffic it was sent.
+
+        `F("views") + 1` rather than read-then-save: two readers landing in
+        the same millisecond would otherwise both read N and both write N+1,
+        and the site would undercount exactly when it is busiest. The update
+        also bypasses Article.save(), which is what we want here — a read is
+        not an edit, so it must not touch `updated_at` or re-derive a slug.
+
+        get_object() runs the viewset's own published-only scoping for
+        anonymous callers, so a draft's URL cannot be used to farm views on
+        something that isn't public yet.
+        """
+        article = self.get_object()
+        Article.objects.filter(pk=article.pk).update(views=F("views") + 1)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     @action(detail=True, methods=["post"], permission_classes=[StaffOnly])
     def generate_tts(self, request, slug=None):
         """
@@ -172,7 +283,13 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
             seconds = generate_for_article(article)
         except TtsError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-        return Response({"tts_status": article.tts_status, "tts_audio": article.tts_audio.name, "tts_duration_seconds": seconds})
+        return Response(
+            {
+                "tts_status": article.tts_status,
+                "tts_audio": article.tts_audio.url if article.tts_audio else None,
+                "tts_duration_seconds": seconds,
+            }
+        )
 
 
 class CommentViewSet(viewsets.ModelViewSet):
@@ -205,7 +322,7 @@ class BreakingNewsItemViewSet(viewsets.ModelViewSet):
 
     queryset = BreakingNewsItem.objects.all()
     serializer_class = BreakingNewsItemSerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
     filterset_fields = ["active"]
     ordering_fields = ["order", "created_at"]
 
@@ -250,7 +367,7 @@ class UrgentNotificationView(APIView):
                 "title": article.title,
                 "label": article.notify_label or "خبر عاجل",
                 "href": f"/article/{article.slug}" if lang == "ar" else f"/en/article/{article.slug}",
-                "cover_image": article.cover_image.name if article.cover_image else None,
+                "cover_image": article.cover_image.url if article.cover_image else None,
                 "published_at": article.published_at,
             }
         )

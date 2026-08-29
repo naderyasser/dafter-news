@@ -1,3 +1,4 @@
+from django.db import IntegrityError, transaction
 from django.utils.text import slugify
 from rest_framework import serializers
 
@@ -73,14 +74,32 @@ class ArticleCardSerializer(serializers.ModelSerializer):
     # The «ملف خاص» rail puts the investigator's face on the card — the
     # journalist chip is that section's whole visual identity.
     author_avatar = serializers.SerializerMethodField()
+    # A prose summary for surfaces that have only the card shape to read
+    # from — specifically the RSS feed's <description>, which Google News
+    # prints under the headline. Mirrors ArticleDetail's rule (the desk's
+    # standfirst, else the opening paragraph) so a story summarises the same
+    # way wherever it's quoted; without it the feed fell back to the section
+    # name, and «عرب وعالم» as a story's entire summary tells a reader
+    # nothing. Most articles here are filed without a standfirst, so the
+    # paragraph branch is the common case, not the edge one.
+    excerpt = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
         fields = [
             "id", "title", "slug", "href_slug", "section_name", "subcategory", "country", "badge", "status", "cover_image",
             "standfirst",
+            # The cover's real pixel size, stamped by ImageField at upload
+            # time (see Article.cover_image). Carried on the card — not just
+            # the detail shape — because the RSS feed is built from card
+            # rows, and <media:content> is the one place Google News reads an
+            # article's thumbnail from: declaring the true dimensions is what
+            # lets it pick the image at all rather than skip an unmeasurable
+            # one. Both are null for covers uploaded before the columns
+            # existed, and lib/rss.ts simply omits the attributes then.
+            "cover_image_width", "cover_image_height",
             "published_at", "views", "kind", "comment_count", "author_name", "author_name_en", "author_username", "author_initial",
-            "author_avatar",
+            "author_avatar", "excerpt",
         ]
 
     def get_section_name(self, obj):
@@ -109,9 +128,43 @@ class ArticleCardSerializer(serializers.ModelSerializer):
         return obj.author.username if obj.author_id else None
 
     def get_author_avatar(self, obj):
+        """
+        Unlike get_author_name/_initial, NOT suppressed by a manual byline.
+        A byline overriding the displayed *name* is a deliberate credit
+        override (see Article.byline's own docstring) — but a linked
+        account's photo isn't part of that override, it's just whether one
+        was ever uploaded. Suppressing it too meant a linked columnist's
+        real photo stayed invisible on every card/list (the opinion
+        carousel, the section front) any time an editor happened to also
+        leave the old manual byline text in place instead of clearing it —
+        exactly the state legacy articles were saved in before the dashboard
+        gained a real author picker.
+        """
         if obj.byline.strip() or not obj.author_id or not obj.author.avatar:
             return None
         return obj.author.avatar.url
+
+    def get_excerpt(self, obj):
+        """
+        Iterates `obj.blocks.all()` and filters in Python rather than issuing
+        `.filter(type=...)`: every caller prefetches `blocks`, and re-filtering
+        the related manager would ignore that cache and put a query behind
+        every card in the list.
+
+        Returned with the editor's inline tokens ({b|…}, {c:red|…}) still in
+        it — stripping them needs the token grammar, which lives in
+        frontend/lib/richtext.ts. Capped at 600 characters, well past the
+        ~300 any consumer shows, so the string stays bounded without the cut
+        landing inside the part that gets displayed.
+        """
+        text = (obj.standfirst or "").strip()
+        if not text:
+            para = next(
+                (b for b in obj.blocks.all() if b.type == ArticleBlock.Type.PARAGRAPH and (b.text or "").strip()),
+                None,
+            )
+            text = (para.text if para else "").strip()
+        return " ".join(text.split())[:600]
 
 
 class ArticleDetailSerializer(serializers.ModelSerializer):
@@ -126,7 +179,8 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
         model = Article
         fields = [
             "id", "title", "slug", "kind", "section", "subcategory", "country", "author", "byline", "tags", "language", "related_article",
-            "status", "badge", "pinned", "notify_urgent", "notify_label", "standfirst", "cover_image", "cover_caption", "cover_credit",
+            "status", "badge", "pinned", "notify_urgent", "notify_label", "standfirst", "cover_image", "cover_image_width", "cover_image_height",
+            "cover_caption", "cover_credit",
             "views", "read_minutes", "tts_status", "tts_audio", "tts_duration_seconds",
             "published_at", "scheduled_for", "created_at", "blocks", "comments",
         ]
@@ -154,7 +208,13 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
     """Used by the dashboard block editor (DashArticleEditor.dc.html)."""
 
     blocks = ArticleBlockSerializer(many=True, required=False)
-    tag_names = serializers.ListField(child=serializers.CharField(), write_only=True, required=False)
+    # max_length mirrors Tag.name's column width. Without it a long tag was
+    # accepted here and only rejected by Postgres, deep inside _sync_tags —
+    # i.e. as a 500 on a half-written article rather than a 400 naming the
+    # field, which is the whole point of validating at the edge.
+    tag_names = serializers.ListField(
+        child=serializers.CharField(max_length=60, allow_blank=True), write_only=True, required=False
+    )
     # Optional on write — Article.save() derives it from the title (the
     # browser can't slugify Arabic without stripping it away entirely).
     slug = serializers.SlugField(max_length=300, allow_unicode=True, required=False)
@@ -178,6 +238,23 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
             "push_breaking", "push_story",
         ]
 
+    # Atomic because a save is one editorial act, not five.
+    #
+    # An article's row, its cover, its tags, its body blocks and its ticker/
+    # stories placement were each committed on their own, in that order. When
+    # a later step raised — and _sync_tags did, on a tag-slug collision — the
+    # earlier ones stayed committed: the newsroom was left with a *ghost
+    # article* carrying its title, section, cover and flags but no body at
+    # all, while the editor saw only "تعذّر حفظ الخبر" and had no way to tell
+    # that anything had been written. Re-opening that ghost to paste the body
+    # back in hit the same tag on the way out and failed identically, so the
+    # story could never be completed from the editor at all.
+    #
+    # Wrapping the whole thing means a failed save now leaves *nothing*
+    # behind, and the editor still has the article they typed on screen to
+    # retry — an error the person can act on instead of silent, unfinishable
+    # wreckage in the database.
+    @transaction.atomic
     def create(self, validated_data):
         blocks_data = validated_data.pop("blocks", [])
         tag_names = validated_data.pop("tag_names", [])
@@ -191,6 +268,7 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
         self._push_surfaces(article, push_breaking, push_story)
         return article
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         blocks_data = validated_data.pop("blocks", None)
         tag_names = validated_data.pop("tag_names", None)
@@ -219,10 +297,24 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
         share a title, or leaving a stale copy of the old title live forever.
         Article.slug is unique and never changes on its own once set, so href
         is a stable per-article key that plain title text isn't.
+
+        The href itself has to route the same way frontend/app/sitemap.ts's
+        own entry() helper already does: an opinion piece lives at
+        /opinion/<slug>, an English news article at /en/article/<slug>.
+        Building it as bare /article/<slug> regardless of kind/language was a
+        latent bug — pushing an English or opinion article landed a ticker/
+        stories-rail entry that either rendered under the wrong edition's RTL
+        Arabic chrome (the AR article route doesn't gate on language) or
+        404'd outright (that route does gate on kind != "news").
         """
         if article.status != Article.Status.PUBLISHED:
             return
-        href = f"/article/{article.slug}"
+        if article.kind == Article.Kind.OPINION:
+            href = f"/opinion/{article.slug}"
+        elif article.language == Article.Language.EN:
+            href = f"/en/article/{article.slug}"
+        else:
+            href = f"/article/{article.slug}"
         if push_breaking:
             BreakingNewsItem.objects.update_or_create(
                 href=href,
@@ -251,21 +343,79 @@ class ArticleWriteSerializer(serializers.ModelSerializer):
         article.cover_image = asset.image.name
         if not article.cover_credit and asset.credit:
             article.cover_credit = asset.credit
-        article.save(update_fields=["cover_image", "cover_credit"])
+        # The width/height columns are in the list because assigning
+        # cover_image is what stamps them (see Article.cover_image's
+        # width_field/height_field) — leaving them out of update_fields set
+        # them on the instance and then declined to write them, so every
+        # cover picked from the media library kept NULL dimensions and its
+        # og:image lost the size declaration that stops Facebook/WhatsApp
+        # dropping the link preview's photo.
+        article.save(update_fields=["cover_image", "cover_image_width", "cover_image_height", "cover_credit"])
 
     @staticmethod
     def _sync_tags(article, tag_names):
         if not tag_names:
             return
         tags = []
-        for name in tag_names:
-            # Same slugify(allow_unicode=True) Article.save() uses — plain
-            # `.replace(" ", "-")` leaves punctuation like "/" untouched,
-            # which the router then reads as a path separator and the tag
-            # can never be looked up again by slug.
-            tag, _ = Tag.objects.get_or_create(name=name, defaults={"slug": slugify(name, allow_unicode=True) or "tag"})
-            tags.append(tag)
+        seen = set()
+        for raw in tag_names:
+            name = (raw or "").strip()
+            if not name:
+                continue
+            slug = ArticleWriteSerializer._tag_slug(name)
+            # Two names in one payload can slugify to the same thing («عاجل»
+            # and «#عاجل»); the second would collide with the row the first
+            # just created, in this very request.
+            if slug in seen:
+                continue
+            seen.add(slug)
+            tags.append(ArticleWriteSerializer._tag_for(name, slug))
         article.tags.set(tags)
+
+    @staticmethod
+    def _tag_slug(name):
+        # Same slugify(allow_unicode=True) Article.save() uses — plain
+        # `.replace(" ", "-")` leaves punctuation like "/" untouched, which
+        # the router then reads as a path separator and the tag can never be
+        # looked up again by slug. Trimmed to the column width so a long tag
+        # can't overflow SlugField(max_length=70) either.
+        return (slugify(name, allow_unicode=True) or "tag")[:70]
+
+    @staticmethod
+    def _tag_for(name, slug):
+        """
+        Find or create the tag, resolving on **both** unique columns.
+
+        This was a `get_or_create(name=name, ...)`, which looks up on `name`
+        alone — but `slug` carries a unique constraint of its own, and
+        slugify() is lossy: it strips the punctuation that makes two names
+        different. Production had `Tag(name="#عاجل", slug="عاجل")`, so an
+        editor tagging a story «عاجل» matched no row by name, and the INSERT
+        that followed hit `content_tag_slug_key` — an IntegrityError, a 500,
+        and a half-saved article. Every 500 in the newsroom's save log was
+        this: «عاجل», «السعودية», «الإسكندرية» — the newsroom's most-used
+        tags, so it fired constantly.
+
+        Name first, then slug: an exact name is the tag the editor actually
+        typed, and only when there is no such tag does the slug decide — at
+        which point reusing the existing row is the only option anyway, since
+        the slug is the tag's public URL and two rows cannot share it.
+        """
+        tag = Tag.objects.filter(name=name).first() or Tag.objects.filter(slug=slug).first()
+        if tag is not None:
+            return tag
+        try:
+            # Savepoint: the caller's save runs in one transaction, and on
+            # Postgres a failed INSERT aborts it outright — without this the
+            # collision we're recovering from would poison the whole save.
+            with transaction.atomic():
+                return Tag.objects.create(name=name, slug=slug)
+        except IntegrityError:
+            # A concurrent save won the insert between the lookup and here.
+            existing = Tag.objects.filter(name=name).first() or Tag.objects.filter(slug=slug).first()
+            if existing is None:
+                raise
+            return existing
 
     @staticmethod
     def _sync_blocks(article, blocks_data):

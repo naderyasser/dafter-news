@@ -7,14 +7,17 @@ verification — they are marked with `regression:` in the docstring so it's
 obvious why an apparently-odd assertion matters.
 """
 import datetime
+from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient, APITestCase
 
 from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
+from content.serializers import ArticleWriteSerializer
 
 User = get_user_model()
 
@@ -162,6 +165,310 @@ class ArticleReadTimeTests(TestCase):
 
         self.assertEqual(article.word_count, 0)
         self.assertEqual(article.read_minutes, 1)
+
+
+class ArticleViewTrackingTests(APITestCase):
+    """
+    POST /api/articles/<slug>/track-view/.
+
+    regression: nothing in the codebase ever incremented Article.views. Every
+    non-zero value in that column came from seed_demo_data, so «الأكثر قراءة»
+    was a frozen list of three-week-old demo rows and a story sent real
+    traffic could never enter it — reported live as "I drove traffic to a new
+    article and it never appears in Most Read".
+    """
+
+    def setUp(self):
+        self.article = Article.objects.create(
+            title="خبر منشور", status=Article.Status.PUBLISHED, published_at=timezone.now()
+        )
+
+    def test_a_reader_increments_the_counter(self):
+        res = self.client.post(f"/api/articles/{self.article.slug}/track-view/")
+
+        self.assertEqual(res.status_code, 204)
+        self.article.refresh_from_db()
+        self.assertEqual(self.article.views, 1)
+
+    def test_each_hit_counts(self):
+        for _ in range(3):
+            self.client.post(f"/api/articles/{self.article.slug}/track-view/")
+
+        self.article.refresh_from_db()
+        self.assertEqual(self.article.views, 3)
+
+    def test_tracking_by_id_works_too(self):
+        """SlugOrPkLookupMixin: the beacon may hold either."""
+        res = self.client.post(f"/api/articles/{self.article.pk}/track-view/")
+
+        self.assertEqual(res.status_code, 204)
+        self.article.refresh_from_db()
+        self.assertEqual(self.article.views, 1)
+
+    def test_a_read_is_not_an_edit(self):
+        """The counter must not bump updated_at — an article's «آخر تعديل» in
+        the dashboard would otherwise change every time a reader opened it,
+        and Article.save() would re-run on every page view."""
+        before = Article.objects.get(pk=self.article.pk).updated_at
+
+        self.client.post(f"/api/articles/{self.article.slug}/track-view/")
+
+        self.assertEqual(Article.objects.get(pk=self.article.pk).updated_at, before)
+
+    def test_an_unpublished_article_cannot_be_farmed(self):
+        draft = Article.objects.create(title="مسودة", status=Article.Status.DRAFT)
+
+        res = self.client.post(f"/api/articles/{draft.slug}/track-view/")
+
+        self.assertEqual(res.status_code, 404)
+        draft.refresh_from_db()
+        self.assertEqual(draft.views, 0)
+
+    def test_a_missing_article_is_a_404_not_a_500(self):
+        res = self.client.post("/api/articles/لا-يوجد/track-view/")
+
+        self.assertEqual(res.status_code, 404)
+
+
+class MostReadQueryTests(APITestCase):
+    """`?ordering=-views` — what «الأكثر قراءة» actually asks for."""
+
+    def setUp(self):
+        now = timezone.now()
+        self.old_hit = Article.objects.create(
+            title="خبر قديم مقروء", status=Article.Status.PUBLISHED, views=30000,
+            published_at=now - datetime.timedelta(days=21),
+        )
+        self.fresh_hit = Article.objects.create(
+            title="خبر جديد مقروء", status=Article.Status.PUBLISHED, views=400, published_at=now,
+        )
+        self.fresh_quiet = Article.objects.create(
+            title="خبر جديد هادئ", status=Article.Status.PUBLISHED, views=5, published_at=now,
+        )
+
+    def test_sorts_by_views_descending(self):
+        res = self.client.get("/api/articles/?ordering=-views")
+
+        titles = [a["title"] for a in res.json()["results"]]
+        self.assertEqual(titles[0], "خبر قديم مقروء")
+
+    def test_page_size_limits_the_list(self):
+        res = self.client.get("/api/articles/?ordering=-views&page_size=2")
+
+        self.assertEqual(len(res.json()["results"]), 2)
+
+    def test_a_busier_older_story_outranks_a_quieter_newer_one(self):
+        """The client's report — «الترتيب الزمني مختلط». It is supposed to be:
+        «الأكثر قراءة» ranks by popularity, so a story published five hours ago
+        with more reads sits above one published an hour ago with fewer. This
+        pins that as intended behaviour rather than a regression waiting to be
+        "fixed" back into a chronological list."""
+        now = timezone.now()
+        Article.objects.create(
+            title="الأقدم والأكثر قراءة", status=Article.Status.PUBLISHED, views=9,
+            published_at=now - datetime.timedelta(hours=5),
+        )
+        Article.objects.create(
+            title="الأحدث والأقل قراءة", status=Article.Status.PUBLISHED, views=8,
+            published_at=now - datetime.timedelta(hours=1),
+        )
+
+        res = self.client.get("/api/articles/?ordering=-views&published_within=7")
+        titles = [a["title"] for a in res.json()["results"]]
+
+        self.assertLess(titles.index("الأقدم والأكثر قراءة"), titles.index("الأحدث والأقل قراءة"))
+
+    def test_the_recency_window_lets_a_new_story_reach_the_top(self):
+        """The client's actual complaint: a three-week-old demo row with
+        30,000 seeded views cannot be displaced on an all-time ranking, so
+        the list scopes to what was published recently."""
+        res = self.client.get("/api/articles/?ordering=-views&published_within=7")
+
+        titles = [a["title"] for a in res.json()["results"]]
+        self.assertEqual(titles, ["خبر جديد مقروء", "خبر جديد هادئ"])
+        self.assertNotIn("خبر قديم مقروء", titles)
+
+    def test_a_zero_or_negative_window_means_no_window(self):
+        for value in ("0", "-3"):
+            res = self.client.get(f"/api/articles/?ordering=-views&published_within={value}")
+
+            self.assertEqual(len(res.json()["results"]), 3, value)
+
+    def test_a_non_numeric_window_is_rejected_rather_than_ignored(self):
+        """NumberFilter answers junk with a 400 naming the field, which is a
+        better failure than silently serving an unfiltered list that looks
+        correct."""
+        res = self.client.get("/api/articles/?ordering=-views&published_within=abc")
+
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("published_within", res.json())
+
+    def test_tied_view_counts_break_by_recency_not_at_random(self):
+        """regression: `?ordering=-views` alone leaves every 0-view article
+        tied, and the database may return tied rows in any order — so the
+        list reshuffled between renders and pagination could repeat or skip
+        a row. Newest-first is the tie-break a reader expects."""
+        now = timezone.now()
+        older = Article.objects.create(
+            title="متعادل أقدم", status=Article.Status.PUBLISHED, views=0,
+            published_at=now - datetime.timedelta(hours=5),
+        )
+        newer = Article.objects.create(
+            title="متعادل أحدث", status=Article.Status.PUBLISHED, views=0, published_at=now,
+        )
+
+        titles = [a["title"] for a in self.client.get("/api/articles/?ordering=-views").json()["results"]]
+
+        self.assertLess(titles.index(newer.title), titles.index(older.title))
+
+    def test_pagination_stays_stable_across_pages_when_everything_ties(self):
+        for i in range(12):
+            Article.objects.create(
+                title=f"صفر {i}", status=Article.Status.PUBLISHED, views=0,
+                published_at=timezone.now() - datetime.timedelta(minutes=i),
+            )
+
+        page1 = self.client.get("/api/articles/?ordering=-views&page_size=5").json()["results"]
+        page2 = self.client.get("/api/articles/?ordering=-views&page_size=5&page=2").json()["results"]
+
+        ids1 = [a["id"] for a in page1]
+        ids2 = [a["id"] for a in page2]
+        self.assertEqual(len(set(ids1) & set(ids2)), 0)
+
+
+class TrendingScoreOrderingTests(APITestCase):
+    """
+    `?ordering=-trending_score` — the client's follow-up: «الأكثر قراءة»
+    should favour what's being read *now*, not just whichever story has
+    piled up the most reads since it went live. `MostReadQueryTests` above
+    pins `-views` (still available, unchanged) on exactly the opposite
+    expectation — a busier older story outranking a quieter newer one is
+    correct THERE precisely because that ordering carries no notion of
+    recency at all. `-trending_score` is the ordering that does.
+    """
+
+    def test_a_fresh_spike_outranks_a_slower_older_accumulator(self):
+        """The client's actual scenario: a story from days ago that has
+        merely kept accumulating reads must not out-rank one from the last
+        hour that is clearly being read *right now*, even though the older
+        story's raw total is higher."""
+        now = timezone.now()
+        Article.objects.create(
+            title="تراكم قديم بلا زخم", status=Article.Status.PUBLISHED, views=48,
+            published_at=now - datetime.timedelta(hours=48),  # 1 view/hour, lifetime
+        )
+        Article.objects.create(
+            title="زخم جديد الآن", status=Article.Status.PUBLISHED, views=20,
+            published_at=now - datetime.timedelta(hours=2),  # 10 views/hour, right now
+        )
+
+        res = self.client.get("/api/articles/?ordering=-trending_score")
+        titles = [a["title"] for a in res.json()["results"]]
+
+        self.assertEqual(titles[:2], ["زخم جديد الآن", "تراكم قديم بلا زخم"])
+
+    def test_a_just_published_story_does_not_divide_by_near_zero(self):
+        """A story published moments ago must not rocket to the top on a
+        single read purely because the denominator (hours since publish) is
+        close to zero — the divisor is floored at one hour."""
+        now = timezone.now()
+        Article.objects.create(
+            title="نُشر للتو بقراءة واحدة", status=Article.Status.PUBLISHED, views=1,
+            published_at=now - datetime.timedelta(seconds=5),
+        )
+        steady = Article.objects.create(
+            title="نصف ساعة وعشر قراءات", status=Article.Status.PUBLISHED, views=10,
+            published_at=now - datetime.timedelta(minutes=30),
+        )
+
+        res = self.client.get("/api/articles/?ordering=-trending_score")
+        titles = [a["title"] for a in res.json()["results"]]
+
+        self.assertEqual(titles[0], steady.title)
+
+    def test_a_draft_with_no_published_at_does_not_break_the_ordering(self):
+        """Only a staff-authenticated caller can even see a draft (see
+        ArticleViewSet.get_queryset), but `trending_score` is now a globally
+        orderable field — a NULL published_at must score the row rather
+        than poisoning the whole ordered list with a NULL."""
+        from content.views import ArticleViewSet
+
+        draft = Article.objects.create(title="مسودة بلا تاريخ نشر", status=Article.Status.DRAFT, views=3)
+
+        qs = Article.objects.filter(pk=draft.pk).annotate(**ArticleViewSet._trending_annotations())
+        row = qs.get()
+
+        self.assertEqual(row.hours_since_published, 0.0)
+        self.assertEqual(row.trending_score, 3.0)
+
+
+class ArticleCardExcerptTests(APITestCase):
+    """
+    `excerpt` on the card shape — what the RSS feed prints as an item's
+    <description> for Google News (see frontend/lib/rss.ts). The feed only
+    ever sees card rows, so a story with no standfirst has to be summarised
+    from its body here or not at all.
+    """
+
+    def _card(self, article):
+        res = self.client.get("/api/articles/?status=published")
+        return next(r for r in res.data["results"] if r["id"] == article.id)
+
+    def test_prefers_the_desk_written_standfirst(self):
+        article = Article.objects.create(
+            title="خبر", standfirst="المقدمة التي كتبها المحرر",
+            status=Article.Status.PUBLISHED, published_at=timezone.now(),
+        )
+        ArticleBlock.objects.create(article=article, order=0, type=ArticleBlock.Type.PARAGRAPH, text="أول فقرة")
+
+        self.assertEqual(self._card(article)["excerpt"], "المقدمة التي كتبها المحرر")
+
+    def test_falls_back_to_the_first_paragraph(self):
+        """regression: most stories here are filed with no standfirst, so the
+        feed's description was the section name — «عرب وعالم» and nothing
+        more — for every one of them."""
+        article = Article.objects.create(title="خبر", status=Article.Status.PUBLISHED, published_at=timezone.now())
+        ArticleBlock.objects.create(article=article, order=0, type=ArticleBlock.Type.HEADING, text="عنوان فرعي")
+        ArticleBlock.objects.create(article=article, order=1, type=ArticleBlock.Type.PARAGRAPH, text="نص الفقرة الأولى")
+
+        self.assertEqual(self._card(article)["excerpt"], "نص الفقرة الأولى")
+
+    def test_skips_an_empty_paragraph_block(self):
+        article = Article.objects.create(title="خبر", status=Article.Status.PUBLISHED, published_at=timezone.now())
+        ArticleBlock.objects.create(article=article, order=0, type=ArticleBlock.Type.PARAGRAPH, text="   ")
+        ArticleBlock.objects.create(article=article, order=1, type=ArticleBlock.Type.PARAGRAPH, text="النص الحقيقي")
+
+        self.assertEqual(self._card(article)["excerpt"], "النص الحقيقي")
+
+    def test_is_empty_for_a_story_with_no_prose(self):
+        article = Article.objects.create(title="خبر", status=Article.Status.PUBLISHED, published_at=timezone.now())
+
+        self.assertEqual(self._card(article)["excerpt"], "")
+
+    def test_collapses_whitespace_and_caps_length(self):
+        article = Article.objects.create(title="خبر", status=Article.Status.PUBLISHED, published_at=timezone.now())
+        ArticleBlock.objects.create(
+            article=article, order=0, type=ArticleBlock.Type.PARAGRAPH, text="أ\n\n  ب " + "ج" * 900,
+        )
+
+        excerpt = self._card(article)["excerpt"]
+        self.assertEqual(len(excerpt), 600)
+        self.assertTrue(excerpt.startswith("أ ب ج"))
+
+    def test_listing_cards_costs_no_query_per_card(self):
+        """The blocks are prefetched, so adding a card must not add a query —
+        the home page asks for a hundred of them at a time."""
+        for i in range(3):
+            article = Article.objects.create(
+                title=f"خبر {i}", status=Article.Status.PUBLISHED, published_at=timezone.now(),
+            )
+            ArticleBlock.objects.create(article=article, order=0, type=ArticleBlock.Type.PARAGRAPH, text=f"فقرة {i}")
+
+        # count + page + the tags prefetch + the blocks prefetch: four
+        # regardless of how many cards come back, which is the point.
+        with self.assertNumQueries(4):
+            res = self.client.get("/api/articles/?status=published&page_size=3")
+        self.assertEqual([r["excerpt"] for r in res.data["results"]], ["فقرة 2", "فقرة 1", "فقرة 0"])
 
 
 class ArticleAPITests(APITestCase):
@@ -476,6 +783,138 @@ class ArticleWriteAPITests(APITestCase):
         detail = self.client.get(f"/api/tags/{tag.slug}/")
         self.assertEqual(detail.status_code, 200)
 
+    def test_tag_whose_slug_already_exists_under_another_name_is_reused(self):
+        """regression — the newsroom's "publishing is broken" bug.
+
+        `_sync_tags` looked tags up by `name` only, while `slug` carries a
+        unique constraint of its own and slugify() drops the punctuation that
+        distinguishes two names. Production held Tag(name="#عاجل",
+        slug="عاجل"), so tagging a story «عاجل» matched nothing by name and
+        the INSERT that followed violated content_tag_slug_key — a 500 on
+        every save that used the newsroom's most common tags.
+        """
+        existing = Tag.objects.create(name="#عاجل", slug="عاجل")
+
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": "خبر عاجل من القاهرة",
+                "status": "published",
+                "section": self.section.pk,
+                "blocks": [{"order": 0, "type": "paragraph", "text": "نص الخبر"}],
+                "tag_names": ["عاجل"],
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        article = Article.objects.get(pk=res.json()["id"])
+        self.assertEqual(list(article.tags.all()), [existing])
+        self.assertEqual(Tag.objects.filter(slug="عاجل").count(), 1)
+        # The body is what actually went missing for the client — the tag
+        # blew up before _sync_blocks ever ran.
+        self.assertEqual(article.blocks.count(), 1)
+
+    def test_two_tags_colliding_on_one_slug_in_a_single_payload(self):
+        """«عاجل» and «#عاجل» in the same save slugify identically — the
+        second used to collide with the row the first had just created."""
+        res = self.client.post(
+            "/api/articles/",
+            {"title": "خبر", "tag_names": ["عاجل", "#عاجل", "  ", "عاجل"]},
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(Tag.objects.filter(slug="عاجل").count(), 1)
+        self.assertEqual(Article.objects.get(pk=res.json()["id"]).tags.count(), 1)
+
+    def test_exact_name_match_wins_over_a_slug_match(self):
+        """Two rows can legitimately share a slug stem. The tag the editor
+        typed is the one they meant, so an exact name match decides first."""
+        Tag.objects.create(name="عاجل", slug="عاجل")
+        hashed = Tag.objects.create(name="#عاجل", slug="عاجل-2")
+
+        res = self.client.post("/api/articles/", {"title": "خبر", "tag_names": ["#عاجل"]}, format="json")
+
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(list(Article.objects.get(pk=res.json()["id"]).tags.all()), [hashed])
+
+    def test_failed_save_leaves_no_ghost_article(self):
+        """The save is one editorial act: if any part of it fails, nothing is
+        written. The client's ghost articles — title, section, cover and flags
+        saved, body empty, un-editable afterwards — were the fallout of five
+        separately committed steps."""
+        before = Article.objects.count()
+
+        with mock.patch.object(
+            ArticleWriteSerializer, "_sync_tags", side_effect=IntegrityError("boom")
+        ):
+            res = self.client.post(
+                "/api/articles/",
+                {
+                    "title": "خبر لن يُحفظ",
+                    "status": "published",
+                    "section": self.section.pk,
+                    "blocks": [{"order": 0, "type": "paragraph", "text": "نص"}],
+                    "tag_names": ["وسم"],
+                },
+                format="json",
+            )
+
+        self.assertEqual(res.status_code, 409)
+        self.assertEqual(Article.objects.count(), before)
+        self.assertFalse(Article.objects.filter(title="خبر لن يُحفظ").exists())
+
+    def test_constraint_failure_reports_a_readable_error(self):
+        """A 500 rendered as a bare "A server error occurred.", which the
+        editor's describeApiError() cannot read — so every failure surfaced as
+        the generic "تعذّر حفظ الخبر" with no clue what to fix."""
+        with mock.patch.object(
+            ArticleWriteSerializer, "_sync_tags", side_effect=IntegrityError("duplicate key value violates ...")
+        ):
+            res = self.client.post("/api/articles/", {"title": "خبر", "tag_names": ["وسم"]}, format="json")
+
+        self.assertEqual(res.status_code, 409)
+        self.assertIn("detail", res.data)
+        self.assertTrue(res.data["detail"].strip())
+        # Staff get the driver's own message; see aldaftar/exceptions.py.
+        self.assertIn("duplicate key", res.data["db_detail"])
+
+    def test_standfirst_of_a_single_dot_is_accepted(self):
+        """The client files stories with «.» as the standfirst. There is no
+        minimum-length rule on the field and there must not be one — this
+        pins that, since it was a suspect in the failed-save report."""
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": "خبر بمقدمة نقطة",
+                "status": "published",
+                "standfirst": ".",
+                "section": self.section.pk,
+                "pinned": True,
+                "push_story": True,
+                "subcategory": "سياسة",
+                "country": "الكويت",
+                "blocks": [{"order": 0, "type": "paragraph", "text": "نص الخبر"}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        article = Article.objects.get(pk=res.json()["id"])
+        self.assertEqual(article.standfirst, ".")
+        self.assertTrue(article.pinned)
+        self.assertEqual(article.blocks.count(), 1)
+
+    def test_overlong_tag_name_is_a_400_not_a_500(self):
+        """Tag.name is varchar(60). Unvalidated, an over-long tag reached
+        Postgres and failed mid-save; now it is a field error before anything
+        is written."""
+        res = self.client.post("/api/articles/", {"title": "خبر", "tag_names": ["ط" * 200]}, format="json")
+
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("tag_names", res.data)
+
     def test_update_replaces_blocks(self):
         article = Article.objects.create(title="مقال", slug="a1")
         ArticleBlock.objects.create(article=article, order=0, type="paragraph", text="قديم")
@@ -536,6 +975,97 @@ class ArticleWriteAPITests(APITestCase):
         self.assertEqual(res.status_code, 204)
         self.assertFalse(Article.objects.filter(pk=article.pk).exists())
 
+    def test_push_story_routes_an_english_article_to_its_own_edition(self):
+        """regression: _push_surfaces always built href as bare
+        /article/<slug>, regardless of the article's own language. /article/
+        doesn't gate on language (only kind/status), so an English push
+        rendered under Arabic RTL chrome with an English headline stapled
+        onto it instead of 404ing — the mixed-chrome bug this codebase
+        elsewhere goes out of its way to avoid."""
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": "Cabinet approves new incentives",
+                "status": "published",
+                "language": "en",
+                "section": self.section.pk,
+                "push_story": True,
+                "blocks": [{"order": 0, "type": "paragraph", "text": "Body text."}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        article = Article.objects.get(pk=res.json()["id"])
+        story = Story.objects.get(title=article.title)
+        self.assertEqual(story.href, f"/en/article/{article.slug}")
+
+    def test_push_breaking_routes_an_english_article_to_its_own_edition(self):
+        """Same bug, same fix, the other one-click surface."""
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": "Central bank holds rates",
+                "status": "published",
+                "language": "en",
+                "section": self.section.pk,
+                "push_breaking": True,
+                "blocks": [{"order": 0, "type": "paragraph", "text": "Body text."}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        article = Article.objects.get(pk=res.json()["id"])
+        item = BreakingNewsItem.objects.get(text=article.title)
+        self.assertEqual(item.href, f"/en/article/{article.slug}")
+
+    def test_push_story_routes_an_opinion_piece_to_the_one_opinion_route(self):
+        """Opinion pieces have a single route in both editions — no
+        /en/opinion/ exists (see lib/rss.ts's own articleUrl on the frontend
+        for why) — so this must stay /opinion/<slug> regardless of language,
+        never falling into the /en/article/ branch an English opinion piece
+        would otherwise match."""
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": "الاقتصاد وتحديات المرحلة",
+                "kind": "opinion",
+                "status": "published",
+                "language": "ar",
+                "section": self.section.pk,
+                "push_story": True,
+                "blocks": [{"order": 0, "type": "paragraph", "text": "نص المقال."}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        article = Article.objects.get(pk=res.json()["id"])
+        story = Story.objects.get(title=article.title)
+        self.assertEqual(story.href, f"/opinion/{article.slug}")
+
+    def test_push_story_keeps_a_plain_arabic_news_article_unchanged(self):
+        """Pins the existing, already-correct behaviour so the language/kind
+        branches above can't quietly break the default case."""
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": "خبر عربي عادي",
+                "status": "published",
+                "language": "ar",
+                "section": self.section.pk,
+                "push_story": True,
+                "blocks": [{"order": 0, "type": "paragraph", "text": "نص الخبر."}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        article = Article.objects.get(pk=res.json()["id"])
+        story = Story.objects.get(title=article.title)
+        self.assertEqual(story.href, f"/article/{article.slug}")
+
 
 class ArticleBlockTests(TestCase):
     def test_blocks_are_ordered(self):
@@ -564,7 +1094,7 @@ class CommentAPITests(APITestCase):
         self.article = Article.objects.create(title="مقال", slug="c1", status=Article.Status.PUBLISHED)
         # PublicSubmission allows anonymous POST only — moderation queue
         # reads/edits are staff work.
-        self.staff = User.objects.create(username="mod-staff", is_staff=True)
+        self.staff = User.objects.create(username="mod-staff", is_staff=True, role="moderator")
         self.client.force_authenticate(self.staff)
 
     def test_public_submission_is_pinned_to_pending(self):
@@ -617,7 +1147,7 @@ class BreakingNewsAPITests(APITestCase):
         self.assertEqual([i["text"] for i in res.json()["results"]], ["أول", "ثالث"])
 
     def test_create_and_toggle(self):
-        self.client.force_authenticate(User.objects.create(username="breaking-staff", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="breaking-staff", is_staff=True, role="editor"))
 
         res = self.client.post(
             "/api/breaking/",
@@ -759,8 +1289,36 @@ class StoryAPITests(APITestCase):
 
         self.assertEqual(res.json()["results"][0]["section_name"], "ثقافة وفن")
 
+    def test_orders_newest_first_when_asked(self):
+        """
+        regression: `ordering_fields` listed only "order", and DRF's
+        OrderingFilter silently DROPS a term that isn't in that list — it
+        falls back to Meta.ordering and returns 200, so the rail's
+        `?ordering=-created_at` looked applied and wasn't. The rail is
+        newest-first, so this has to actually take effect.
+        """
+        older = Story.objects.create(title="أقدم", active=True, order=0)
+        newer = Story.objects.create(title="أحدث", active=True, order=99)
+        Story.objects.filter(pk=older.pk).update(created_at=timezone.now() - datetime.timedelta(days=2))
+        Story.objects.filter(pk=newer.pk).update(created_at=timezone.now())
+
+        res = self.client.get("/api/stories/?active=true&ordering=-created_at")
+
+        titles = [s["title"] for s in res.json()["results"]]
+        # Newest first despite `newer` carrying the higher `order` value,
+        # which is what the default sort would have led with.
+        self.assertLess(titles.index("أحدث"), titles.index("أقدم"))
+
+    def test_page_size_caps_the_rail(self):
+        for i in range(20):
+            Story.objects.create(title=f"قصة {i}", active=True)
+
+        res = self.client.get("/api/stories/?active=true&page_size=13")
+
+        self.assertEqual(len(res.json()["results"]), 13)
+
     def test_create_and_reorder(self):
-        self.client.force_authenticate(User.objects.create(username="stories-staff", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="stories-staff", is_staff=True, role="editor"))
 
         res = self.client.post("/api/stories/", {"title": "قصة جديدة", "order": 9, "active": True}, format="json")
         self.assertEqual(res.status_code, 201)

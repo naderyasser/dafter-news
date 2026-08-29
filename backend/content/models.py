@@ -156,7 +156,20 @@ class Article(models.Model):
     notify_label = models.CharField(max_length=40, blank=True, default="خبر عاجل", help_text='العنوان الفرعي للإشعار، مثال: "يحدث الآن"')
 
     standfirst = models.TextField(blank=True)
-    cover_image = models.ImageField(upload_to="covers/", blank=True, null=True)
+    # width_field/height_field: Django/Pillow stamp the real pixel size onto
+    # these two columns every time cover_image is saved — no extra request-
+    # time cost to read them back. What they're for: the article's og:image
+    # meta tags need to declare the file's ACTUAL dimensions, not a guess.
+    # A wrong declared size is a documented reason Facebook/WhatsApp's
+    # crawler drops the image from a link preview outright rather than just
+    # rendering it slightly cropped — see ArticleDetailSerializer and
+    # frontend/lib/seo.ts's articleMetadata.
+    cover_image = models.ImageField(
+        upload_to="covers/", blank=True, null=True,
+        width_field="cover_image_width", height_field="cover_image_height",
+    )
+    cover_image_width = models.PositiveIntegerField(null=True, blank=True, editable=False)
+    cover_image_height = models.PositiveIntegerField(null=True, blank=True, editable=False)
     cover_caption = models.CharField(max_length=200, blank=True)
     cover_credit = models.CharField(max_length=120, blank=True)
 

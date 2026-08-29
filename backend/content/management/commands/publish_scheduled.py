@@ -28,6 +28,7 @@ from django.utils import timezone
 
 from ads.models import AdPlacement
 from content.models import Article
+from content.tts import TtsError, generate_for_article
 
 
 class Command(BaseCommand):
@@ -45,6 +46,16 @@ class Command(BaseCommand):
             article.save(update_fields=["status", "published_at", "updated_at"])
             published += 1
             self.stdout.write(f"✓ نُشر: {article.title[:60]}")
+            # Same «استمع للمقال» narration the dashboard's own publish button
+            # now triggers (see ArticleEditorForm.save) — a scheduled story
+            # going out on its own here must not be the one publish path that
+            # leaves the player silent. Best-effort: one article's narration
+            # failing (a bad wire to the voice engine) must not stop the rest
+            # of this run, so it's caught and logged rather than raised.
+            try:
+                generate_for_article(article)
+            except TtsError as exc:
+                self.stderr.write(f"  تعذّر توليد الصوت لـ«{article.title[:44]}»: {exc}")
 
         started = AdPlacement.objects.filter(
             active=False, scheduled_start__isnull=False, scheduled_start__lte=now

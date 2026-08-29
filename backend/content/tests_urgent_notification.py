@@ -8,6 +8,7 @@ notification lingers past its 24h, or a fresher one fails to override.
 """
 import datetime
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -98,6 +99,23 @@ class UrgentNotificationTests(TestCase):
         data = self.get("en").json()
 
         self.assertEqual(data["href"], "/en/article/Flood-warning-issued")
+
+    def test_cover_image_is_a_fetchable_url_not_the_raw_filename(self):
+        """Regression: this endpoint's cover_image once returned
+        `article.cover_image.name` (the storage-relative filename, e.g.
+        "library/x.jpg") instead of `.url`. mediaUrl() on the frontend
+        prepends the site origin directly to whatever string it's given, so
+        the raw filename produced "https://…comlibrary/x.jpg" — no /media/
+        prefix, no separating slash — and the popup's thumbnail 500'd. Every
+        other endpoint on the site already returns `.url`; this pins that
+        this one does too."""
+        article = self.make("خبر بصورة", 5)
+        article.cover_image.save("photo.jpg", SimpleUploadedFile("photo.jpg", b"fake-image-bytes"), save=True)
+
+        data = self.get().json()
+
+        self.assertTrue(data["cover_image"].startswith("/media/"))
+        self.assertIn("photo", data["cover_image"])
 
     def test_publishing_with_notify_urgent_through_the_editor_shows_up_here(self):
         """End-to-end regression, the client's exact report: publish a new

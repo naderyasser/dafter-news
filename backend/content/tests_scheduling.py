@@ -7,6 +7,7 @@ running the command twice is the same as running it once.
 """
 import datetime
 from io import StringIO
+from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import TestCase
@@ -14,6 +15,7 @@ from django.utils import timezone
 
 from ads.models import AdPlacement
 from content.models import Article, Section
+from content.tts import TtsError
 
 
 def run():
@@ -99,6 +101,57 @@ class ScheduledArticleTests(TestCase):
         res = self.client.get(f"/api/articles/{art.slug}/")
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()["status"], "published")
+
+
+class ScheduledArticleTtsTests(TestCase):
+    """
+    An auto-publish at the scheduled minute is a real publish path — same
+    reasoning as ArticleEditorForm.save() firing «توليد النسخة الصوتية» after
+    the dashboard's own «حفظ ونشر»: the player must not be the one thing that
+    silently stays empty depending on *which* publish path a story took.
+
+    generate_for_article is mocked at this command's own import site — same
+    as GenerateTtsViewTests — since it hits a real external endpoint.
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.section = Section.objects.create(key="egypt", name_ar="شؤون مصر", order=1)
+
+    def due(self, **kw):
+        return Article.objects.create(
+            title=kw.pop("title", "خبر"),
+            slug=kw.pop("slug", "due"),
+            section=self.section,
+            status=Article.Status.SCHEDULED,
+            scheduled_for=timezone.now() - datetime.timedelta(minutes=5),
+            **kw,
+        )
+
+    def test_narrates_a_due_article_on_auto_publish(self):
+        art = self.due(slug="sched-tts")
+
+        with patch("content.management.commands.publish_scheduled.generate_for_article", return_value=42) as mocked:
+            run()
+
+        mocked.assert_called_once_with(art)
+
+    def test_a_narration_failure_does_not_stop_other_articles_from_publishing_or_the_command(self):
+        """One article's voice engine hiccup must not leave the next one
+        stuck مجدول forever, and must not blow up the whole cron run."""
+        first = self.due(slug="sched-fail")
+        second = self.due(slug="sched-ok")
+
+        with patch(
+            "content.management.commands.publish_scheduled.generate_for_article",
+            side_effect=TtsError("تعذّر الاتصال بمحرك الصوت"),
+        ):
+            run()
+
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.status, Article.Status.PUBLISHED)
+        self.assertEqual(second.status, Article.Status.PUBLISHED)
 
 
 class ScheduledAdTests(TestCase):

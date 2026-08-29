@@ -54,7 +54,7 @@ class ArticleCommentsEmbedTests(APITestCase):
         surface even when a staff session fetches it, because the render it
         feeds is cached for anonymous readers too.
         """
-        staff = User.objects.create_user(username="editor2", password="pw", is_staff=True)
+        staff = User.objects.create_user(username="editor2", password="pw", is_staff=True, role="moderator")
         self.client.force_authenticate(staff)
 
         comments = self.client.get(f"/api/articles/{self.article.slug}/").json()["comments"]
