@@ -140,7 +140,7 @@ class ArticleCardSerializer(serializers.ModelSerializer):
         exactly the state legacy articles were saved in before the dashboard
         gained a real author picker.
         """
-        if obj.byline.strip() or not obj.author_id or not obj.author.avatar:
+        if not obj.author_id or not obj.author.avatar:
             return None
         return obj.author.avatar.url
 
