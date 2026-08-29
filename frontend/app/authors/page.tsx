@@ -45,6 +45,8 @@ async function AuthorsContent() {
 }
 
 /** Skeleton inside the page — a loading.tsx here would soft-404 the nested detail routes; see app/page.tsx. */
+export const metadata = { title: "كتّابنا", description: "كتّاب وصحفيو الدفتر — صفحات الكتّاب وأحدث ما نشروه." };
+
 export default function AuthorsPage() {
   return (
     <Suspense fallback={<PageSkeleton lang="ar" variant="list" />}>

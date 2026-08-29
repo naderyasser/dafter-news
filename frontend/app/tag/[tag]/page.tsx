@@ -1,10 +1,25 @@
 import ArticleCard from "@/components/site/ArticleCard";
 import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles, getTags, mediaUrl } from "@/lib/api";
+import { getArticles, getTags, mediaUrl, getMostRead } from "@/lib/api";
 import { decodeParam, relativeTime } from "@/lib/format";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 60;
+
+/** The tag itself is the title — every tag page shared the site-wide default
+ *  before this, so «الذهب» and «السيسي» were one indistinguishable title
+ *  repeated across the archive. */
+export async function generateMetadata({ params }: { params: { tag: string } }) {
+  const tagSlug = decodeParam(params.tag);
+  const tag = (await getTags()).results.find((t) => t.slug === tagSlug);
+  const name = tag?.name || tagSlug;
+  return {
+    title: name,
+    description: `كل أخبار ${name} في ${SITE_NAME.ar} — أحدث التغطيات والتحليلات.`,
+    alternates: { canonical: `${SITE_URL}/tag/${encodeURIComponent(tagSlug)}` },
+  };
+}
 
 export default async function TagPage({ params }: { params: { tag: string } }) {
   // Arabic slugs arrive percent-encoded (twice, once via middleware);
@@ -13,7 +28,7 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
   const [tags, articles, mostRead] = await Promise.all([
     getTags(),
     getArticles(`?language=ar&tags__slug=${encodeURIComponent(tagSlug)}&ordering=-published_at&page_size=24`),
-    getArticles("?language=ar&ordering=-views&page_size=5"),
+    getMostRead("ar"),
   ]);
   const tag = tags.results.find((t) => t.slug === tagSlug);
 
@@ -41,7 +56,15 @@ export default async function TagPage({ params }: { params: { tag: string } }) {
           </div>
         </main>
         <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
-          <MostReadList lang="ar" items={mostRead.results.map((a) => ({ title: a.title, href: `/article/${a.slug}`, section: a.section_name }))} />
+          <MostReadList
+            lang="ar"
+            items={mostRead.results.map((a) => ({
+              title: a.title,
+              href: `/article/${a.slug}`,
+              section: a.section_name,
+              views: a.views,
+            }))}
+          />
         </aside>
       </div>
     </SiteShell>

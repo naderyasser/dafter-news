@@ -1,10 +1,9 @@
 import { Suspense } from "react";
 
-import Link from "next/link";
-
+import OpinionCard from "@/components/site/OpinionCard";
 import SiteShell from "@/components/site/SiteShell";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getArticles } from "@/lib/api";
+import { getArticles, mediaUrl } from "@/lib/api";
 import { relativeTime } from "@/lib/format";
 
 export const revalidate = 60;
@@ -20,21 +19,16 @@ async function OpinionContent() {
         </div>
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-5">
           {opinion.results.map((op) => (
-            <Link
+            <OpinionCard
               key={op.id}
+              lang="ar"
               href={`/opinion/${op.slug}`}
-              className="flex flex-col gap-3.5 rounded-card border border-line bg-paper p-5.5 no-underline"
-            >
-              <span className="font-serif text-[36px] font-extrabold leading-[.6] text-brand">&ldquo;</span>
-              <div className="font-display-ar flex-1 text-[16px] font-bold leading-[1.6] text-ink">{op.title}</div>
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-[38px] w-[38px] flex-shrink-0 items-center justify-center rounded-full border-2 border-brand bg-brand-tint text-[15px] font-extrabold text-brand">
-                  {op.author_initial ?? "؟"}
-                </div>
-                <span className="text-[13px] font-semibold text-ink-2">{op.author_name}</span>
-                <span className="ms-auto text-xs text-ink-3">{relativeTime(op.published_at, "ar")}</span>
-              </div>
-            </Link>
+              quote={op.title}
+              authorName={op.author_name ?? undefined}
+              authorInitial={op.author_initial ?? undefined}
+              authorAvatar={mediaUrl(op.author_avatar) ?? undefined}
+              time={relativeTime(op.published_at, "ar")}
+            />
           ))}
         </div>
       </div>
@@ -43,6 +37,8 @@ async function OpinionContent() {
 }
 
 /** Skeleton inside the page — a loading.tsx here would soft-404 the nested detail routes; see app/page.tsx. */
+export const metadata = { title: "بالعقل والمنطق", description: "مقالات الرأي في الدفتر — تحليلات وأعمدة كتّابنا." };
+
 export default function OpinionPage() {
   return (
     <Suspense fallback={<PageSkeleton lang="ar" variant="list" />}>

@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { isLatinScript } from "@/lib/format";
 
 import { getArticles, getSections, getVideos } from "@/lib/api";
 import { SITE_URL } from "@/lib/seo";
@@ -19,7 +20,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getVideos("?page_size=100"),
   ]);
 
-  const isLatin = (s: string) => !/[؀-ۿ]/.test(s);
 
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: "hourly", priority: 1 },
@@ -53,7 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   const videoPages: MetadataRoute.Sitemap = videos.results.map((v) => ({
-    url: `${SITE_URL}${isLatin(v.title) ? "/en/video" : "/video"}/${encodeURIComponent(v.slug)}`,
+    url: `${SITE_URL}${isLatinScript(v.title) ? "/en/video" : "/video"}/${encodeURIComponent(v.slug)}`,
     lastModified: v.created_at,
     changeFrequency: "weekly",
     priority: 0.6,

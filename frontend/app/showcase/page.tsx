@@ -35,6 +35,8 @@ function SectionHead({ children }: { children: React.ReactNode }) {
   return <div className="font-display-ar mb-4 rule-accent ps-3.5 text-[20px] font-extrabold text-ink">{children}</div>;
 }
 
+export const metadata = { title: "معرض المكونات", robots: { index: false, follow: true } };
+
 export default function ShowcasePage() {
   return (
     <SiteShell lang="ar">

@@ -4,12 +4,20 @@ import MostReadList from "@/components/site/MostReadList";
 import SectionFrontBody from "@/components/site/fronts/SectionFrontBody";
 import type { FrontStory } from "@/components/site/fronts/types";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl } from "@/lib/api";
-import { relativeTime, standfirstFor } from "@/lib/format";
+import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl, getMostRead, getSectionFeed } from "@/lib/api";
+import { standfirstFor } from "@/lib/format";
 import { sectionColor } from "@/lib/sections";
 import { sectionFront, sectionTagline } from "@/lib/sectionLayout";
+import { sectionMetadata } from "@/lib/seo";
 
 export const revalidate = 60;
+
+/** See app/section/[key]/page.tsx's own generateMetadata for why. */
+export async function generateMetadata({ params }: { params: { key: string } }) {
+  const section = await getSection(params.key);
+  if (!section) return {};
+  return sectionMetadata(section, "en");
+}
 
 /**
  * English counterpart of /section/[key] — same front, same device, so
@@ -25,9 +33,9 @@ export default async function SectionEnPage({ params }: { params: { key: string 
 
   const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
     getSection(params.key),
-    // -pinned first — mirrors the Arabic section page; see its own comment.
-    getArticles(`?language=en&section__key=${params.key}&ordering=-pinned,-published_at&page_size=24`),
-    getArticles("?language=en&ordering=-views&page_size=5"),
+    // Newest-first — mirrors the Arabic section page; see its own comment.
+    getSectionFeed("en", params.key, 24),
+    getMostRead("en"),
     getArticles("?language=en&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),
     front.feed === "markets" ? getTicker() : Promise.resolve(null),
@@ -37,14 +45,19 @@ export default async function SectionEnPage({ params }: { params: { key: string 
   if (!section) notFound();
 
   const accent = sectionColor(params.key);
+  // CTR ask: no relative-time caption on a browsing card — see the Arabic
+  // section page's own comment for the full reasoning. `iso` stays wired
+  // for Politics/Security only, where it drives the front's own dated
+  // spine/register rather than a decorative timestamp.
+  const keepDateStructure = front.front === "politics" || front.front === "security";
   const stories: FrontStory[] = articles.results.map((a) => ({
     id: a.id,
     href: `/en/article/${a.slug}`,
     title: a.title,
     standfirst: standfirstFor(a.title, a.standfirst),
     imageSrc: mediaUrl(a.cover_image),
-    time: relativeTime(a.published_at, "en"),
-    iso: a.published_at,
+    time: "",
+    iso: keepDateStructure ? a.published_at : null,
     badge: a.badge,
     views: a.views,
     country: a.country || undefined,
@@ -65,8 +78,7 @@ export default async function SectionEnPage({ params }: { params: { key: string 
       href: `/en/article/${a.slug}`,
       title: a.title,
       imageSrc: mediaUrl(a.cover_image),
-      time: relativeTime(a.published_at, "en"),
-      iso: a.published_at,
+      time: "",
       badge: a.badge,
       views: a.views,
       section: a.section_name,
@@ -102,6 +114,7 @@ export default async function SectionEnPage({ params }: { params: { key: string 
                 title: a.title,
                 href: `/en/article/${a.slug}`,
                 section: a.section_name,
+                views: a.views,
                 imageSrc: mediaUrl(a.cover_image),
               }))}
             />

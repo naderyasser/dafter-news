@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import LoginForm from "@/components/site/LoginForm";
 import SiteShell from "@/components/site/SiteShell";
 
+export const metadata = { title: "تسجيل الدخول", robots: { index: false, follow: true } };
+
 export default function LoginPage() {
   return (
     <SiteShell lang="ar" active="login">

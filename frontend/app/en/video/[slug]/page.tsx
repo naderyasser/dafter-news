@@ -6,7 +6,7 @@ import SiteShell from "@/components/site/SiteShell";
 import VideoComments from "@/components/site/VideoComments";
 import VideoPlayer from "@/components/site/VideoPlayer";
 import { getVideo, getVideos, mediaUrl } from "@/lib/api";
-import { relativeTime } from "@/lib/format";
+import { relativeTime, isLatinScript } from "@/lib/format";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 30;
@@ -38,7 +38,6 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 // English home page buckets videos by script the same way it does tags and
 // stories, so the suggestions rail here does too, instead of mixing Arabic
 // titles into an English reader's "Suggested videos" list.
-const isLatin = (s: string) => !/[؀-ۿ]/.test(s);
 
 /**
  * English counterpart of /video/[slug].
@@ -54,7 +53,7 @@ export default async function VideoEnPage({ params }: { params: { slug: string }
 
   const suggestedRes = await getVideos(`?page_size=8`);
   const suggested = suggestedRes.results
-    .filter((v) => v.slug !== video.slug && isLatin(v.title))
+    .filter((v) => v.slug !== video.slug && isLatinScript(v.title))
     .slice(0, 4);
 
   return (

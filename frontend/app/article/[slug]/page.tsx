@@ -7,12 +7,13 @@ import ArticleComments from "@/components/site/ArticleComments";
 import AuthorProfileCard from "@/components/site/AuthorProfileCard";
 import InfiniteSections from "@/components/site/InfiniteSections";
 import AudioPlayer from "@/components/site/AudioPlayer";
-import RelatedArticlesList from "@/components/site/RelatedArticlesList";
+import LatestNewsCard from "@/components/site/LatestNewsCard";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticle, getRelatedArticles, getSections, mediaUrl } from "@/lib/api";
-import { clockTime, formatDate, relativeTime } from "@/lib/format";
-import { articleJsonLd, articleMetadata } from "@/lib/seo";
+import ViewBeacon from "@/components/site/ViewBeacon";
+import { getArticle, getLatest, getMostRead, getRelatedArticles, getSections, mediaUrl } from "@/lib/api";
+import { publishedLine, relativeTime } from "@/lib/format";
+import { articleJsonLd, articleMetadata, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 30;
 
@@ -40,25 +41,45 @@ export default async function ArticlePage({ params }: { params: { slug: string }
   // visitor for the rest of this page's revalidate window.
   if (!article || article.kind !== "news" || article.status !== "published") notFound();
 
+  // «أحدث الأخبار» / «الأكثر قراءة» tabbed card block, right after the
+  // article — fetched one over LIST_LIMIT so filtering the article being
+  // read out of its own "read next" list never leaves a short row.
+  const LIST_LIMIT = 5;
+
   // Related by shared tags (people/topics) first, section recency as the
   // fallback — computed by /related/ so every surface ranks the same way.
-  const [related, sections] = await Promise.all([getRelatedArticles(article.slug), getSections()]);
+  const [related, sections, latest, mostRead] = await Promise.all([
+    getRelatedArticles(article.slug),
+    getSections(),
+    getLatest("ar", LIST_LIMIT + 1),
+    getMostRead("ar", LIST_LIMIT + 1),
+  ]);
   // Sections appended below the article; skip the one we're already in.
   const feedSections = sections.results.filter((s) => s.key !== article.section?.key && s.key !== "opinion");
-  const relatedAll = related.results
+  // All of them land inside the body itself (client ask: «تعرض داخل محتوى
+  // الخبر نفسه»), in the one box — a second «أخبار ذات صلة» list stacked
+  // below the comments used to repeat the same heading a scroll further
+  // down, which read as the section showing up twice on one article.
+  const relatedInline = related.results
     .filter((a) => a.slug !== article.slug)
-    .slice(0, 6)
-    .map((a) => ({ href: `/article/${a.slug}`, title: a.title, section: a.section_name, time: relativeTime(a.published_at, "ar"), badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
-  // First two land inside the body itself (client ask: «تعرض داخل محتوى
-  // الخبر نفسه»); the rest keep the end-of-article list from going empty on
-  // an article with too few blocks for the inline box to show at all.
-  const relatedInline = relatedAll.slice(0, 2);
-  const relatedCards = relatedAll.slice(2, 6);
+    .slice(0, 3)
+    .map((a) => ({ href: `/article/${a.slug}`, title: a.title, section: a.section_name, badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
+
+  const toNewsCardItem = (a: (typeof latest.results)[number]) => ({
+    href: `/article/${a.slug}`,
+    title: a.title,
+    imageSrc: mediaUrl(a.cover_image),
+  });
+  // Never show the article itself in its own "read next" widget — same
+  // reasoning as relatedInline's own filter above.
+  const latestCards = latest.results.filter((a) => a.slug !== article.slug).slice(0, LIST_LIMIT).map(toNewsCardItem);
+  const mostReadCards = mostRead.results.filter((a) => a.slug !== article.slug).slice(0, LIST_LIMIT).map(toNewsCardItem);
 
   const badgeLabel = { breaking: "عاجل", live: "مباشر", exclusive: "خاص", none: "" }[article.badge];
 
   return (
     <SiteShell lang="ar" active={article.section?.key}>
+      <ViewBeacon slug={article.slug} />
       {/* NewsArticle structured data — what Google News actually reads.
           Content is JSON.stringify output of our own fields; nothing here
           is raw editor markup. */}
@@ -108,10 +129,8 @@ export default async function ArticlePage({ params }: { params: { slug: string }
               </Link>
             ) : null}
             <span>•</span>
-            <span>{formatDate(article.published_at, "ar")}</span>
-            <span>•</span>
-            <span className="tnum">◔ {clockTime(article.published_at, "ar")}</span>
-            <ShareRow lang="ar" title={article.title} />
+            <span className="tnum">{publishedLine(article.published_at, "ar")}</span>
+            <ShareRow lang="ar" title={article.title} shareUrl={`${SITE_URL}/article/${article.id}`} />
           </div>
 
           {/* «ملف خاص» pieces are signed investigations — the reporter's
@@ -162,10 +181,20 @@ export default async function ArticlePage({ params }: { params: { slug: string }
           )}
 
           <ArticleComments lang="ar" articleId={article.id} initial={article.comments} />
+
+          {/* Client ask: the first block after an article's own content —
+              content/tags/comments — before the cross-section feed further
+              down (InfiniteSections). A tabbed red-headed card list rather
+              than the plain heading-and-list MostReadList used to render
+              solo here: «أحدث الأخبار» opens active per the client's
+              reference, «الأكثر قراءة» is the second tab rather than a
+              second block stacked under it — the client's own "saves
+              vertical space" reasoning for combining the two. */}
+          <div className="mt-8">
+            <LatestNewsCard lang="ar" latest={latestCards} mostRead={mostReadCards} />
+          </div>
         </main>
       </div>
-
-      <RelatedArticlesList lang="ar" title="أخبار ذات صلة" cards={relatedCards} />
 
       <InfiniteSections lang="ar" sections={feedSections} excludeSlug={article.slug} />
     </SiteShell>

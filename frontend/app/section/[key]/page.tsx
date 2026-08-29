@@ -4,12 +4,26 @@ import MostReadList from "@/components/site/MostReadList";
 import SectionFrontBody from "@/components/site/fronts/SectionFrontBody";
 import type { FrontStory } from "@/components/site/fronts/types";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl } from "@/lib/api";
-import { relativeTime, standfirstFor } from "@/lib/format";
+import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl, getMostRead, getSectionFeed } from "@/lib/api";
+import { standfirstFor } from "@/lib/format";
 import { sectionColor } from "@/lib/sections";
 import { sectionFront, sectionTagline } from "@/lib/sectionLayout";
+import { sectionMetadata } from "@/lib/seo";
 
 export const revalidate = 60;
+
+/**
+ * Every section front rendered under the homepage's own title before this
+ * — سياسة, رياضة, اقتصاد all read as the exact same page to Google. Beyond
+ * the duplicate-title problem on its own, a search engine reads distinct,
+ * clearly-titled section pages as the site structure sitelinks get decided
+ * from (see lib/seo.ts's sectionMetadata/sectionsItemListJsonLd).
+ */
+export async function generateMetadata({ params }: { params: { key: string } }) {
+  const section = await getSection(params.key);
+  if (!section) return {};
+  return sectionMetadata(section, "ar");
+}
 
 /**
  * One section page, thirteen fronts.
@@ -30,10 +44,12 @@ export default async function SectionPage({ params }: { params: { key: string } 
 
   const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
     getSection(params.key),
-    // -pinned first, so a story pinned in the dashboard leads this section's
-    // own front the same way it already leads the home hero.
-    getArticles(`?language=ar&section__key=${params.key}&ordering=-pinned,-published_at&page_size=24`),
-    getArticles("?language=ar&ordering=-views&page_size=5"),
+    // Strictly newest-first. This led with `-pinned` and so did the home
+    // page's blocks, which is how «الخليج العربي» came to show a 22-hour-old
+    // story above one published an hour before — see app/page.tsx's
+    // sectionFeed. «الظهور في الرئيسية» still leads the hero.
+    getSectionFeed("ar", params.key, 24),
+    getMostRead("ar"),
     getArticles("?language=ar&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),
     front.feed === "markets" ? getTicker() : Promise.resolve(null),
@@ -43,6 +59,15 @@ export default async function SectionPage({ params }: { params: { key: string } 
   if (!section) notFound();
 
   const accent = sectionColor(params.key);
+  // CTR ask: a relative-time caption on a browsing card discourages a click
+  // when the story doesn't look brand-new, so no front-facing card carries
+  // one — the article's own byline is still where a reader reads the real
+  // published time. `iso` stays wired for Politics/Security only: those two
+  // fronts aren't decorating a card with a timestamp, the dated spine/
+  // register IS the front's whole structural device (see PoliticsFront's
+  // and SecurityFront's own docstrings) — hiding it there breaks the desk's
+  // design, not just a caption.
+  const keepDateStructure = front.front === "politics" || front.front === "security";
   const stories: FrontStory[] = articles.results.map((a) => ({
     id: a.id,
     href: `/${a.kind === "opinion" ? "opinion" : "article"}/${a.slug}`,
@@ -52,8 +77,8 @@ export default async function SectionPage({ params }: { params: { key: string } 
     // printed the same sentence twice on every card.
     standfirst: standfirstFor(a.title, a.standfirst),
     imageSrc: mediaUrl(a.cover_image),
-    time: relativeTime(a.published_at, "ar"),
-    iso: a.published_at,
+    time: "",
+    iso: keepDateStructure ? a.published_at : null,
     badge: a.badge,
     views: a.views,
     country: a.country || undefined,
@@ -74,8 +99,7 @@ export default async function SectionPage({ params }: { params: { key: string } 
       href: `/${a.kind === "opinion" ? "opinion" : "article"}/${a.slug}`,
       title: a.title,
       imageSrc: mediaUrl(a.cover_image),
-      time: relativeTime(a.published_at, "ar"),
-      iso: a.published_at,
+      time: "",
       badge: a.badge,
       views: a.views,
       section: a.section_name,
@@ -115,6 +139,7 @@ export default async function SectionPage({ params }: { params: { key: string } 
                 title: a.title,
                 href: `/article/${a.slug}`,
                 section: a.section_name,
+                views: a.views,
                 imageSrc: mediaUrl(a.cover_image),
               }))}
             />

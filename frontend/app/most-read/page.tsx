@@ -1,11 +1,13 @@
 import MostReadPageContent from "@/components/site/MostReadPageContent";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles, mediaUrl } from "@/lib/api";
+import { mediaUrl, getMostRead } from "@/lib/api";
 
 export const revalidate = 60;
 
+export const metadata = { title: "الأكثر قراءة", description: "أكثر أخبار الدفتر قراءةً — ما يتابعه القرّاء الآن." };
+
 export default async function MostReadPage() {
-  const articles = await getArticles("?language=ar&ordering=-views&page_size=10");
+  const articles = await getMostRead("ar", 10);
 
   return (
     <SiteShell lang="ar" active="most-read">
@@ -15,6 +17,7 @@ export default async function MostReadPage() {
             title: a.title,
             section: a.section_name,
             href: `/article/${a.slug}`,
+            views: a.views,
             imageSrc: mediaUrl(a.cover_image),
           }))}
         />

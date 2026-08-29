@@ -12,6 +12,8 @@ export const revalidate = 60;
  * "See all results" footer link fell back to the Arabic-only /search page,
  * which forces language=ar and renders RTL chrome regardless of the query.
  */
+export const metadata = { title: "Search", description: "Search Al Daftar News for a story, topic or writer." };
+
 export default async function SearchEnPage({
   searchParams,
 }: {

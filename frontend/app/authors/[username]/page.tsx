@@ -4,8 +4,21 @@ import SectionBlock from "@/components/site/SectionBlock";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticles, getAuthor, mediaUrl } from "@/lib/api";
 import { relativeTime, toEasternNumerals } from "@/lib/format";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 300;
+
+/** The byline is the title — a writer's page is the one a reader reaches by
+ *  searching their name, and it had no title of its own to match against. */
+export async function generateMetadata({ params }: { params: { username: string } }) {
+  const author = await getAuthor(params.username);
+  if (!author) return { title: "الكاتب" };
+  return {
+    title: author.name,
+    description: author.bio || `مقالات ${author.name} في ${SITE_NAME.ar}.`,
+    alternates: { canonical: `${SITE_URL}/authors/${encodeURIComponent(author.username)}` },
+  };
+}
 
 export default async function AuthorPage({ params }: { params: { username: string } }) {
   const author = await getAuthor(params.username);

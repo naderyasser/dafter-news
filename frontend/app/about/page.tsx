@@ -1,5 +1,7 @@
 import SiteShell from "@/components/site/SiteShell";
 
+export const metadata = { title: "من نحن", description: "عن الدفتر: هيئة التحرير، سياسة النشر، وطريقة التواصل مع غرفة الأخبار." };
+
 export default function AboutPage() {
   return (
     <SiteShell lang="ar" active="about">
@@ -22,8 +24,19 @@ export default function AboutPage() {
         </div>
         <p className="text-[17px] leading-[1.9] text-ink">
           للاستفسارات والشراكات:{" "}
-          <a href="mailto:info@aldaftarnews.com" className="font-semibold text-brand no-underline">
-            info@aldaftarnews.com
+          <a href="mailto:aldaftarnews@gmail.com" className="font-semibold text-brand no-underline">
+            aldaftarnews@gmail.com
+          </a>
+        </p>
+        <p className="mt-10 border-t border-line pt-6 text-[14px] text-ink-3">
+          تطوير الموقع:{" "}
+          <a
+            href="https://master.dev.educore.software/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-brand no-underline"
+          >
+            Master Development
           </a>
         </p>
       </div>

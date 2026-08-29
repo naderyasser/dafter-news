@@ -4,6 +4,8 @@ import { getArticles, getSections } from "@/lib/api";
 
 export const revalidate = 60;
 
+export const metadata = { title: "بحث", description: "ابحث في أرشيف الدفتر عن خبر أو موضوع أو كاتب." };
+
 export default async function SearchPage({
   searchParams,
 }: {

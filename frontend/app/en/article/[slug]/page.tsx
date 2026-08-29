@@ -4,15 +4,16 @@ import { notFound } from "next/navigation";
 
 import ArticleBlocks from "@/components/site/ArticleBlocks";
 import ArticleComments from "@/components/site/ArticleComments";
-import AudioPlayer from "@/components/site/AudioPlayer";
 import AuthorProfileCard from "@/components/site/AuthorProfileCard";
-import MostReadList from "@/components/site/MostReadList";
-import RelatedArticlesList from "@/components/site/RelatedArticlesList";
+import InfiniteSections from "@/components/site/InfiniteSections";
+import AudioPlayer from "@/components/site/AudioPlayer";
+import LatestNewsCard from "@/components/site/LatestNewsCard";
 import ShareRow from "@/components/site/ShareRow";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticle, getArticles, getRelatedArticles, mediaUrl } from "@/lib/api";
-import { clockTime, formatDate, relativeTime } from "@/lib/format";
-import { articleJsonLd, articleMetadata } from "@/lib/seo";
+import ViewBeacon from "@/components/site/ViewBeacon";
+import { getArticle, getLatest, getMostRead, getRelatedArticles, getSections, mediaUrl } from "@/lib/api";
+import { publishedLine } from "@/lib/format";
+import { articleJsonLd, articleMetadata, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 30;
 
@@ -29,35 +30,64 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
   // frontend as well as the API.
   if (!article || article.language !== "en" || article.status !== "published") notFound();
 
+  // «Latest News» / «Most Read» tabbed card block, right after the article
+  // — fetched one over LIST_LIMIT so filtering the article being read out
+  // of its own "read next" list never leaves a short row. Mirrors the
+  // Arabic article page exactly; see its own comments for the reasoning
+  // behind every choice here.
+  const LIST_LIMIT = 5;
+
   // Same automatic related ranking as the Arabic page: shared tags first,
   // then section recency — /related/ filters by the article's own language.
-  const [related, mostRead] = await Promise.all([
+  const [related, sections, latest, mostRead] = await Promise.all([
     getRelatedArticles(article.slug),
-    getArticles("?language=en&ordering=-views&page_size=5"),
+    getSections(),
+    getLatest("en", LIST_LIMIT + 1),
+    getMostRead("en", LIST_LIMIT + 1),
   ]);
-  const relatedAll = related.results
+  // Sections appended below the article; skip the one we're already in.
+  const feedSections = sections.results.filter((s) => s.key !== article.section?.key && s.key !== "opinion");
+  // All of them land inside the body itself, in the one box — see the
+  // Arabic article page for why a second list below wasn't kept.
+  const relatedInline = related.results
     .filter((a) => a.slug !== article.slug)
-    .slice(0, 6)
-    .map((a) => ({ href: `/en/article/${a.slug}`, title: a.title, section: a.section_name, time: relativeTime(a.published_at, "en"), badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
-  const relatedInline = relatedAll.slice(0, 2);
-  const relatedCards = relatedAll.slice(2, 6);
+    .slice(0, 3)
+    .map((a) => ({ href: `/en/article/${a.slug}`, title: a.title, section: a.section_name, badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
+
+  const toNewsCardItem = (a: (typeof latest.results)[number]) => ({
+    href: `/en/article/${a.slug}`,
+    title: a.title,
+    imageSrc: mediaUrl(a.cover_image),
+  });
+  // Never show the article itself in its own "read next" widget — same
+  // reasoning as relatedInline's own filter above.
+  const latestCards = latest.results.filter((a) => a.slug !== article.slug).slice(0, LIST_LIMIT).map(toNewsCardItem);
+  const mostReadCards = mostRead.results.filter((a) => a.slug !== article.slug).slice(0, LIST_LIMIT).map(toNewsCardItem);
 
   const badgeLabel = { breaking: "Breaking", live: "Live", exclusive: "Exclusive", none: "" }[article.badge];
 
   return (
     <SiteShell lang="en" active={article.section?.key}>
+      <ViewBeacon slug={article.slug} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: articleJsonLd(article, `/en/article/${encodeURIComponent(article.slug)}`) }}
       />
-      <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
-        <main className="min-w-0 max-w-reading flex-[2_1_480px]">
+      {/* Centred reading column: equal inline margins both sides, and no
+          sidebar — mirrors the Arabic article page exactly (see its own
+          comment: a sidebar here ran out of content and left a dead rail). */}
+      <div className="mx-auto w-full max-w-reading px-6 py-8">
+        <main className="min-w-0">
           <div className="mb-4 text-[13px] text-ink-3">
             <Link href="/en" className="text-ink-3 no-underline hover:text-accent">
               Home
             </Link>
             <span className="mx-1.5">/</span>
-            {article.section && <span className="text-ink-3">{article.section.name_en || article.section.name_ar}</span>}
+            {article.section && (
+              <Link href={`/en/section/${article.section.key}`} className="text-ink-3 no-underline hover:text-accent">
+                {article.section.name_en || article.section.name_ar}
+              </Link>
+            )}
           </div>
 
           {badgeLabel && <span className="rounded-badge bg-badge-breaking px-2.5 py-1 text-xs font-bold text-paper">{badgeLabel}</span>}
@@ -69,16 +99,17 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
             {/* A manual byline is a deliberate override — same priority as
                 ArticleCardSerializer.get_author_name — so it wins even when
                 an account also happens to be linked. */}
+            {/* Not a link, deliberately: /authors/[username] has no
+                English-language counterpart route, so linking here would
+                send an English reader to Arabic-only chrome mid-read. */}
             {article.byline ? (
               <span className="font-bold text-ink-2">{article.byline}</span>
             ) : article.author ? (
               <span className="font-bold text-ink-2">{article.author.name}</span>
             ) : null}
             <span>•</span>
-            <span>{formatDate(article.published_at, "en")}</span>
-            <span>•</span>
-            <span className="tnum">◔ {clockTime(article.published_at, "en")}</span>
-            <ShareRow lang="en" title={article.title} />
+            <span className="tnum">{publishedLine(article.published_at, "en")}</span>
+            <ShareRow lang="en" title={article.title} shareUrl={`${SITE_URL}/en/article/${article.id}`} />
           </div>
 
           {/* Signed investigations carry the reporter's profile — see the
@@ -117,31 +148,29 @@ export default async function ArticleEnPage({ params }: { params: { slug: string
           {article.tags.length > 0 && (
             <div className="mb-2 mt-7 flex flex-wrap gap-2">
               {article.tags.map((t) => (
-                <span key={t.id} className="rounded-pill bg-brand-tint px-3.5 py-1.5 text-[13px] font-semibold text-brand">
+                <Link
+                  key={t.id}
+                  href={`/en/tag/${t.slug}`}
+                  className="rounded-pill bg-brand-tint px-3.5 py-1.5 text-[13px] font-semibold text-brand no-underline hover:bg-brand hover:text-paper"
+                >
                   {t.name}
-                </span>
+                </Link>
               ))}
             </div>
           )}
 
           <ArticleComments lang="en" articleId={article.id} initial={article.comments} />
+
+          {/* Mirrors the Arabic article page exactly — the first block
+              after the article's own content/tags/comments, before the
+              cross-section feed further down (InfiniteSections). */}
+          <div className="mt-8">
+            <LatestNewsCard lang="en" latest={latestCards} mostRead={mostReadCards} />
+          </div>
         </main>
-        <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
-          <MostReadList
-            lang="en"
-            items={mostRead.results.map((a) => ({
-              title: a.title,
-              href: `/en/article/${a.slug}`,
-              section: a.section_name,
-              // The Arabic home passes thumbs; leaving them off here made the
-              // same widget look broken on the English edition.
-              imageSrc: mediaUrl(a.cover_image),
-            }))}
-          />
-        </aside>
       </div>
 
-      <RelatedArticlesList lang="en" title="Related News" cards={relatedCards} />
+      <InfiniteSections lang="en" sections={feedSections} excludeSlug={article.slug} />
     </SiteShell>
   );
 }

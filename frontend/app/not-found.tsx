@@ -2,10 +2,10 @@ import Link from "next/link";
 
 import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles } from "@/lib/api";
+import { getMostRead } from "@/lib/api";
 
 export default async function NotFound() {
-  const mostRead = await getArticles("?language=ar&ordering=-views&page_size=5");
+  const mostRead = await getMostRead("ar");
 
   return (
     <SiteShell lang="ar">
@@ -18,7 +18,15 @@ export default async function NotFound() {
         </Link>
       </div>
       <div className="mx-auto max-w-[480px] px-6 pb-12">
-        <MostReadList lang="ar" items={mostRead.results.map((a) => ({ title: a.title, href: `/article/${a.slug}`, section: a.section_name }))} />
+        <MostReadList
+          lang="ar"
+          items={mostRead.results.map((a) => ({
+            title: a.title,
+            href: `/article/${a.slug}`,
+            section: a.section_name,
+            views: a.views,
+          }))}
+        />
       </div>
     </SiteShell>
   );

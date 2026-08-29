@@ -4,6 +4,8 @@ import { getTicker } from "@/lib/api";
 
 export const revalidate = 60;
 
+export const metadata = { title: "الأسواق", description: "أسعار العملات والذهب في مصر، محدّثة أولاً بأول." };
+
 export default async function MarketsPage() {
   const ticker = await getTicker();
 

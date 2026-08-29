@@ -6,10 +6,10 @@ import ArrowCarousel from "@/components/site/ArrowCarousel";
 import ArticleCard from "@/components/site/ArticleCard";
 import HeroSlider from "@/components/site/HeroSlider";
 import LatestNewsTabs from "@/components/site/LatestNewsTabs";
-import MatchesRail from "@/components/site/MatchesRail";
 import MostReadList from "@/components/site/MostReadList";
 import OpinionCarousel from "@/components/site/OpinionCarousel";
 import SectionBlock from "@/components/site/SectionBlock";
+import SportsBlock from "@/components/site/SportsBlock";
 import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
@@ -18,12 +18,14 @@ import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl } from "@/lib/api";
-import { relativeTime } from "@/lib/format";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getSectionFeed } from "@/lib/api";
+import { isLatinScript } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
 
-export const revalidate = 60;
+// 30s: the ISR window is the ceiling on how fast «الأكثر قراءة» and the
+// section blocks can visibly answer a publish or a burst of reads.
+export const revalidate = 30;
 
 /**
  * Mirrors app/page.tsx block for block.
@@ -55,15 +57,24 @@ function toCard(a: ArticleCardType) {
     href: `/en/article/${a.slug}`,
     title: a.title,
     section: a.section_name,
-    time: relativeTime(a.published_at, "en"),
     badge: a.badge,
     imageSrc: mediaUrl(a.cover_image),
   };
 }
 
-/** Gulf cards carry the country on the photo — mirrors the Arabic home. */
+/**
+ * Gulf cards carry the country everywhere a label shows — the photo chip
+ * and the text-column kicker alike — not just the chip. `section` left at
+ * `a.section_name` still printed "The Gulf" under every row regardless of
+ * the chip; mirrors the Arabic home's own toGulfCard.
+ */
 function toGulfCard(a: ArticleCardType) {
-  return { ...toCard(a), chip: a.country || undefined };
+  return { ...toCard(a), section: a.country || undefined, chip: a.country || undefined };
+}
+
+/** Culture & Art's own corner tag — mirrors the Arabic home's toArtCard. */
+function toArtCard(a: ArticleCardType) {
+  return { ...toCard(a), chip: a.subcategory || a.section_name };
 }
 
 function toWorldCard(a: ArticleCardType) {
@@ -73,20 +84,19 @@ function toWorldCard(a: ArticleCardType) {
     label: a.country || a.subcategory || a.section_name,
     // When the chip carries the country, the topic still gets its line.
     kicker: a.country && a.subcategory ? a.subcategory : undefined,
-    time: relativeTime(a.published_at, "en"),
     imageSrc: mediaUrl(a.cover_image),
   };
 }
 
 // -pinned first — mirrors the Arabic home; see its sectionFeed for why.
 const sectionFeed = (key: string, size = 6) =>
-  getArticles(`?language=en&section__key=${key}&ordering=-pinned,-published_at&page_size=${size}`);
+  getSectionFeed("en", key, size);
 
 async function HomeEnContent() {
   const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, sections, matches] =
     await Promise.all([
       getArticles("?language=en&pinned=true&ordering=-published_at&page_size=5"),
-      getArticles("?language=en&ordering=-published_at&page_size=12"),
+      getLatest("en", 12),
       sectionFeed("egypt"),
       sectionFeed("gulf"),
       sectionFeed("world", 7),
@@ -98,10 +108,10 @@ async function HomeEnContent() {
       // Deep enough for the showcase strip to read as a playlist; the English
       // edition also filters this list down to Latin-script titles.
       getVideos("?page_size=12"),
-      getArticles("?language=en&kind=opinion&page_size=6"),
-      getArticles("?language=en&ordering=-views&page_size=5"),
+      getArticles("?language=en&kind=opinion&ordering=-published_at&page_size=6"),
+      getMostRead("en"),
       getTags(),
-      getArticles("?language=en&ordering=-comment_count&page_size=6"),
+      getMostCommented("en"),
       getStories(),
       getSections(),
       getMatches(),
@@ -118,7 +128,6 @@ async function HomeEnContent() {
   // Arabic video headlines under English headings. Keep only what's written in
   // this page's script; when nothing matches, that strip drops out instead of
   // rendering the wrong language.
-  const isLatin = (s: string) => !/[؀-ۿ]/.test(s);
 
   // Pinned first, same as the Arabic home.
   const pinnedIds = new Set(pinnedRes.results.map((a) => a.id));
@@ -127,7 +136,6 @@ async function HomeEnContent() {
     href: `/en/article/${a.slug}`,
     title: a.title,
     section: a.section_name,
-    time: relativeTime(a.published_at, "en"),
     badge: a.badge,
     imageSrc: mediaUrl(a.cover_image),
   }));
@@ -135,7 +143,7 @@ async function HomeEnContent() {
   const heroSide = recent.results.filter((a) => !heroIds.has(a.id)).slice(0, 4);
 
   const showcaseVideos = videos.results
-    .filter((v) => isLatin(v.title))
+    .filter((v) => isLatinScript(v.title))
     .slice(0, 8)
     .map((v) => ({
       id: v.id,
@@ -150,7 +158,6 @@ async function HomeEnContent() {
       isLive: v.is_live,
       views: v.views,
       comments: v.comment_count,
-      time: relativeTime(v.created_at, "en"),
     }));
 
   const specialItems = special.results.map((a) => ({
@@ -169,12 +176,15 @@ async function HomeEnContent() {
     quote: a.title,
     href: `/en/article/${a.slug}`,
     initial: a.author_initial || "?",
+    avatar: mediaUrl(a.author_avatar),
   }));
 
   const newsLatest = recent.results.slice(0, 6).map((a) => ({
     href: `/en/article/${a.slug}`,
     title: a.title,
-    time: relativeTime(a.published_at, "en"),
+    // CTR ask: no relative-time caption on a browsing card — see the
+    // Arabic home's own newsLatest for why this is blanked, not dropped.
+    time: "",
   }));
   const newsPopular = popular.results.map((a) => ({
     href: `/en/article/${a.slug}`,
@@ -182,14 +192,14 @@ async function HomeEnContent() {
     time: `${a.comment_count} comments`,
   }));
 
-  const enTags = tags.results.filter((t) => isLatin(t.name));
-  const enStories = stories.results.filter((s) => isLatin(s.title));
+  const enTags = tags.results.filter((t) => isLatinScript(t.name));
+  const enStories = stories.results.filter((s) => isLatinScript(s.title));
 
   return (
     <SiteShell lang="en" active="home">
       <StoriesRail lang="en" stories={enStories} />
 
-      <div className="mx-auto flex max-w-container flex-wrap gap-5 px-6 py-6">
+      <div className="mx-auto flex max-w-container flex-wrap gap-8 px-6 py-8">
         <div className="min-w-0 flex-[2_1_480px]">
           <HeroSlider lang="en" slides={heroSlides} />
         </div>
@@ -202,7 +212,6 @@ async function HomeEnContent() {
                 href={`/en/article/${a.slug}`}
                 title={a.title}
                 section={a.section_name}
-                time={relativeTime(a.published_at, "en")}
                 badge={a.badge}
                 imageSrc={mediaUrl(a.cover_image)}
               />
@@ -214,7 +223,10 @@ async function HomeEnContent() {
       <SectionDivider />
 
       <SectionBlock lang="en" title={T.egypt} seeAllHref="/en/section/egypt" cards={egypt.results.map(toCard)} initialCount={4} sectionKey="egypt" />
-      <SectionDivider />
+      {/* SectionBlock hides itself on empty (see its own guard); this
+          divider now follows suit — same fix as the Arabic home, and the
+          same pattern WorldNewsBlock's own divider already uses below. */}
+      {egypt.results.length ? <SectionDivider /> : null}
 
       {gulf.results.length ? (
         <>
@@ -232,7 +244,8 @@ async function HomeEnContent() {
       {world.results.length ? <SectionDivider /> : null}
 
       <SectionBlock lang="en" title={T.economy} seeAllHref="/en/section/economy" cards={econ.results.map(toCard)} initialCount={4} sectionKey="economy" />
-      <SectionDivider />
+      {/* Same reasoning as the Egypt divider above. */}
+      {econ.results.length ? <SectionDivider /> : null}
 
       {/* Culture & Art — the big photo-first slides, mirroring the Arabic
           home block for block. */}
@@ -240,9 +253,9 @@ async function HomeEnContent() {
         <>
           <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("art")}>
             <SectionHeading lang="en" title={T.art} href="/en/section/art" sectionKey="art" />
-            <ArrowCarousel lang="en" itemClassName="w-[480px] max-w-[88vw]">
+            <ArrowCarousel lang="en" itemClassName="w-[480px] max-w-[88vw]" overlayArrows>
               {art.results.map((a) => (
-                <ArticleCard key={a.id} lang="en" variant="hero" {...toCard(a)} />
+                <ArticleCard key={a.id} lang="en" variant="hero" {...toArtCard(a)} accent={sectionColor("art")} />
               ))}
             </ArrowCarousel>
           </section>
@@ -262,10 +275,10 @@ async function HomeEnContent() {
       ) : null}
 
       <SectionDivider />
-      <SectionBlock lang="en" title={T.sports} seeAllHref="/en/section/sports" cards={sports.results.map(toCard)} initialCount={4} sectionKey="sports" />
-      {/* TheSportsDB's own strings are English — the rail only ever needed
-          its chrome translated, which MatchesRail now carries per language. */}
-      <MatchesRail lang="en" matches={matches.results} />
+      {/* Mirrors the Arabic home's sports band — same pitch, same board.
+          TheSportsDB's own strings are English; only the chrome is
+          translated, which SportsBlock carries per language. */}
+      <SportsBlock lang="en" title={T.sports} href="/en/section/sports" cards={sports.results.map(toCard)} matches={matches.results} />
 
       {/* Special Files — the magazine shelf, mirroring the Arabic home. */}
       <SpecialFilesBlock lang="en" title={T.special} href="/en/section/special" items={specialItems} />
@@ -297,6 +310,7 @@ async function HomeEnContent() {
               title: a.title,
               href: `/en/article/${a.slug}`,
               section: a.section_name,
+              views: a.views,
               imageSrc: mediaUrl(a.cover_image),
             }))}
           />

@@ -1,8 +1,9 @@
 import ArticleCard from "@/components/site/ArticleCard";
 import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles, getTags, mediaUrl } from "@/lib/api";
+import { getArticles, getTags, mediaUrl, getMostRead } from "@/lib/api";
 import { decodeParam, relativeTime } from "@/lib/format";
+import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -16,6 +17,18 @@ export const revalidate = 60;
  * (English) articles never matched, and the page rendered Arabic RTL chrome
  * regardless. This mirrors that page with language=en and English chrome.
  */
+/** Same reason as the Arabic tag page: the tag is the title. */
+export async function generateMetadata({ params }: { params: { tag: string } }) {
+  const tagSlug = decodeParam(params.tag);
+  const tag = (await getTags()).results.find((t) => t.slug === tagSlug);
+  const name = tag?.name || tagSlug;
+  return {
+    title: name,
+    description: `All ${name} news from ${SITE_NAME.en}.`,
+    alternates: { canonical: `${SITE_URL}/en/tag/${encodeURIComponent(tagSlug)}` },
+  };
+}
+
 export default async function TagEnPage({ params }: { params: { tag: string } }) {
   // Arabic slugs arrive percent-encoded (twice, once via middleware); Latin
   // ones don't need it, but decoding is a no-op for them either way.
@@ -23,7 +36,7 @@ export default async function TagEnPage({ params }: { params: { tag: string } })
   const [tags, articles, mostRead] = await Promise.all([
     getTags(),
     getArticles(`?language=en&tags__slug=${encodeURIComponent(tagSlug)}&ordering=-published_at&page_size=24`),
-    getArticles("?language=en&ordering=-views&page_size=5"),
+    getMostRead("en"),
   ]);
   const tag = tags.results.find((t) => t.slug === tagSlug);
 
@@ -51,7 +64,15 @@ export default async function TagEnPage({ params }: { params: { tag: string } })
           </div>
         </main>
         <aside className="min-w-[260px] max-w-[320px] flex-[1_1_280px]">
-          <MostReadList lang="en" items={mostRead.results.map((a) => ({ title: a.title, href: `/en/article/${a.slug}`, section: a.section_name }))} />
+          <MostReadList
+            lang="en"
+            items={mostRead.results.map((a) => ({
+              title: a.title,
+              href: `/en/article/${a.slug}`,
+              section: a.section_name,
+              views: a.views,
+            }))}
+          />
         </aside>
       </div>
     </SiteShell>
