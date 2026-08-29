@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+#
+# يمنع الـpush إن كانت الفحوصات لا تمر.
+#
+# لماذا pre-push وليس pre-commit: الفحص الكامل يستغرق دقائق، وحبس كل commit
+# خلفه يدفع الناس إلى --no-verify، فتصبح البوابة أسوأ من لا شيء. الـcommit
+# يبقى رخيصاً؛ الـpush هو ما يصل إلى الآخرين.
+#
+# للتخطي في حالة اضطرار: git push --no-verify (وقُلها في الـPR).
+
+set -euo pipefail
+
+echo "── pre-push: make check-fast"
+if ! make -C "$(git rev-parse --show-toplevel)" check-fast; then
+  echo ""
+  echo "✗ الفحوصات لم تمر — الـpush متوقف."
+  echo "  صلّح الأخطاء، أو استخدم git push --no-verify إن كنت تعرف ما تفعل."
+  exit 1
+fi
+echo "✓ pre-push: مرّت"

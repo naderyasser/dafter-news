@@ -65,7 +65,11 @@ export default function WelcomeToast({ alert, lang = "ar" }: { alert: WelcomeAle
     }
     const id = window.setTimeout(() => setOpen(true), 600);
     return () => window.clearTimeout(id);
-  }, [alert]);
+    // wrongEdition derives from `lang` as well as `alert`, so leaving it out
+    // meant a locale change alone could not re-evaluate the guard. Dormant
+    // today (ar/en are separate routes, so `lang` never changes under a
+    // mounted toast) — listed so it stays correct if that ever stops holding.
+  }, [alert, wrongEdition]);
 
   // Escape still closes it. It does not trap focus, so this is a convenience
   // for whoever is already looking at it, not a way out of a trap.

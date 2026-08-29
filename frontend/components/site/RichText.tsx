@@ -18,8 +18,10 @@ export default function Rich({ text }: { text: string }) {
     <>
       {segments.map((s, i) =>
         s.image !== undefined ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <span key={i} style={{ display: "block", margin: "1.25em 0" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- editor-inserted
+                inline image: the src is user data with no known dimensions, which
+                next/image requires. */}
             <img src={mediaUrl(s.image) ?? ""} alt="" style={{ display: "block", width: "100%", height: "auto", borderRadius: "8px" }} />
           </span>
         ) : s.color || s.background || s.bold || s.italic || s.underline || s.large || s.subheading ? (

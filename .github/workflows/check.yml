@@ -1,0 +1,91 @@
+name: check
+
+# The gate this repo did not have. Everything `make check` runs locally runs
+# here too, so "it passed on my machine" and "it passed in CI" mean the same
+# thing — the Makefile is the single source of truth for what a check IS.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: aldaftar
+          POSTGRES_USER: aldaftar
+          POSTGRES_PASSWORD: aldaftar
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      POSTGRES_DB: aldaftar
+      POSTGRES_USER: aldaftar
+      POSTGRES_PASSWORD: aldaftar
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      DJANGO_SECRET_KEY: ci-only-not-a-real-secret
+      DJANGO_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r backend/requirements.txt coverage
+
+      # Model/migration drift fails the build rather than surfacing as a
+      # confusing runtime error on someone else's machine.
+      - name: migration drift
+        working-directory: backend
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: tests + coverage
+        working-directory: backend
+        run: |
+          python -m coverage run --source=. \
+            --omit="*/migrations/*,manage.py,*/tests*.py,aldaftar/wsgi.py,aldaftar/asgi.py" \
+            manage.py test
+          python -m coverage report
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+
+      - name: typecheck
+        run: npx tsc --noEmit -p tsconfig.json
+
+      # --max-warnings=0: the config was absent for months and the codebase
+      # is clean today, so the floor is "no new warnings", not "some".
+      - name: lint
+        run: npx next lint --max-warnings=0
+
+      - name: tests
+        run: npx vitest run
+
+      # Builds to .next-verify, matching `make build` — never the live dir.
+      - name: build
+        env:
+          NEXT_DIST_DIR: .next-verify
+        run: npx next build
