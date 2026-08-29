@@ -2,18 +2,24 @@ import logging
 from datetime import timedelta
 
 from django.core.files.base import ContentFile
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, DurationField, ExpressionWrapper, F, FloatField, Q, Sum, Value
+from django.db.models.functions import Coalesce, Extract, Greatest
 from django.utils import timezone
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import SearchFilter
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 
-from aldaftar.permissions import PublicSubmission, ReadOnlyOrStaff, StaffOnly
+from aldaftar.filters import StableOrderingFilter
+from aldaftar.permissions import PublicSubmission, ReadOnlyOrEditor, ReadOnlyOrStaff, StaffOnly
 from aldaftar.mixins import SlugOrPkLookupMixin
 
 from . import import_url
-from .ai_draft import AiDraftError, generate_draft
+from .filters import ArticleFilterSet
 from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 from .tts import TtsError, generate_for_article
 from .serializers import (
@@ -339,32 +345,6 @@ class DashboardOverviewView(APIView):
 
 
 logger = logging.getLogger(__name__)
-
-
-class AiDraftView(APIView):
-    """
-    POST /api/generate-draft/ — «توليد بالذكاء الاصطناعي».
-
-    Same posture as ImportFromUrlView: returns a starting draft's fields,
-    never creates or publishes an Article. See content/ai_draft.py for why
-    — an AI draft is not a source, and the editor's normal save path is
-    still what actually publishes anything.
-    """
-
-    permission_classes = [StaffOnly]
-
-    def post(self, request):
-        topic = (request.data.get("topic") or "").strip()
-        if not topic:
-            return Response({"detail": "اكتب موضوع الخبر أو ملخصاً له أولاً."}, status=status.HTTP_400_BAD_REQUEST)
-        language = request.data.get("language") or "ar"
-
-        try:
-            draft = generate_draft(topic, language)
-        except AiDraftError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-
-        return Response(draft)
 
 
 class ImportFromUrlView(APIView):
