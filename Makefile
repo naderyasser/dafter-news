@@ -67,6 +67,11 @@ coverage:
 	@cd $(FRONTEND) && npx vitest run --coverage
 
 # بناء تحقق فقط: distDir منفصل حتى لا يُستبدل البندل الذي يخدم القرّاء الآن.
+#
+# ثم استعادة الملفين اللذين يعيد Next كتابتهما (next-env.d.ts و«include» في
+# tsconfig) — هما أثر بناء لا تعديل مصدر، وهذه النسخة هي الإنتاج نفسه، فتركهما
+# يعني أن `git status` متسخ بعد كل فحص. نفس ما يفعله scripts/deploy-frontend.sh.
 build:
 	@echo "── بناء تحقق (.next-verify)"
 	@cd $(FRONTEND) && NEXT_DIST_DIR=.next-verify npx next build
+	@git checkout -- $(FRONTEND)/tsconfig.json $(FRONTEND)/next-env.d.ts 2>/dev/null || true
