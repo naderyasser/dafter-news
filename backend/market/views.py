@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from aldaftar.permissions import ReadOnlyOrStaff
+from aldaftar.permissions import ReadOnlyOrEditor
 from .models import Currency, GoldKarat, TickerModule, WeatherCity
 from .serializers import (
     CurrencySerializer,
@@ -15,19 +15,19 @@ from .serializers import (
 class CurrencyViewSet(viewsets.ModelViewSet):
     queryset = Currency.objects.all()
     serializer_class = CurrencySerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
 
 
 class GoldKaratViewSet(viewsets.ModelViewSet):
     queryset = GoldKarat.objects.all()
     serializer_class = GoldKaratSerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
 
 
 class WeatherCityViewSet(viewsets.ModelViewSet):
     queryset = WeatherCity.objects.all()
     serializer_class = WeatherCitySerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
     lookup_field = "key"
 
 
@@ -36,7 +36,7 @@ class TickerModuleViewSet(viewsets.ModelViewSet):
 
     queryset = TickerModule.objects.all()
     serializer_class = TickerModuleSerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
     ordering_fields = ["order"]
 
 
@@ -47,7 +47,7 @@ class TickerView(APIView):
     and the stat cards, all from one payload refreshed every minute.
     """
 
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
 
     def get(self, request):
         city_key = request.query_params.get("city", "cairo")

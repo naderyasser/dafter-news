@@ -1,5 +1,5 @@
 from django.db.models import Count, Q
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 from content.models import Article
 from content.serializers import ArticleCardSerializer
 
-from aldaftar.permissions import AdminOnly, IsSelf, ReadOnlyOrStaff
+from aldaftar.permissions import AdminOnly, IsSelf, ReadOnlyOrEditor
 from .models import Follow, SavedArticle, User
 from .serializers import (
     AuthorSerializer,
@@ -29,7 +29,10 @@ class AuthorViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = AuthorSerializer
-    permission_classes = [ReadOnlyOrStaff]
+    # Editor+, not any staff: this panel creates, renames, re-photographs and
+    # hides the paper's bylines. A كاتب editing the masthead — including their
+    # own listing — is the same class of change as editing the section list.
+    permission_classes = [ReadOnlyOrEditor]
     lookup_field = "username"
     # DRF's default lookup regex excludes '.' (reserved for format suffixes
     # like .json) — usernames here are dotted (e.g. "m.eladawy"), so widen it.
@@ -53,6 +56,43 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == "create":
             return UserCreateSerializer
         return UserSerializer
+
+    def perform_destroy(self, instance):
+        """
+        Offboarding without erasing the archive.
+
+        Article.author is on_delete=SET_NULL, so deleting an account has never
+        deleted their stories — but it did quietly strip the credit off every
+        one of them, because the byline is read from that FK. A story that was
+        written by someone still needs to say so after they leave.
+
+        So each of their articles keeps the name in `byline`, the manual
+        credit field the editor already uses for guest contributors, which
+        takes priority over the FK everywhere it is read (see
+        ArticleCardSerializer.get_author_name). Only articles with no manual
+        byline of their own are stamped: an existing one was a deliberate
+        override and outranks the account anyway.
+
+        Deactivating (is_active=False) is the better move and is what the
+        dashboard offers first — the account stops being able to log in while
+        every link, byline and author page keeps working. This path is for
+        when an admin genuinely wants the account gone.
+        """
+        credit = instance.display_name
+        if credit:
+            instance.articles.filter(byline="").update(byline=credit)
+        super().perform_destroy(instance)
+
+    def destroy(self, request, *args, **kwargs):
+        """An admin cannot delete themselves — that is how a newsroom ends up
+        with no way back into its own dashboard."""
+        instance = self.get_object()
+        if instance.pk == request.user.pk:
+            return Response(
+                {"detail": "لا يمكنك حذف حسابك الخاص. اطلب من مدير آخر القيام بذلك."},
+                status=status.HTTP_409_CONFLICT,
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 class FollowViewSet(viewsets.ModelViewSet):
@@ -108,6 +148,9 @@ class MyFeedView(APIView):
             .filter(Q(section_id__in=section_ids) | Q(author_id__in=author_ids))
             .select_related("section", "author")
             .annotate(comment_count=Count("comments", distinct=True))
+            # ArticleCardSerializer.get_excerpt reads the blocks; prefetching
+            # keeps that one query for the page instead of one per card.
+            .prefetch_related("blocks")
             .order_by("-published_at", "-pk")[:30]
         )
         return Response({

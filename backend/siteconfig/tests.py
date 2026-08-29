@@ -161,7 +161,7 @@ class WelcomeAlertTests(TestCase):
 
 class WelcomeAlertAPITests(APITestCase):
     def setUp(self):
-        self.staff = User.objects.create(username="alert-staff", is_staff=True)
+        self.staff = User.objects.create(username="alert-staff", is_staff=True, role="editor")
         self.client.force_authenticate(self.staff)
 
     def test_get_creates_the_row_on_first_call(self):

@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 VAPID_PUBLIC = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE = os.environ.get("VAPID_PRIVATE_KEY", "")
-VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:admin@dafter.educore.software")
+VAPID_SUBJECT = os.environ.get("VAPID_SUBJECT", "mailto:admin@aldaftarnews.com")
 
 # Chrome drops a subscription after ~4 consecutive failures; prune at that point.
 MAX_FAILURES = 4

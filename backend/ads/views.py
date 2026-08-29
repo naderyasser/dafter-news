@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 
-from aldaftar.permissions import StaffOnly
+from aldaftar.permissions import EditorOrAdmin
 from .models import AdPlacement
 from .serializers import AdPlacementSerializer
 
@@ -11,4 +11,4 @@ class AdPlacementViewSet(viewsets.ModelViewSet):
     # them, so (unlike most newsroom content) even GET is staff-only.
     queryset = AdPlacement.objects.all()
     serializer_class = AdPlacementSerializer
-    permission_classes = [StaffOnly]
+    permission_classes = [EditorOrAdmin]

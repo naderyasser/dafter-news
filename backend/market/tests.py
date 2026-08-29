@@ -95,7 +95,7 @@ class TickerEndpointTests(APITestCase):
 class TickerModuleAPITests(APITestCase):
     def test_reorder_and_toggle(self):
         module = TickerModule.objects.create(key="gold", label="الذهب", active=True, order=2)
-        self.client.force_authenticate(User.objects.create(username="ticker-staff", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="ticker-staff", is_staff=True, role="editor"))
 
         res = self.client.patch(f"/api/ticker-modules/{module.pk}/", {"order": 1, "active": False}, format="json")
 

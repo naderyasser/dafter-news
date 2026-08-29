@@ -37,7 +37,7 @@ class AdPlacementAPITests(APITestCase):
         # Ad performance figures are internal monetization data with no
         # public consumer (see ads/views.py) — the whole endpoint is
         # staff-only now, GET included.
-        self.staff = User.objects.create(username="ads-staff", is_staff=True)
+        self.staff = User.objects.create(username="ads-staff", is_staff=True, role="editor")
         self.client.force_authenticate(self.staff)
 
     def test_list_exposes_ctr(self):

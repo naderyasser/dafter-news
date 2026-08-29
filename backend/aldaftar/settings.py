@@ -140,6 +140,12 @@ REST_FRAMEWORK = {
         # absorbs a newsroom behind one NAT while keeping a curl loop from
         # minting a million-visit day.
         "visits": "30/min",
+        # Per-article read beacons. Higher than "visits" because this one
+        # fires per article rather than per session — a reader working
+        # through a dozen stories, and a whole office behind one NAT doing
+        # the same, must not be throttled out of the count. Still low enough
+        # that a script cannot inflate a story into «الأكثر قراءة».
+        "article_views": "120/min",
     },
 }
 
@@ -154,7 +160,7 @@ REST_FRAMEWORK = {
 # Until EMAIL_HOST is set the console backend is used: mail is written to the
 # service log instead of vanishing into a connection error, so a password
 # reset is still recoverable by an operator reading `journalctl`.
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@dafter.educore.software")
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@aldaftarnews.com")
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", f"الدفتر نيوز <{ADMIN_EMAIL}>")
 SERVER_EMAIL = ADMIN_EMAIL
 ADMINS = [("Al Daftar admin", ADMIN_EMAIL)]
@@ -172,7 +178,7 @@ else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 CSRF_TRUSTED_ORIGINS = [
-    o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "https://dafter.educore.software").split(",") if o.strip()
+    o.strip() for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "https://aldaftarnews.com").split(",") if o.strip()
 ]
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"

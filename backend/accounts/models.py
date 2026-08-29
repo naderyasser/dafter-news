@@ -32,6 +32,35 @@ class User(AbstractUser):
     # surfaces without deleting the account or unpublishing what they wrote —
     # a columnist on hiatus keeps their archive reachable by direct link.
     is_hidden = models.BooleanField(default=False, help_text="إخفاء الكاتب من صفحات الموقع العامة")
+    # Set when an admin invites a team member with a temporary password. The
+    # dashboard refuses to show anything else until it is cleared, so a
+    # password that was read aloud, pasted into chat or written on paper is
+    # only ever good for the one login that replaces it.
+    must_change_password = models.BooleanField(
+        default=False, help_text="يجب على المستخدم تغيير كلمة المرور عند أول دخول"
+    )
+
+    @property
+    def is_newsroom_admin(self):
+        return bool(self.is_superuser or self.role == self.Role.ADMIN)
+
+    @property
+    def is_editorial(self):
+        """Runs the paper: taxonomy, curation, site chrome."""
+        return bool(self.is_superuser or (self.is_staff and self.role in {self.Role.ADMIN, self.Role.EDITOR}))
+
+    @property
+    def can_moderate_comments(self):
+        return bool(
+            self.is_superuser
+            or (self.is_staff and self.role in {self.Role.ADMIN, self.Role.EDITOR, self.Role.MODERATOR})
+        )
+
+    @property
+    def can_write_articles(self):
+        """Every invited team member files or edits copy — that is the floor
+        of what a dashboard account is for."""
+        return bool(self.is_staff or self.is_superuser)
 
     class Meta:
         ordering = ["first_name", "last_name", "username"]

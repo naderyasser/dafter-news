@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
-from aldaftar.permissions import ReadOnlyOrAdmin, ReadOnlyOrStaff, StaffOnly
+from aldaftar.permissions import ReadOnlyOrAdmin, ReadOnlyOrEditor, StaffOnly
 from .models import DailyVisit, SiteSettings, SocialLink, WelcomeAlert
 from .serializers import (
     DailyVisitSerializer,
@@ -43,9 +43,14 @@ class SiteSettingsView(APIView):
 
 
 class SocialLinkViewSet(viewsets.ModelViewSet):
+    """The paper's own accounts — its identity, like the settings above it,
+    and the same admin-only line for the same reason: these links are printed
+    in the footer of every page and in the Organization schema search engines
+    read the newsroom's identity from."""
+
     queryset = SocialLink.objects.all()
     serializer_class = SocialLinkSerializer
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrAdmin]
 
 
 class DailyVisitViewSet(viewsets.ModelViewSet):
@@ -91,9 +96,10 @@ class VisitTrackView(APIView):
 
 
 class WelcomeAlertView(APIView):
-    """GET/PUT /api/welcome-alert/ — the on-load modal, editor-controlled."""
+    """GET/PUT /api/welcome-alert/ — the on-load modal. Editor+, literally as
+    the docstring always claimed: it interrupts every reader on the site."""
 
-    permission_classes = [ReadOnlyOrStaff]
+    permission_classes = [ReadOnlyOrEditor]
 
     def get(self, request):
         return Response(WelcomeAlertSerializer(WelcomeAlert.load()).data)

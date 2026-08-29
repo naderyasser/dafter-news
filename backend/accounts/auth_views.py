@@ -51,9 +51,20 @@ def login_view(request):
 
     user = authenticate(request, username=username, password=password)
     if user is None:
+        # Django's ModelBackend refuses an inactive account inside
+        # authenticate() itself, so it answers None here and this used to come
+        # back as "wrong password" — which is a lie, and the wrong instruction:
+        # a suspended writer would sit there retyping a password that is
+        # perfectly correct instead of calling the admin who suspended them.
+        # Say so, but only to someone who proved they hold the password: the
+        # check runs against the credentials, not against the username alone,
+        # so this never becomes a way to enumerate accounts.
+        suspended = User.objects.filter(username=username, is_active=False).first()
+        if suspended and suspended.check_password(password):
+            return Response(
+                {"detail": "هذا الحساب موقوف. تواصل مع مدير الموقع."}, status=status.HTTP_403_FORBIDDEN
+            )
         return Response({"detail": "البريد الإلكتروني أو كلمة المرور غير صحيحة."}, status=status.HTTP_401_UNAUTHORIZED)
-    if not user.is_active:
-        return Response({"detail": "هذا الحساب موقوف."}, status=status.HTTP_403_FORBIDDEN)
 
     login(request, user)
     return Response(AccountSerializer(user).data)
@@ -118,7 +129,10 @@ def change_password(request):
     if len(new) < 8:
         return Response({"new_password": ["كلمة المرور يجب أن تكون 8 أحرف على الأقل."]}, status=status.HTTP_400_BAD_REQUEST)
     request.user.set_password(new)
-    request.user.save(update_fields=["password"])
+    # Clearing the flag here is what ends the forced-change loop the dashboard
+    # holds an invited account in until it has chosen its own password.
+    request.user.must_change_password = False
+    request.user.save(update_fields=["password", "must_change_password"])
     # Keep the caller signed in; set_password rotates the session hash.
     login(request, request.user)
     return Response(status=status.HTTP_204_NO_CONTENT)

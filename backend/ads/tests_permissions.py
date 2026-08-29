@@ -24,7 +24,7 @@ class AdPlacementPermissionTests(APITestCase):
         cls.placement = AdPlacement.objects.create(
             name="أعلى الهيدر", size="728×90", impressions=128400, clicks=612
         )
-        cls.staff = User.objects.create_user(username="editor", password="pw", is_staff=True)
+        cls.staff = User.objects.create_user(username="editor", password="pw", is_staff=True, role="editor")
         cls.reader = User.objects.create_user(username="reader", password="pw")
 
     def test_anonymous_cannot_list_placements(self):

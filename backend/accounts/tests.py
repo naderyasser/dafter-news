@@ -45,18 +45,26 @@ class UserModelTests(TestCase):
 
 
 class UserCreateSerializerTests(TestCase):
-    def test_create_without_password_yields_unusable_password(self):
-        """regression: this used to call UserManager.make_random_password(),
-        removed in Django 5.1, so creating a user from the dashboard 500'd.
-        An account created without a password must not be logged into."""
+    def test_create_without_password_issues_a_temporary_one(self):
+        """An invited account has to be able to log in — an unusable password
+        (what this used to set) left the admin with no way to onboard anyone,
+        since this deployment has no MTA to send a reset link through.
+
+        The password comes back exactly once, in the create response.
+        """
         from accounts.serializers import UserCreateSerializer
 
         serializer = UserCreateSerializer(data={"username": "newuser", "email": "n@example.com", "role": "editor"})
         self.assertTrue(serializer.is_valid(), serializer.errors)
         user = serializer.save()
 
-        self.assertFalse(user.has_usable_password())
-        self.assertEqual(user.role, "editor")
+        issued = user.temporary_password
+        self.assertEqual(len(issued), 12)
+        self.assertTrue(user.has_usable_password())
+        self.assertTrue(user.check_password(issued))
+        # ...and it is a password to replace on arrival, not to keep.
+        self.assertTrue(user.must_change_password)
+
 
     def test_create_with_password_sets_and_hashes_it(self):
         from accounts.serializers import UserCreateSerializer
@@ -81,16 +89,37 @@ class UserCreateSerializerTests(TestCase):
 
         self.assertTrue(user.is_staff)
 
-    def test_create_author_role_stays_non_staff(self):
-        """"author" is the byline-only columnist posture (AuthorSerializer),
-        not a dashboard operator — it must not be granted is_staff."""
+    def test_an_invited_writer_can_actually_open_the_dashboard(self):
+        """regression: this serializer set `is_staff = role != AUTHOR`, so the
+        one role the newsroom wanted to hire — كاتب — was created unable to
+        reach a single staff-gated endpoint. They could log in and do nothing.
+
+        Everyone invited through /api/users/ is a team member; `role` decides
+        what they may do once inside, not whether they get in at all."""
         from accounts.serializers import UserCreateSerializer
 
         serializer = UserCreateSerializer(data={"username": "col1", "role": "author"})
         self.assertTrue(serializer.is_valid(), serializer.errors)
         user = serializer.save()
 
-        self.assertFalse(user.is_staff)
+        self.assertTrue(user.is_staff)
+        self.assertEqual(user.role, "author")
+        # ...and a writer is still not an editor.
+        self.assertFalse(user.is_editorial)
+        self.assertTrue(user.can_write_articles)
+
+    def test_a_reader_who_signs_up_is_never_staff(self):
+        """The same role string means something different outside this
+        serializer: auth_views.register stores readers as role=author too,
+        which is why role alone can never grant dashboard access."""
+        res = self.client.post(
+            "/api/auth/register/", {"email": "reader@example.com", "password": "pw-12345", "name": "قارئ"}, format="json"
+        )
+
+        self.assertEqual(res.status_code, 201)
+        reader = User.objects.get(email="reader@example.com")
+        self.assertFalse(reader.is_staff)
+        self.assertFalse(reader.can_write_articles)
 
 
 class AuthorAPITests(APITestCase):
@@ -155,16 +184,20 @@ class UserAPITests(APITestCase):
         self.assertEqual(res.status_code, 201)
         self.assertTrue(User.objects.get(username="editor1").is_staff)
 
-    def test_role_change_via_api_updates_is_staff(self):
-        """regression: PATCHing role through /api/users/ silently left the
-        staff flag untouched, so a promoted account stayed powerless."""
-        user = User.objects.create(username="promote-me", role=User.Role.AUTHOR, is_staff=False)
+    def test_role_change_does_not_revoke_dashboard_access(self):
+        """regression: this recomputed `is_staff = role != AUTHOR` on every
+        role change, so demoting an editor to كاتب locked them out of the
+        dashboard entirely instead of narrowing what they could do. Access is
+        `is_active`'s job; role is only ever the scope."""
+        user = User.objects.create(username="demote-me", role=User.Role.EDITOR, is_staff=True)
 
-        res = self.client.patch(f"/api/users/{user.pk}/", {"role": "editor"}, format="json")
+        res = self.client.patch(f"/api/users/{user.pk}/", {"role": "author"}, format="json")
 
         self.assertEqual(res.status_code, 200)
         user.refresh_from_db()
         self.assertTrue(user.is_staff)
+        self.assertTrue(user.can_write_articles)
+        self.assertFalse(user.is_editorial)
 
     def test_list_exposes_role_and_email(self):
         User.objects.create(username="u1", first_name="أ", email="u1@x.com", role=User.Role.ADMIN)

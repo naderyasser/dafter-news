@@ -94,7 +94,7 @@ class VideoAPITests(APITestCase):
         """Staff moderating the video page need to see the pending queue
         alongside what's already approved, not just the public view."""
         VideoComment.objects.create(video=self.video, name="مجهول", text="سبام", status=VideoComment.Status.PENDING)
-        self.client.force_authenticate(User.objects.create(username="video-staff-4", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="video-staff-4", is_staff=True, role="editor"))
 
         res = self.client.get("/api/videos/factory-tour/")
 
@@ -109,7 +109,7 @@ class VideoAPITests(APITestCase):
         self.assertEqual(res.json()["slug"], "factory-tour")
 
     def test_patch_toggle_by_numeric_id(self):
-        self.client.force_authenticate(User.objects.create(username="video-staff-1", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="video-staff-1", is_staff=True, role="editor"))
 
         res = self.client.patch(f"/api/videos/{self.video.pk}/", {"is_exclusive": False}, format="json")
 
@@ -118,7 +118,7 @@ class VideoAPITests(APITestCase):
         self.assertFalse(self.video.is_exclusive)
 
     def test_patch_toggle_by_slug(self):
-        self.client.force_authenticate(User.objects.create(username="video-staff-2", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="video-staff-2", is_staff=True, role="editor"))
 
         res = self.client.patch("/api/videos/factory-tour/", {"is_live": True}, format="json")
 
@@ -130,7 +130,7 @@ class VideoAPITests(APITestCase):
         """VideosManager's «👁» edit — an editorial override of the shown
         count, not a real-view tracker. Real views (if that's ever wired
         up) would only ever add on top of whatever's set here."""
-        self.client.force_authenticate(User.objects.create(username="video-staff-5", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="video-staff-5", is_staff=True, role="editor"))
 
         res = self.client.patch(f"/api/videos/{self.video.pk}/", {"views": 50000}, format="json")
 
@@ -177,7 +177,7 @@ class VideoAPITests(APITestCase):
     def test_staff_post_can_publish_directly(self):
         """A moderator adding a comment from the dashboard queue should be
         able to set the status explicitly rather than always landing pending."""
-        self.client.force_authenticate(User.objects.create(username="video-staff-5", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="video-staff-5", is_staff=True, role="editor"))
 
         res = self.client.post(
             "/api/video-comments/",
@@ -195,7 +195,7 @@ class VideoAPITests(APITestCase):
         other = Video.objects.create(title="آخر", slug="other-v2")
         VideoComment.objects.create(video=self.video, name="أ", text="1")
         VideoComment.objects.create(video=other, name="ب", text="2")
-        self.client.force_authenticate(User.objects.create(username="video-staff-3", is_staff=True))
+        self.client.force_authenticate(User.objects.create(username="video-staff-3", is_staff=True, role="editor"))
 
         res = self.client.get(f"/api/video-comments/?video={self.video.pk}")
 
