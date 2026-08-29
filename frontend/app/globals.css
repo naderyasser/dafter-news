@@ -185,25 +185,6 @@
   }
 
   /*
-   * An outlined chip that fills with its own colour on hover and on keyboard
-   * focus — the country jump strip on «الخليج العربي», the subject strip on
-   * «عرب وعالم».
-   *
-   * The fill colour is the section's and therefore dynamic, so it cannot be a
-   * Tailwind class (the JIT only sees literal strings). The chip sets `--chip`
-   * inline and this rule spends it. Focus is included deliberately: these are
-   * links, and a keyboard reader gets the same affordance a mouse does.
-   */
-  .chip-fill {
-    transition: background-color theme("transitionDuration.fast") ease, color theme("transitionDuration.fast") ease;
-  }
-  .chip-fill:hover,
-  .chip-fill:focus-visible {
-    background-color: var(--chip);
-    color: theme("colors.paper");
-  }
-
-  /*
    * Card headline hover. The colour is per-section and therefore dynamic, so
    * it cannot be a Tailwind class (the JIT only sees literal strings) — the
    * card sets `--card-accent` inline and this rule reads it.
