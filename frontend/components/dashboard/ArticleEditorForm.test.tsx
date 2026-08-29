@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { DASHBOARD } from "@/lib/routes";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import ArticleEditorForm from "./ArticleEditorForm";
@@ -21,16 +22,106 @@ vi.mock("@/lib/api", async () => {
     dashUpload: (...args: unknown[]) => dashUpload(...args),
   };
 });
+const revalidateSite = vi.fn().mockResolvedValue(undefined);
+vi.mock("@/lib/revalidate", () => ({ revalidateSite: (...args: unknown[]) => revalidateSite(...args) }));
 
 const pngFile = (name = "IMG_20260512.png") => new File(["x"], name, { type: "image/png" });
 
 const sections = [{ id: 1, key: "egypt", label: "شؤون مصر" }];
+
+/** Selects `text` inside `el` by locating it in the (already-rendered) DOM —
+ *  same approach RichTextEditor.test.tsx uses for its own fields. */
+function selectWord(el: HTMLElement, word: string) {
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let node = walker.nextNode();
+  while (node) {
+    const at = (node.textContent ?? "").indexOf(word);
+    if (at !== -1) {
+      const range = document.createRange();
+      range.setStart(node, at);
+      range.setEnd(node, at + word.length);
+      const sel = window.getSelection()!;
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    node = walker.nextNode();
+  }
+  throw new Error(`"${word}" not found`);
+}
+
+/** Every non-draft save now requires real body content — types one
+ *  paragraph into the default starter block, the same way an editor
+ *  filling out the form for real would before hitting «حفظ ونشر». */
+const fillBody = (text = "فقرة أولى في المتن") => {
+  const field = screen.getByRole("textbox", { name: "نص الفقرة" });
+  field.textContent = text;
+  fireEvent.input(field);
+};
 
 describe("ArticleEditorForm save feedback", () => {
   afterEach(() => {
     push.mockClear();
     refresh.mockClear();
     dashMutate.mockReset();
+    revalidateSite.mockClear();
+  });
+
+  /**
+   * Regression: the public home page holds its render for up to a minute
+   * (revalidate=60) — a story published just now didn't show up there
+   * until that window happened to lapse on its own, which read as "the
+   * publish didn't really work." revalidateSite existed in lib/revalidate.ts
+   * but nothing ever called it.
+   */
+  it("busts the public site's cache after a successful save", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر تجريبي" } });
+    fillBody();
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    expect(revalidateSite).toHaveBeenCalled();
+  });
+
+  it("does not bust the cache when the save fails", async () => {
+    const { ApiError } = await import("@/lib/api");
+    dashMutate.mockRejectedValue(new ApiError("/articles/", 400, "Bad Request", {}));
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر تجريبي" } });
+    fillBody();
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    expect(revalidateSite).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Regression: deleting (or never filling in) the editor's one starter
+   * block and hitting «حفظ ونشر» sent `blocks: [{text: ""}]` — a title with
+   * nothing behind it went live on the public site. A draft is allowed to
+   * be an empty shell; anything that actually publishes is not.
+   */
+  it("blocks publishing with no real content in any block", async () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "عنوان بلا متن" } });
+
+    fireEvent.click(screen.getByText("حفظ ونشر"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("الخبر لسه من غير محتوى");
+    expect(dashMutate).not.toHaveBeenCalled();
+  });
+
+  it("still allows saving an empty draft — a stub an editor comes back to later", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "عنوان فقط، لسه بدون متن" } });
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
+
+    expect(dashMutate).toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("blocks the save and explains why when the title is empty", async () => {
@@ -47,11 +138,14 @@ describe("ArticleEditorForm save feedback", () => {
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر تجريبي" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
 
-    expect(push).toHaveBeenCalledWith("/dashboard/articles");
+    // ?saved=1 is what tells the articles list to show the confirmation
+    // banner — see ArticlesTable's justSaved prop.
+    expect(push).toHaveBeenCalledWith(`${DASHBOARD}/articles?saved=1`);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -61,6 +155,7 @@ describe("ArticleEditorForm save feedback", () => {
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر تجريبي" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
@@ -77,6 +172,7 @@ describe("ArticleEditorForm save feedback", () => {
     expect(await screen.findByRole("alert")).toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر تجريبي" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
@@ -140,6 +236,7 @@ describe("ArticleEditorForm scheduling", () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
     fillTitle();
+    fillBody();
     setTime("2030-01-01T09:00");
 
     await act(async () => {
@@ -164,6 +261,7 @@ describe("ArticleEditorForm byline", () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر بلا كاتب" } });
+    fillBody();
 
     await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
 
@@ -176,6 +274,7 @@ describe("ArticleEditorForm byline", () => {
     render(<ArticleEditorForm initial={null} sections={sections} />);
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "بيان صادر" } });
     fireEvent.change(screen.getByLabelText("اسم الكاتب"), { target: { value: "فريق التحرير" } });
+    fillBody();
 
     await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
 
@@ -195,6 +294,7 @@ describe("ArticleEditorForm paragraph alignment", () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر بلا محاذاة مخصصة" } });
+    fillBody();
 
     await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
 
@@ -206,6 +306,7 @@ describe("ArticleEditorForm paragraph alignment", () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر مضبوط النص" } });
+    fillBody();
 
     fireEvent.click(screen.getByLabelText("محاذاة الفقرة"));
     expect(screen.getByText("محاذاة اليسار")).toBeInTheDocument();
@@ -239,7 +340,7 @@ describe("ArticleEditorForm review", () => {
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, Record<string, unknown>];
     expect(payload.status).toBe("review");
-    expect(push).toHaveBeenCalledWith("/dashboard/articles");
+    expect(push).toHaveBeenCalledWith(`${DASHBOARD}/articles?saved=1`);
   });
 
   it("still requires a title, same as the other save paths", async () => {
@@ -352,6 +453,71 @@ describe("ArticleEditorForm inline image", () => {
   });
 });
 
+describe("ArticleEditorForm paste splits into blocks", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+  });
+
+  /**
+   * Regression: pasting a multi-paragraph article (the normal write-in-
+   * Word-then-paste workflow) used to land the whole thing, breaks and all,
+   * inside the one paragraph block that was focused — every paragraph
+   * still there as text, but as a single block instead of one per
+   * paragraph, undoing the client's own vertical formatting until someone
+   * clicked «✂ تقسيم» by hand after every line.
+   */
+  it("turns a multi-paragraph paste (blank-line separated) into one block per paragraph", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    const field = screen.getByRole("textbox", { name: "نص الفقرة" });
+    field.focus();
+    fireEvent.paste(field, {
+      clipboardData: { getData: (type: string) => (type === "text/plain" ? "فقرة أولى\n\nفقرة ثانية\n\nفقرة ثالثة" : "") },
+    });
+
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" })).toHaveLength(3);
+
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string; type: string }[] }];
+    expect(payload.blocks.map((b) => b.text)).toEqual(["فقرة أولى", "فقرة ثانية", "فقرة ثالثة"]);
+    expect(payload.blocks.every((b) => b.type === "paragraph")).toBe(true);
+  });
+
+  it("keeps a single-newline paste (no blank line) as one block — regression: WhatsApp-composed text, one sentence per line with no blank lines, exploded into a block per line", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    const field = screen.getByRole("textbox", { name: "نص الفقرة" });
+    field.focus();
+    fireEvent.paste(field, {
+      clipboardData: { getData: (type: string) => (type === "text/plain" ? "سطر أول\nسطر ثاني\nسطر ثالث" : "") },
+    });
+
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" })).toHaveLength(1);
+
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
+
+    const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string }[] }];
+    expect(payload.blocks.map((b) => b.text)).toEqual(["سطر أول\nسطر ثاني\nسطر ثالث"]);
+  });
+
+  it("a single-line paste still lands in the one block, unaffected", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    const field = screen.getByRole("textbox", { name: "نص الفقرة" });
+    field.focus();
+    fireEvent.paste(field, { clipboardData: { getData: (type: string) => (type === "text/plain" ? "خبر عاجل اليوم" : "") } });
+
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" })).toHaveLength(1);
+    expect(field.textContent).toBe("خبر عاجل اليوم");
+  });
+});
+
 describe("ArticleEditorForm image uploads require a name", () => {
   afterEach(() => {
     dashMutate.mockReset();
@@ -431,6 +597,7 @@ describe("ArticleEditorForm urgent notification", () => {
     expect(screen.queryByPlaceholderText("يحدث الآن")).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر عادي" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
@@ -448,6 +615,7 @@ describe("ArticleEditorForm urgent notification", () => {
     fireEvent.change(subtitle, { target: { value: "تحديث هام" } });
 
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "زلزال يضرب المنطقة" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
@@ -464,6 +632,7 @@ describe("ArticleEditorForm urgent notification", () => {
     fireEvent.click(checkbox());
     fireEvent.change(screen.getByPlaceholderText("يحدث الآن"), { target: { value: "  " } });
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
@@ -533,6 +702,54 @@ describe("ArticleEditorForm TTS narration", () => {
   });
 });
 
+describe("ArticleEditorForm auto-narrates on publish", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+  });
+
+  /**
+   * Regression: «سماع الخبر» stayed silent on every article the newsroom
+   * actually published, because generating its narration was a second,
+   * easy-to-forget manual step (the 🎙 button above) — publishing itself
+   * never triggered it. Publishing now fires it in the background, same
+   * spirit as the public-site cache-bust that already happens on save.
+   */
+  it("fires the narration endpoint after a new article is published, without being asked to", async () => {
+    dashMutate.mockResolvedValueOnce({ id: 41, slug: "test" }); // the POST /articles/ itself
+    dashMutate.mockResolvedValueOnce({}); // generate_tts, fired in the background
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر جديد" } });
+    fillBody();
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    expect(dashMutate).toHaveBeenCalledWith("/articles/41/generate_tts/", "POST");
+  });
+
+  it("does not fire narration for a draft or a review save — only an actual publish", async () => {
+    dashMutate.mockResolvedValue({ id: 9, slug: "test" });
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
+
+    expect(dashMutate).not.toHaveBeenCalledWith(expect.stringContaining("generate_tts"), "POST");
+  });
+
+  it("a narration call that itself fails must not be reported as the save failing", async () => {
+    dashMutate.mockResolvedValueOnce({ id: 41, slug: "test" });
+    dashMutate.mockRejectedValueOnce(new Error("voice engine down"));
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر جديد" } });
+    fillBody();
+
+    await act(async () => fireEvent.click(screen.getByText("حفظ ونشر")));
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(push).toHaveBeenCalledWith(`${DASHBOARD}/articles?saved=1`);
+  });
+});
+
 describe("ArticleEditorForm homepage pin", () => {
   afterEach(() => {
     dashMutate.mockReset();
@@ -545,6 +762,7 @@ describe("ArticleEditorForm homepage pin", () => {
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
@@ -558,6 +776,7 @@ describe("ArticleEditorForm homepage pin", () => {
 
     fireEvent.click(pinCheckbox());
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر مثبّت" } });
+    fillBody();
     await act(async () => {
       fireEvent.click(screen.getByText("حفظ ونشر"));
     });
@@ -574,5 +793,77 @@ describe("ArticleEditorForm homepage pin", () => {
     );
 
     expect(pinCheckbox()).toBeChecked();
+  });
+});
+
+describe("ArticleEditorForm unified body — one static toolbar for every paragraph", () => {
+  afterEach(() => {
+    dashMutate.mockReset();
+  });
+
+  it("the shared toolbar formats whichever paragraph is actually focused, not always the first one", async () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    const first = screen.getByRole("textbox", { name: "نص الفقرة" });
+    first.textContent = "فقرة واحدة";
+    fireEvent.input(first);
+
+    // «+ المحتوى» inserts after whichever block is active — right after the
+    // one just typed into, same as a word processor's "new paragraph here".
+    fireEvent.click(screen.getByText("+ المحتوى"));
+    const fields = screen.getAllByRole("textbox", { name: "نص الفقرة" });
+    expect(fields).toHaveLength(2);
+
+    const second = fields[1];
+    second.textContent = "فقرة ثانية";
+    fireEvent.input(second);
+    second.focus();
+    fireEvent.focus(second);
+    selectWord(second, "ثانية");
+
+    fireEvent.click(screen.getByLabelText("نص غامق"));
+
+    expect(within(second).getByText("ثانية")).toHaveStyle({ fontWeight: "700" });
+    // The first field is untouched — the shared toolbar acted only on the
+    // paragraph that was focused.
+    expect(first.querySelector("b, strong")).toBeNull();
+  });
+
+  it("disables the shared formatting tools while a non-text block (a subheading) is focused", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("+ عنوان فرعي"));
+    fireEvent.focus(screen.getByPlaceholderText("نص العنوان الفرعي"));
+
+    expect(screen.getByLabelText("نص غامق")).toBeDisabled();
+    expect(screen.getByTitle("إضافة صورة من المكتبة عند موضع المؤشر في الفقرة النشطة")).toBeDisabled();
+  });
+
+  it("does not wrap each paragraph in its own bordered card — one shared container for the whole body", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("+ المحتوى"));
+    fireEvent.click(screen.getByText("+ المحتوى"));
+
+    const fields = screen.getAllByRole("textbox", { name: "نص الفقرة" });
+    expect(fields).toHaveLength(3);
+    // Each field's own immediate wrapper carries no border of its own —
+    // the border lives once, on the shared container around all of them.
+    fields.forEach((f) => expect(f.className).not.toMatch(/border/));
+  });
+
+  it("shows no repeated «المحتوى» label and no divider between paragraphs — a blank flowing canvas, not a stack of labelled cards", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fireEvent.click(screen.getByText("+ المحتوى"));
+    fireEvent.click(screen.getByText("+ المحتوى"));
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" })).toHaveLength(3);
+
+    // The type label used to sit above every single block; it must not be
+    // visible text anywhere in the body now.
+    expect(screen.queryByText("المحتوى")).not.toBeInTheDocument();
+    // No horizontal-rule/divider utility classes anywhere in the body — the
+    // paragraphs must never look like separated stacked cards.
+    expect(document.querySelector(".divide-y")).toBeNull();
   });
 });

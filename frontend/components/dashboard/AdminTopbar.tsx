@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DASHBOARD } from "@/lib/routes";
 
 export default function AdminTopbar() {
   return (
@@ -13,7 +14,7 @@ export default function AdminTopbar() {
       </div>
       <div className="flex items-center gap-4">
         <Link
-          href="/dashboard/articles/new"
+          href={`${DASHBOARD}/articles/new`}
           className="whitespace-nowrap rounded-lg bg-brand px-4 py-2.5 text-[14px] font-bold text-paper no-underline hover:bg-brand-strong"
         >
           + خبر جديد

@@ -101,6 +101,18 @@ describe("RichTextEditor", () => {
     expect(screen.getByText("مهمة")).toHaveStyle({ fontWeight: "700" });
   });
 
+  it("marks a selection as a subheading inline, in place — no block splitting, nothing before/after it disturbed", () => {
+    render(<Host initial="قبل العنوان الفرعي بعد" />);
+
+    selectWord(field(), "العنوان الفرعي");
+    fireEvent.click(screen.getByLabelText("عنوان فرعي"));
+
+    expect(screen.getByText("العنوان الفرعي")).toHaveStyle({ fontWeight: "800" });
+    // The one field still holds the whole sentence — nothing was lifted out
+    // into a separate block, nothing before/after it was rearranged.
+    expect(field().textContent).toBe("قبل العنوان الفرعي بعد");
+  });
+
   it("refuses to format an empty selection, naming what to do instead", () => {
     const alert = vi.fn();
     vi.stubGlobal("alert", alert);
@@ -194,6 +206,79 @@ describe("RichTextEditor", () => {
 
     expect(onChange).toHaveBeenCalledWith("نص ملصق");
     expect(field().querySelector("b")).toBeNull();
+  });
+
+  it("a multi-line paste with no onSplitPaste falls back to one field with the breaks kept as \\n", () => {
+    const onChange = vi.fn();
+    render(<RichTextEditor value="" onChange={onChange} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const clipboardData = { getData: (type: string) => (type === "text/plain" ? "فقرة أولى\n\nفقرة ثانية" : "") };
+    fireEvent.paste(field(), { clipboardData });
+
+    expect(onChange).toHaveBeenCalledWith("فقرة أولى\n\nفقرة ثانية");
+  });
+
+  it("a multi-paragraph paste hands each paragraph to onSplitPaste instead of landing in this field — regression: pasting a multi-paragraph article collapsed into one block", () => {
+    const onChange = vi.fn();
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={onChange} placeholder="نص الفقرة" onSplitPaste={onSplitPaste} />);
+    field().focus();
+
+    // Only the blank line between the first and second paragraph is a real
+    // paragraph gap — the single break inside the second paragraph is a
+    // WhatsApp-style soft wrap and stays inside that paragraph's own text.
+    const clipboardData = { getData: (type: string) => (type === "text/plain" ? "فقرة أولى\n\nفقرة ثانية\nسطرها الثاني" : "") };
+    fireEvent.paste(field(), { clipboardData });
+
+    expect(onSplitPaste).toHaveBeenCalledWith("", ["فقرة أولى", "فقرة ثانية\nسطرها الثاني"], "");
+    // Not also committed to this field's own value — it went to onSplitPaste instead.
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("splits around the existing cursor position, not just at the start", () => {
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="قبل بعد" onChange={() => {}} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    const el = field();
+    const node = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!;
+    const at = (node.textContent ?? "").indexOf("بعد");
+    const range = document.createRange();
+    range.setStart(node, at);
+    range.collapse(true);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const clipboardData = { getData: (type: string) => (type === "text/plain" ? "فقرة أولى\n\nفقرة ثانية" : "") };
+    fireEvent.paste(el, { clipboardData });
+
+    expect(onSplitPaste).toHaveBeenCalledWith("قبل ", ["فقرة أولى", "فقرة ثانية"], "بعد");
+  });
+
+  it("a paste with only single line breaks (no blank line) stays one block, kept as soft breaks — regression: WhatsApp-composed text (one sentence per line, no blank lines) exploded into a block per line", () => {
+    const onChange = vi.fn();
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={onChange} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const clipboardData = { getData: (type: string) => (type === "text/plain" ? "سطر أول\nسطر ثاني\nسطر ثالث" : "") };
+    fireEvent.paste(field(), { clipboardData });
+
+    expect(onChange).toHaveBeenCalledWith("سطر أول\nسطر ثاني\nسطر ثالث");
+    expect(onSplitPaste).not.toHaveBeenCalled();
+  });
+
+  it("a single-line paste with onSplitPaste set still lands in this field, not split", () => {
+    const onChange = vi.fn();
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={onChange} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const clipboardData = { getData: (type: string) => (type === "text/plain" ? "نص ملصق" : "") };
+    fireEvent.paste(field(), { clipboardData });
+
+    expect(onChange).toHaveBeenCalledWith("نص ملصق");
+    expect(onSplitPaste).not.toHaveBeenCalled();
   });
 
   it("hands the live field node out so the block header's actions can read its selection", () => {

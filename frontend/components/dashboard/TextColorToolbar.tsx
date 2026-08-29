@@ -38,13 +38,18 @@ export default function TextColorToolbar({
   value,
   onApply,
   onClear,
+  embedded = false,
 }: {
   value: string;
-  onApply: (kind: "c" | "h" | "b" | "i" | "u" | "L", color?: string) => void;
+  onApply: (kind: "c" | "h" | "b" | "i" | "u" | "L" | "H", color?: string) => void;
   onClear: () => void;
+  /** true when this sits inline inside a shared row (ArticleEditorForm's one
+   *  static toolbar) rather than stacked under its own field — drops the top
+   *  margin that spacing needs but a toolbar row already provides. */
+  embedded?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const hasFormatting = parseInline(value).some((s) => s.color || s.background || s.bold || s.italic || s.underline || s.large);
+  const hasFormatting = parseInline(value).some((s) => s.color || s.background || s.bold || s.italic || s.underline || s.large || s.subheading);
 
   // Every control here reads the editor's live text selection at click time
   // (see RichTextEditor's applyFormat) — but a bare mousedown on any element
@@ -54,7 +59,7 @@ export default function TextColorToolbar({
   // the click, so the selection an editor just made is still there to act on.
 
   return (
-    <div className="mt-2">
+    <div className={embedded ? "" : "mt-2"}>
       <div className="flex flex-wrap items-center gap-2">
         {/* Bold/italic/underline act on the selection immediately — unlike
             colour, there's no palette to choose from, so these don't need
@@ -101,6 +106,22 @@ export default function TextColorToolbar({
           className="flex h-7 items-center justify-center rounded border border-line bg-surface px-2 text-[14px] font-extrabold text-ink hover:bg-surface-2"
         >
           فقرة
+        </button>
+        {/* «عنوان فرعي» applied to the selection, inline — no more lifting it
+            into its own heading block and splitting the paragraph around it
+            (the old behaviour: it stripped any colour/bold the selection had
+            and rearranged the surrounding text, which read as "the editor
+            collapses the text and loses formatting"). Same mechanics as
+            «فقرة»: wraps the selection in place, nothing structural. */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onApply("H")}
+          title="عنوان فرعي (تمييز التحديد كعنوان فرعي داخل الفقرة)"
+          aria-label="عنوان فرعي"
+          className="flex h-7 items-center justify-center rounded border border-line bg-surface px-2 text-[14px] font-extrabold text-ink hover:bg-surface-2"
+        >
+          🔤 عنوان فرعي
         </button>
         <span className="h-5 w-px bg-line" aria-hidden />
         <button

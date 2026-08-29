@@ -1,13 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { DASHBOARD } from "@/lib/routes";
 import { useRef, useState } from "react";
 
-import AiDraftGenerator from "@/components/dashboard/AiDraftGenerator";
 import ImportFromUrl, { type ImportedDraft } from "@/components/dashboard/ImportFromUrl";
 import MediaLibraryPicker from "@/components/dashboard/MediaLibraryPicker";
-import RichTextEditor from "@/components/dashboard/RichTextEditor";
+import RichTextEditor, { type RichTextEditorHandle } from "@/components/dashboard/RichTextEditor";
+import TextColorToolbar from "@/components/dashboard/TextColorToolbar";
 import { dashMutate, dashUpload, describeApiError, mediaUrl } from "@/lib/api";
+import { revalidateSite } from "@/lib/revalidate";
 import { getVisibleSelection } from "@/lib/richTextDom";
 import { rawOffsetFromVisible, stripInline } from "@/lib/richtext";
 import type { ArticleBlock, ArticleDetail, Badge, MediaAsset } from "@/lib/types";
@@ -72,6 +74,7 @@ function AlignIcon({ align, className = "h-4 w-4" }: { align: ArticleBlock["alig
   );
 }
 export type EditorSection = { id: number; key: string; label: string };
+export type EditorAuthor = { id: number; username: string; name: string; title: string; avatar: string | null };
 
 const BADGES: { key: Badge; label: string }[] = [
   { key: "none", label: "بدون" },
@@ -101,10 +104,12 @@ export default function ArticleEditorForm({
   initial,
   articleId,
   sections,
+  authors = [],
 }: {
   initial: ArticleDetail | null;
   articleId?: number;
   sections: EditorSection[];
+  authors: EditorAuthor[];
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title ?? "");
@@ -123,14 +128,25 @@ export default function ArticleEditorForm({
     })) ?? [blankBlock(1, "paragraph")],
   );
   const [nextId, setNextId] = useState((blocks.at(-1)?.id ?? 0) + 1);
+  // Which paragraph/quote the reader is currently in — the one static
+  // toolbar above the body acts on this one, via richRefs below, instead of
+  // every block carrying its own copy of the same buttons. Defaults to the
+  // first block: opening the editor (or a fresh one, which starts with
+  // exactly one block) puts the toolbar to work immediately, with nothing
+  // to click first.
+  const [activeBlockId, setActiveBlockId] = useState<number | null>(blocks[0]?.id ?? null);
+  // Keyed by block id — lets the shared toolbar drive whichever
+  // RichTextEditor instance is `activeBlockId` right now.
+  const richRefs = useRef<Record<number, RichTextEditorHandle | null>>({});
   // Keyed by block id, not index, so reordering a block keeps its field.
   const bodyRefs = useRef<Record<number, HTMLDivElement | null>>({});
   // Keyed the same way, for the "upload from device" file input on each image block.
   const imageFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
-  // Same idea for «+ صورة»'s own "رفع من الجهاز" file input on paragraph/quote
-  // blocks — a separate map since the two never coexist on one block (only
-  // "image"-type blocks render the one above).
-  const inlineImageFileRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  // «+ صورة»'s own "رفع من الجهاز" file input — one shared input in the
+  // single static toolbar rather than one per paragraph/quote block, since
+  // it only ever acts on whichever one is active (pendingInlineUpload below
+  // carries which block and cursor offset for it).
+  const inlineImageFileRef = useRef<HTMLInputElement | null>(null);
   // Where the cursor was when insertInlineImageFromDevice was clicked, for
   // uploadInlineImage's onChange handler to insert into once a file lands.
   const pendingInlineUpload = useRef<{ blockId: number; offset: number } | null>(null);
@@ -140,6 +156,11 @@ export default function ArticleEditorForm({
   // «بالعقل والمنطق»/الكتّاب المسجّلين) — هذا مجرد اسم يظهر تحت العنوان بلا
   // حاجة لإنشاء حساب.
   const [byline, setByline] = useState(initial?.byline ?? "");
+  // Linked columnist account — separate from `byline` above (see that
+  // field's own comment). This is the FK the opinion page's author card,
+  // avatar and profile link are actually built on; a plain byline has none
+  // of those. Defaults to whatever this article already carries.
+  const [authorId, setAuthorId] = useState<number | "">(initial?.author?.id ?? "");
   const [subcategory, setSubcategory] = useState(initial?.subcategory ?? "");
   const [country, setCountry] = useState(initial?.country ?? "");
   const [badge, setBadge] = useState<Badge>(initial?.badge ?? "none");
@@ -196,9 +217,20 @@ export default function ArticleEditorForm({
       [arr[i], arr[j]] = [arr[j], arr[i]];
       return arr;
     });
+  /** Inserts right after whichever block the reader is currently in — the
+   *  word-processor "type here, insert there" expectation — falling back to
+   *  the end when nothing is active (e.g. before anything has been focused). */
   const addBlock = (type: Block["type"]) => {
-    setBlocks((bs) => [...bs, blankBlock(nextId, type)]);
+    const newId = nextId;
+    setBlocks((bs) => {
+      const i = activeBlockId != null ? bs.findIndex((b) => b.id === activeBlockId) : -1;
+      const insertAt = i === -1 ? bs.length : i + 1;
+      const arr = [...bs];
+      arr.splice(insertAt, 0, blankBlock(newId, type));
+      return arr;
+    });
     setNextId((n) => n + 1);
+    setActiveBlockId(newId);
   };
   const removeBlock = (id: number) => setBlocks((bs) => bs.filter((b) => b.id !== id));
 
@@ -234,49 +266,27 @@ export default function ArticleEditorForm({
   };
 
   /**
-   * «تحويل التحديد إلى عنوان فرعي»: lift the selected sentence out of a
-   * content block into its own heading block, splitting whatever text sits
-   * before and after it back into paragraphs. Mirrors splitBlock's shape —
-   * same id bookkeeping, same "nothing to do without a real span" guard —
-   * but produces up to three blocks instead of two.
-   *
-   * There is deliberately no equivalent for "mark this as its own
-   * paragraph": a first version did the same three-way split for a plain
-   * paragraph selection, and it just produced boxes for no reason — a
-   * heading is a different block type on the public page, a paragraph
-   * split from another paragraph isn't. Marking a line as emphasised inside
-   * the same box is what the bold button in the toolbar below is for.
+   * RichTextEditor's `onSplitPaste` — a paste spanning more than one line
+   * lands here instead of one field. Same shape as splitBlock: the current
+   * block keeps its id and takes `before + lines[0]`, every line in between
+   * becomes its own new block, and the last merges with whatever was after
+   * the cursor. All the new blocks inherit the source block's type and
+   * alignment, same as splitBlock's own half does.
    */
-  const convertSelectionToHeading = (id: number) => {
-    const el = bodyRefs.current[id];
-    const vis = el ? getVisibleSelection(el) : null;
-    if (!vis || vis.start === vis.end) {
-      window.alert("حدّد الجملة التي تريد تحويلها إلى عنوان فرعي أولاً.");
-      return;
-    }
+  const pasteAsBlocks = (id: number, before: string, lines: string[], after: string) => {
     setBlocks((bs) => {
       const i = bs.findIndex((b) => b.id === id);
       if (i === -1) return bs;
-      const text = bs[i].text;
-      const align = bs[i].align;
-      const start = rawOffsetFromVisible(text, vis.start);
-      const end = rawOffsetFromVisible(text, vis.end);
-      const before = text.slice(0, start).trim();
-      // Headings render as plain text on the public page (no colour/format
-      // markup support there), so a lifted selection can't carry any along.
-      const selected = stripInline(text.slice(start, end)).trim();
-      const after = text.slice(end).trim();
-      if (!selected) return bs;
-
-      let id2 = nextId;
-      const replacement: Block[] = [];
-      if (before) replacement.push({ ...blankBlock(id2++, "paragraph", before), align });
-      replacement.push(blankBlock(id2++, "heading", selected));
-      if (after) replacement.push({ ...blankBlock(id2++, "paragraph", after), align });
-
+      const { type, align } = bs[i];
+      let nid = nextId;
+      const replacement: Block[] = [{ ...bs[i], text: before + lines[0] }];
+      for (let k = 1; k < lines.length - 1; k++) {
+        replacement.push({ ...blankBlock(nid++, type, lines[k]), align });
+      }
+      replacement.push({ ...blankBlock(nid++, type, lines[lines.length - 1] + after), align });
       const arr = [...bs];
       arr.splice(i, 1, ...replacement);
-      setNextId(id2);
+      setNextId(nid);
       return arr;
     });
   };
@@ -289,7 +299,7 @@ export default function ArticleEditorForm({
    * The library picker is a modal, which steals focus the moment it opens —
    * by the time an editor has picked an asset, the field's own selection is
    * long gone. So the cursor position is read right now, at click time
-   * (same reasoning as splitBlock/convertSelectionToHeading), and carried in
+   * (same reasoning as splitBlock), and carried in
    * `pickerFor` for pickAsset to insert at once the picker returns. No
    * selection at all (field not focused) falls back to the end of the text,
    * same spirit as "append" rather than a guess at the middle.
@@ -316,7 +326,7 @@ export default function ArticleEditorForm({
     const offset = captureInsertOffset(id);
     if (offset === null) return;
     pendingInlineUpload.current = { blockId: id, offset };
-    inlineImageFileRefs.current[id]?.click();
+    inlineImageFileRef.current?.click();
   };
 
   const pickAsset = (asset: MediaAsset) => {
@@ -482,6 +492,19 @@ export default function ArticleEditorForm({
       setError("لازم تكتب عنوان الخبر أولاً.");
       return;
     }
+    // A draft, or a story still in review/scheduled, can legitimately be a
+    // headline-only stub an editor is still building out — but nothing
+    // should ever go live with no real content. Without this, deleting the
+    // one starter block (or never typing into it) and hitting «حفظ ونشر»
+    // published a headline straight to the public site with nothing behind
+    // it: a card on the homepage that opened to a blank page.
+    if (status === "published") {
+      const hasContent = blocks.some((b) => (b.type === "image" ? b.assetId || b.imageName : stripInline(b.text).trim()));
+      if (!hasContent) {
+        setError("الخبر لسه من غير محتوى — اكتب فقرة واحدة على الأقل قبل النشر.");
+        return;
+      }
+    }
     if (status === "scheduled") {
       // Guard here, not just in the disabled state: the invalid cases must
       // name themselves, and a silently disabled button names nothing.
@@ -496,6 +519,12 @@ export default function ArticleEditorForm({
     }
     setSaving(true);
     const sectionId = sections.find((s) => s.key === section)?.id ?? null;
+    // «بالعقل والمنطق» reads by kind="opinion", not by section — the homepage
+    // carousel and /opinion both query kind, never section__key (see
+    // app/page.tsx and app/opinion/page.tsx). This form only ever exposes the
+    // section chip, so an article filed under that section stayed kind="news"
+    // and was invisible on both: published clean, shown nowhere.
+    const kind = section === "opinion" ? "opinion" : "news";
     const payload = {
       title,
       standfirst,
@@ -506,7 +535,9 @@ export default function ArticleEditorForm({
       notify_label: notifyLabel.trim() || "خبر عاجل",
       language: lang,
       section: sectionId,
+      kind,
       byline: byline.trim(),
+      author: authorId === "" ? null : authorId,
       subcategory: subcategory.trim(),
       country: country.trim(),
       blocks: blocks.map((b, i) => ({
@@ -531,12 +562,40 @@ export default function ArticleEditorForm({
       scheduled_for: status === "scheduled" ? new Date(scheduledFor).toISOString() : null,
     };
     try {
+      let savedId = articleId;
       if (articleId) {
         await dashMutate(`/articles/${articleId}/`, "PATCH", payload);
       } else {
-        await dashMutate("/articles/", "POST", payload);
+        const created = await dashMutate<{ id: number }>("/articles/", "POST", payload);
+        savedId = created.id;
       }
-      router.push("/dashboard/articles");
+      // The public home page/section blocks cache for up to a minute
+      // (revalidate=60) — without this, a story published just now (or one
+      // just pinned/unpinned) doesn't show up there until that window
+      // happens to lapse, which reads as "the save didn't really work."
+      // Fire-and-forget: a failed revalidation must never block the save
+      // that already landed.
+      revalidateSite().catch(() => {});
+      // «سماع الخبر» needs real narration behind it the moment a story goes
+      // live — publishing used to leave tts_audio empty until someone also
+      // remembered the separate «توليد النسخة الصوتية» button below, which
+      // is exactly why the player showed a silent demo transport on every
+      // article the newsroom actually shipped. Fire-and-forget like the
+      // revalidation above: narration takes a few seconds and a failed run
+      // (a bad wire to the voice engine) must never block or fail a save
+      // that already landed — the manual button stays as a retry path.
+      if (status === "published" && savedId) {
+        try {
+          // Optional chaining on the promise itself, not just the call: this
+          // must never throw its way into the surrounding try/catch below
+          // and get reported as "تعذّر حفظ الخبر" for a save that already
+          // succeeded, whatever dashMutate does under the hood.
+          dashMutate(`/articles/${savedId}/generate_tts/`, "POST")?.catch?.(() => {});
+        } catch {
+          /* best-effort — see comment above */
+        }
+      }
+      router.push(`${DASHBOARD}/articles?saved=1`);
       router.refresh();
     } catch (err) {
       // A save that fails has to say so, and say why — an editor staring at
@@ -551,11 +610,49 @@ export default function ArticleEditorForm({
   const chip = (active: boolean) =>
     `rounded-pill border px-3.5 py-1.5 text-xs font-semibold ${active ? "border-brand bg-brand text-paper" : "border-line bg-paper text-ink"}`;
 
+  // The single static toolbar above the body acts on whichever paragraph/
+  // quote is currently active, rather than every block growing its own copy
+  // of the same buttons.
+  const activeBlock = blocks.find((b) => b.id === activeBlockId);
+  const canFormatActive = activeBlock?.type === "paragraph" || activeBlock?.type === "quote";
+  // Splitting and lifting a heading out only ever made sense for a paragraph
+  // that actually has something in it — same guard the old per-block button
+  // used (`b.type === "paragraph" && b.text.trim()`).
+  // «✂ تقسيم» only ever made sense on a paragraph that actually has
+  // something in it — same guard the block-splitting «عنوان فرعي» tool used
+  // to share with it, before that became an inline style instead (see
+  // TextColorToolbar).
+  const canSplitActive = activeBlock?.type === "paragraph" && activeBlock.text.trim().length > 0;
+
+  const applyActiveFormat = (kind: "c" | "h" | "b" | "i" | "u" | "L" | "H", color?: string) => {
+    if (activeBlockId == null || !canFormatActive) {
+      window.alert("اضغط داخل فقرة أو اقتباس أولاً.");
+      return;
+    }
+    richRefs.current[activeBlockId]?.applyFormat(kind, color);
+  };
+  const clearActiveFormat = () => {
+    if (activeBlockId == null) return;
+    richRefs.current[activeBlockId]?.clearFormat();
+  };
+  const splitActive = () => activeBlockId != null && splitBlock(activeBlockId);
+  const insertActiveInlineImage = () => activeBlockId != null && insertInlineImage(activeBlockId);
+  const insertActiveInlineImageFromDevice = () => activeBlockId != null && insertInlineImageFromDevice(activeBlockId);
+  // The client's actual workaround for the missing author-link feature was
+  // uploading the columnist's own face as the cover image — the only image
+  // field the editor had before «الكاتب المسجّل» existed. Once a linked
+  // author with a real photo is chosen for an opinion piece, the cover
+  // image field has nothing left to do (the opinion page never renders
+  // one — see OpinionCard/OpinionFront), so it's replaced with an
+  // explanation rather than left sitting there as a second, redundant
+  // place to put the same photo.
+  const selectedAuthorAvatar = authors.find((a) => a.id === authorId)?.avatar ?? null;
+  const coverReplacedByAuthorPhoto = section === "opinion" && !!selectedAuthorAvatar;
+
   return (
     <>
     {/* New-article only — importing into an already-saved/published article
         doesn't make sense the same way. */}
-    {!articleId ? <AiDraftGenerator lang={lang} onGenerated={applyImportedDraft} /> : null}
     {!articleId ? <ImportFromUrl onImported={applyImportedDraft} /> : null}
     <div className="grid grid-cols-[2.2fr_320px] items-start gap-5 max-lg:grid-cols-1">
       {error ? (
@@ -577,219 +674,268 @@ export default function ArticleEditorForm({
           className="min-h-[50px] w-full resize-y border-none border-t border-line pt-3.5 text-[16px] text-ink-2 outline-none"
         />
 
-        {blocks.map((b) => (
-          <div key={b.id} className="rounded-card border border-line p-3.5">
-            <div className="mb-2.5 flex items-center justify-between">
-              <span className="text-[12px] font-extrabold text-brand">{BLOCK_LABELS[b.type]}</span>
-              <div className="flex items-center gap-2.5 text-xs text-header-muted">
-                {b.type === "paragraph" && b.text.trim() ? (
-                  <>
-                    {/* onMouseDown/preventDefault on both: each reads the
-                        field's live selection at click time, and a bare
-                        mousedown on any element is itself a browser
-                        selection gesture that collapses whatever was
-                        selected before the click fires. Without this, the
-                        selection an editor just made would already be gone
-                        by the time splitBlock/convertSelectionToHeading run. */}
+        {/*
+          One continuous editing surface for the whole body — a single static
+          toolbar governs whichever paragraph/quote currently has the cursor
+          (activeBlockId + richRefs), instead of every paragraph carrying its
+          own bordered card and its own copy of the same buttons. Pasting a
+          long article (see RichTextEditor's onPaste) now lands entirely
+          inside this one box, with no visible seams between paragraphs.
+
+          Structurally the body is still one Article­Block per paragraph
+          underneath — that's what gives the public page real <p> tags,
+          per-paragraph alignment, captions/credit on photos, the mid-article
+          «أخبار ذات صلة» box and its pagination. Only the editing chrome is
+          unified; nothing about how a saved article renders changes.
+        */}
+        <div className="rounded-card border border-line">
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-t-card border-b border-line bg-surface px-3.5 py-2.5">
+            {/* B/I/U/«فقرة»/colour — the exact set every paragraph used to
+                render its own copy of underneath its own field. One shared
+                instance now, driven by whichever block is active. */}
+            <fieldset disabled={!canFormatActive} className="contents">
+              <TextColorToolbar embedded value={canFormatActive && activeBlock ? activeBlock.text : ""} onApply={applyActiveFormat} onClear={clearActiveFormat} />
+            </fieldset>
+            <span className="h-5 w-px bg-line" aria-hidden />
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={splitActive}
+              disabled={!canSplitActive}
+              title="تقسيم الفقرة النشطة عند موضع المؤشر"
+              className={`${BLOCK_TOOL_CLASS} disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              ✂ تقسيم
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={insertActiveInlineImage}
+              disabled={!canFormatActive}
+              title="إضافة صورة من المكتبة عند موضع المؤشر في الفقرة النشطة"
+              className={`${BLOCK_TOOL_PRIMARY_CLASS} disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              🖼 صورة من المكتبة
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={insertActiveInlineImageFromDevice}
+              disabled={!canFormatActive}
+              title="رفع صورة من الجهاز عند موضع المؤشر في الفقرة النشطة"
+              className={`${BLOCK_TOOL_PRIMARY_CLASS} disabled:cursor-not-allowed disabled:opacity-40`}
+            >
+              ⬆ صورة داخل المقال
+            </button>
+            <input
+              ref={inlineImageFileRef}
+              type="file"
+              accept="image/*"
+              aria-label="رفع صورة داخل النص من الجهاز"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                const pending = pendingInlineUpload.current;
+                if (f && pending) uploadInlineImage(pending.blockId, pending.offset, f);
+                pendingInlineUpload.current = null;
+                e.target.value = "";
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col px-3.5 py-3">
+            {blocks.map((b) => (
+              <div key={b.id} className="group relative">
+                {/*
+                  Per-paragraph controls (align/move/delete) — a floating
+                  overlay in the block's own top corner, invisible until
+                  hover/focus, so nothing about them ever occupies a row of
+                  its own or separates one paragraph from the next. No label
+                  either: paragraph is the default shape and needs none; a
+                  heading/quote/image/related block already reads as what it
+                  is from its own styling below, per the client's explicit
+                  "zero UI elements interrupting the text flow" ask.
+                */}
+                <div className="pointer-events-none absolute top-1 end-1 z-10 flex items-center gap-1 rounded-md border border-line bg-paper px-1.5 py-0.5 opacity-0 shadow-1 transition-opacity duration-fast focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
+                  {b.type === "paragraph" ? (
+                    <span className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setAlignMenuFor(alignMenuFor === b.id ? null : b.id)}
+                        title="محاذاة الفقرة"
+                        aria-label="محاذاة الفقرة"
+                        aria-expanded={alignMenuFor === b.id}
+                        className="flex h-6 w-6 items-center justify-center rounded text-ink-3 hover:bg-surface hover:text-accent"
+                      >
+                        <AlignIcon align={b.align} />
+                      </button>
+                      {alignMenuFor === b.id ? (
+                        <div className="absolute end-0 top-7 z-20 w-44 overflow-hidden rounded-lg border border-line bg-paper py-1 shadow-2">
+                          {ALIGN_OPTIONS.map((opt) => (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => {
+                                updateBlock(b.id, { align: opt.key });
+                                setAlignMenuFor(null);
+                              }}
+                              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-[13.5px] hover:bg-surface ${
+                                b.align === opt.key ? "font-bold text-brand" : "text-ink"
+                              }`}
+                            >
+                              {opt.label}
+                              <AlignIcon align={opt.key} />
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </span>
+                  ) : null}
+                  <span onClick={() => moveBlock(b.id, -1)} title="نقل لأعلى" className="cursor-pointer text-xs text-header-muted hover:text-accent">
+                    ▲
+                  </span>
+                  <span onClick={() => moveBlock(b.id, 1)} title="نقل لأسفل" className="cursor-pointer text-xs text-header-muted hover:text-accent">
+                    ▼
+                  </span>
+                  <span onClick={() => removeBlock(b.id)} title="حذف" className="cursor-pointer text-xs text-down">
+                    🗑
+                  </span>
+                </div>
+                {b.type === "paragraph" && (
+                  <RichTextEditor
+                    ref={(h) => {
+                      richRefs.current[b.id] = h;
+                    }}
+                    value={b.text}
+                    onChange={(text) => updateBlock(b.id, { text })}
+                    placeholder="نص الفقرة"
+                    registerField={(el) => {
+                      bodyRefs.current[b.id] = el;
+                    }}
+                    onSplitPaste={(before, lines, after) => pasteAsBlocks(b.id, before, lines, after)}
+                    onFocus={() => setActiveBlockId(b.id)}
+                    showToolbar={false}
+                    bordered={false}
+                    minHeightClassName="min-h-[1.9em]"
+                  />
+                )}
+                {b.type === "quote" && (
+                  // Styled like the blockquote it becomes on the public page
+                  // (rule-accent, italic) — that's what identifies it as a
+                  // quote here, not a text label sitting above it.
+                  <div className="border-e-2 border-brand ps-3.5 italic text-ink-2">
+                    <RichTextEditor
+                      ref={(h) => {
+                        richRefs.current[b.id] = h;
+                      }}
+                      value={b.text}
+                      onChange={(text) => updateBlock(b.id, { text })}
+                      placeholder="نص الاقتباس"
+                      registerField={(el) => {
+                        bodyRefs.current[b.id] = el;
+                      }}
+                      onSplitPaste={(before, lines, after) => pasteAsBlocks(b.id, before, lines, after)}
+                      onFocus={() => setActiveBlockId(b.id)}
+                      showToolbar={false}
+                      bordered={false}
+                      minHeightClassName="min-h-[1.9em]"
+                    />
+                  </div>
+                )}
+                {b.type === "heading" && (
+                  // Bold and a size up from body text is what marks this as
+                  // a heading here — the same cue the public page's own <h2>
+                  // gives it, no separate label needed.
+                  <input
+                    value={b.text}
+                    onChange={(e) => updateBlock(b.id, { text: e.target.value })}
+                    onFocus={() => setActiveBlockId(b.id)}
+                    placeholder="نص العنوان الفرعي"
+                    className="w-full rounded-md border-none bg-transparent p-2.5 text-[19px] font-extrabold text-ink outline-none focus:bg-surface"
+                  />
+                )}
+                {b.type === "image" && (
+                  <div className="flex flex-wrap gap-3">
                     <button
                       type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => splitBlock(b.id)}
-                      title="تقسيم المحتوى عند المؤشر"
-                      className={BLOCK_TOOL_CLASS}
+                      onClick={() => {
+                        setActiveBlockId(b.id);
+                        setPickerFor(b.id);
+                      }}
+                      title="اختيار من مكتبة الصور"
+                      className="group relative flex h-[100px] w-[140px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-surface text-xs text-header-muted hover:border-accent hover:text-accent"
                     >
-                      ✂ تقسيم
+                      {b.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={b.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                      ) : (
+                        <span>🖼 من المكتبة</span>
+                      )}
+                      {b.imageUrl ? (
+                        <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1 text-center text-[11.5px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+                          تغيير الصورة
+                        </span>
+                      ) : null}
                     </button>
+                    {/* Upload a new file straight from the device — an
+                        alternative to picking an existing library asset, for the
+                        common case of a photo that isn't in the library yet. */}
                     <button
                       type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => convertSelectionToHeading(b.id)}
-                      title="حدّد جزءاً من النص لتحويله إلى عنوان فرعي مستقل"
-                      className={BLOCK_TOOL_CLASS}
+                      onClick={() => {
+                        setActiveBlockId(b.id);
+                        imageFileRefs.current[b.id]?.click();
+                      }}
+                      title="رفع صورة من الجهاز"
+                      className="flex h-[100px] w-[90px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-surface text-[12px] text-header-muted hover:border-accent hover:text-accent"
                     >
-                      🔤 عنوان فرعي
-                    </button>
-                  </>
-                ) : null}
-                {b.type === "paragraph" || b.type === "quote" ? (
-                  <>
-                    {/* The two in-body image controls. Styled as filled
-                        accent chips rather than the muted text the rest of
-                        this row uses: as plain 12px grey spans they read as
-                        captions, not controls, and the client concluded the
-                        editor could only set a cover image — that one has a
-                        big obvious button, so these looked like labels
-                        beside it. Same actions as before, visible now. */}
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => insertInlineImage(b.id)}
-                      title="إضافة صورة من المكتبة عند مكان المؤشر داخل النص"
-                      className={BLOCK_TOOL_PRIMARY_CLASS}
-                    >
-                      🖼 صورة من المكتبة
-                    </button>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => insertInlineImageFromDevice(b.id)}
-                      title="رفع صورة من الجهاز عند مكان المؤشر داخل النص"
-                      className={BLOCK_TOOL_PRIMARY_CLASS}
-                    >
-                      ⬆ صورة داخل المقال
+                      <span aria-hidden>⬆</span>
+                      من الجهاز
                     </button>
                     <input
                       ref={(el) => {
-                        inlineImageFileRefs.current[b.id] = el;
+                        imageFileRefs.current[b.id] = el;
                       }}
                       type="file"
                       accept="image/*"
-                      aria-label="رفع صورة داخل النص من الجهاز"
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
-                        const pending = pendingInlineUpload.current;
-                        if (f && pending && pending.blockId === b.id) uploadInlineImage(pending.blockId, pending.offset, f);
-                        pendingInlineUpload.current = null;
+                        if (f) uploadBlockImage(b.id, f);
                         e.target.value = "";
                       }}
                     />
-                  </>
-                ) : null}
-                {b.type === "paragraph" ? (
-                  <span className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setAlignMenuFor(alignMenuFor === b.id ? null : b.id)}
-                      title="محاذاة الفقرة"
-                      aria-label="محاذاة الفقرة"
-                      aria-expanded={alignMenuFor === b.id}
-                      className="flex h-6 w-6 items-center justify-center rounded text-ink-3 hover:bg-surface hover:text-accent"
-                    >
-                      <AlignIcon align={b.align} />
-                    </button>
-                    {alignMenuFor === b.id ? (
-                      <div className="absolute end-0 top-7 z-20 w-44 overflow-hidden rounded-lg border border-line bg-paper py-1 shadow-2">
-                        {ALIGN_OPTIONS.map((opt) => (
-                          <button
-                            key={opt.key}
-                            type="button"
-                            onClick={() => {
-                              updateBlock(b.id, { align: opt.key });
-                              setAlignMenuFor(null);
-                            }}
-                            className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-[13.5px] hover:bg-surface ${
-                              b.align === opt.key ? "font-bold text-brand" : "text-ink"
-                            }`}
-                          >
-                            {opt.label}
-                            <AlignIcon align={opt.key} />
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </span>
-                ) : null}
-                <span onClick={() => moveBlock(b.id, -1)} className="cursor-pointer">
-                  ▲
-                </span>
-                <span onClick={() => moveBlock(b.id, 1)} className="cursor-pointer">
-                  ▼
-                </span>
-                <span onClick={() => removeBlock(b.id)} className="cursor-pointer text-down">
-                  🗑
-                </span>
-              </div>
-            </div>
-            {(b.type === "paragraph" || b.type === "quote") && (
-              <RichTextEditor
-                value={b.text}
-                onChange={(text) => updateBlock(b.id, { text })}
-                placeholder={b.type === "paragraph" ? "نص الفقرة" : "نص الاقتباس"}
-                registerField={(el) => {
-                  bodyRefs.current[b.id] = el;
-                }}
-              />
-            )}
-            {b.type === "heading" && (
-              <input
-                value={b.text}
-                onChange={(e) => updateBlock(b.id, { text: e.target.value })}
-                placeholder="نص العنوان الفرعي"
-                className="w-full rounded-lg border border-line p-2.5 text-[15px] font-bold outline-none focus:border-brand"
-              />
-            )}
-            {b.type === "image" && (
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => setPickerFor(b.id)}
-                  title="اختيار من مكتبة الصور"
-                  className="group relative flex h-[100px] w-[140px] flex-shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-surface text-xs text-header-muted hover:border-accent hover:text-accent"
-                >
-                  {b.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={b.imageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                  ) : (
-                    <span>🖼 من المكتبة</span>
-                  )}
-                  {b.imageUrl ? (
-                    <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1 text-center text-[11.5px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
-                      تغيير الصورة
-                    </span>
-                  ) : null}
-                </button>
-                {/* Upload a new file straight from the device — an
-                    alternative to picking an existing library asset, for the
-                    common case of a photo that isn't in the library yet. */}
-                <button
-                  type="button"
-                  onClick={() => imageFileRefs.current[b.id]?.click()}
-                  title="رفع صورة من الجهاز"
-                  className="flex h-[100px] w-[90px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-surface text-[12px] text-header-muted hover:border-accent hover:text-accent"
-                >
-                  <span aria-hidden>⬆</span>
-                  من الجهاز
-                </button>
-                <input
-                  ref={(el) => {
-                    imageFileRefs.current[b.id] = el;
-                  }}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) uploadBlockImage(b.id, f);
-                    e.target.value = "";
-                  }}
-                />
-                <div className="flex min-w-[180px] flex-1 flex-col gap-2">
+                    <div className="flex min-w-[180px] flex-1 flex-col gap-2">
+                      <input
+                        value={b.caption}
+                        onChange={(e) => updateBlock(b.id, { caption: e.target.value })}
+                        onFocus={() => setActiveBlockId(b.id)}
+                        placeholder="التعليق على الصورة"
+                        className="rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
+                      />
+                      <input
+                        value={b.credit}
+                        onChange={(e) => updateBlock(b.id, { credit: e.target.value })}
+                        onFocus={() => setActiveBlockId(b.id)}
+                        placeholder="المصدر / الحقوق"
+                        className="rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+                )}
+                {b.type === "related" && (
                   <input
-                    value={b.caption}
-                    onChange={(e) => updateBlock(b.id, { caption: e.target.value })}
-                    placeholder="التعليق على الصورة"
-                    className="rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
+                    value={b.text}
+                    onChange={(e) => updateBlock(b.id, { text: e.target.value })}
+                    onFocus={() => setActiveBlockId(b.id)}
+                    placeholder="عنوان المقال المرتبط (اقرأ أيضاً)"
+                    className="w-full rounded-lg border border-line p-2.5 text-[15px] outline-none focus:border-brand"
                   />
-                  <input
-                    value={b.credit}
-                    onChange={(e) => updateBlock(b.id, { credit: e.target.value })}
-                    placeholder="المصدر / الحقوق"
-                    className="rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
-                  />
-                </div>
+                )}
               </div>
-            )}
-            {b.type === "related" && (
-              <input
-                value={b.text}
-                onChange={(e) => updateBlock(b.id, { text: e.target.value })}
-                placeholder="عنوان المقال المرتبط (اقرأ أيضاً)"
-                className="w-full rounded-lg border border-line p-2.5 text-[15px] outline-none focus:border-brand"
-              />
-            )}
+            ))}
           </div>
-        ))}
+        </div>
 
         <div className="flex flex-wrap gap-2 pt-1.5">
           {(Object.keys(BLOCK_LABELS) as Block["type"][]).map((type) => (
@@ -812,64 +958,118 @@ export default function ArticleEditorForm({
           </div>
         </div>
         <div className="rounded-card border border-line bg-paper p-4">
+          <div className="mb-2.5 text-[14px] font-bold">الكاتب المسجّل</div>
+          <select
+            value={authorId}
+            onChange={(e) => {
+              const id = e.target.value ? Number(e.target.value) : "";
+              setAuthorId(id);
+              // Mutually exclusive with the manual byline below: a leftover
+              // byline string next to a freshly-linked account is exactly
+              // the state that silently hid a linked columnist's photo
+              // everywhere except the article page itself (byline used to
+              // suppress the avatar too — see get_author_avatar). Picking a
+              // real account here is the deliberate choice; it should win
+              // outright, not coexist with stale text typed in earlier.
+              if (id !== "") setByline("");
+            }}
+            aria-label="الكاتب المسجّل"
+            className="w-full rounded-lg border border-line bg-paper px-2.5 py-2 text-[14px] outline-none focus:border-brand"
+          >
+            <option value="">بدون — بلا حساب كاتب</option>
+            {authors.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+                {a.title ? ` — ${a.title}` : ""}
+              </option>
+            ))}
+          </select>
+          <div className="mt-2 text-[12px] leading-relaxed text-ink-3">
+            اختر حساباً من «الكتّاب» ليظهر اسمه وصورته وصفته على المقال. يُدار من صفحة الكتّاب.
+          </div>
+        </div>
+        <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[14px] font-bold">
             اسم الكاتب <span className="font-normal text-ink-3">(اختياري)</span>
           </div>
           <input
             value={byline}
-            onChange={(e) => setByline(e.target.value)}
+            onChange={(e) => {
+              setByline(e.target.value);
+              // Same mutual-exclusivity guard, the other direction: typing a
+              // manual credit clears whichever registered author was picked
+              // above, so the two controls can't drift out of sync again.
+              if (e.target.value.trim() && authorId !== "") setAuthorId("");
+            }}
             maxLength={120}
             placeholder="اسم الكاتب، أو فريق التحرير…"
             aria-label="اسم الكاتب"
             className="w-full rounded-lg border border-line px-2.5 py-2 text-[14px] outline-none focus:border-brand"
           />
-          <div className="mt-2 text-[12px] leading-relaxed text-ink-3">يظهر تحت العنوان — اكتب أي اسم بلا حاجة لحساب.</div>
-        </div>
-        <div className="rounded-card border border-line bg-paper p-4">
-          <div className="mb-2.5 text-[14px] font-bold">صورة الغلاف</div>
-          <button
-            type="button"
-            onClick={() => setPickerFor("cover")}
-            className="group relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-surface text-xs text-header-muted hover:border-accent hover:text-accent"
-          >
-            {coverUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            ) : (
-              <span>🖼 اختيار من مكتبة الصور</span>
-            )}
-            {coverUrl ? (
-              <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1.5 text-center text-[12px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
-                تغيير الغلاف
-              </span>
-            ) : null}
-          </button>
-          {/* Upload a new file straight from the device — an alternative to
-              picking an existing library asset, same as the in-body image
-              block already offers. */}
-          <button
-            type="button"
-            onClick={() => coverFileRef.current?.click()}
-            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface py-2 text-[13px] font-semibold text-header-muted hover:border-accent hover:text-accent"
-          >
-            <span aria-hidden>⬆</span> رفع صورة من الجهاز
-          </button>
-          <input
-            ref={coverFileRef}
-            type="file"
-            accept="image/*"
-            aria-label="رفع صورة الغلاف من الجهاز"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) uploadCoverImage(f);
-              e.target.value = "";
-            }}
-          />
           <div className="mt-2 text-[12px] leading-relaxed text-ink-3">
-            ابحث باسم الصورة أو الشخصية — الصور المرفوعة سابقاً تُعاد بلا رفع جديد وبحقوقها المسجلة.
+            يظهر تحت العنوان بدل الكاتب المسجّل أعلاه — اكتب أي اسم بلا حاجة لحساب (فريق التحرير، ضيف…).
           </div>
         </div>
+        {coverReplacedByAuthorPhoto ? (
+          <div className="rounded-card border border-line bg-paper p-4">
+            <div className="mb-2.5 text-[14px] font-bold">صورة الغلاف</div>
+            <div className="flex items-center gap-3 rounded-lg border border-dashed border-line bg-surface p-3">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-brand bg-brand-tint">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={mediaUrl(selectedAuthorAvatar)} alt="" className="h-full w-full object-cover" />
+              </div>
+              <div className="text-[12.5px] leading-relaxed text-ink-3">
+                غير مستخدمة لمقالات الرأي — صورة الكاتب المسجّل أعلاه هي ما يظهر على المقال. لاستخدام غلاف مختلف، أزل الكاتب المسجّل أولاً.
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-card border border-line bg-paper p-4">
+            <div className="mb-2.5 text-[14px] font-bold">صورة الغلاف</div>
+            <button
+              type="button"
+              onClick={() => setPickerFor("cover")}
+              className="group relative flex aspect-[16/9] w-full items-center justify-center overflow-hidden rounded-lg border border-dashed border-line bg-surface text-xs text-header-muted hover:border-accent hover:text-accent"
+            >
+              {coverUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={coverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              ) : (
+                <span>🖼 اختيار من مكتبة الصور</span>
+              )}
+              {coverUrl ? (
+                <span className="absolute inset-x-0 bottom-0 bg-[rgba(6,38,57,.75)] py-1.5 text-center text-[12px] font-bold text-paper opacity-0 transition-opacity duration-fast group-hover:opacity-100">
+                  تغيير الغلاف
+                </span>
+              ) : null}
+            </button>
+            {/* Upload a new file straight from the device — an alternative to
+                picking an existing library asset, same as the in-body image
+                block already offers. */}
+            <button
+              type="button"
+              onClick={() => coverFileRef.current?.click()}
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-line bg-surface py-2 text-[13px] font-semibold text-header-muted hover:border-accent hover:text-accent"
+            >
+              <span aria-hidden>⬆</span> رفع صورة من الجهاز
+            </button>
+            <input
+              ref={coverFileRef}
+              type="file"
+              accept="image/*"
+              aria-label="رفع صورة الغلاف من الجهاز"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) uploadCoverImage(f);
+                e.target.value = "";
+              }}
+            />
+            <div className="mt-2 text-[12px] leading-relaxed text-ink-3">
+              ابحث باسم الصورة أو الشخصية — الصور المرفوعة سابقاً تُعاد بلا رفع جديد وبحقوقها المسجلة.
+            </div>
+          </div>
+        )}
         <div className="rounded-card border border-line bg-paper p-4">
           <div className="mb-2.5 text-[14px] font-bold">الرابط الدائم (Permalink)</div>
           <input

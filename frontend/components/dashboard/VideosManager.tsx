@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { DASHBOARD } from "@/lib/routes";
 import { useRef, useState } from "react";
 
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
@@ -136,7 +137,7 @@ export default function VideosManager({
                   </button>
                 </div>
                 <div className="flex gap-3">
-                  <Link href="/dashboard/comments" className="font-bold text-brand no-underline">
+                  <Link href={`${DASHBOARD}/comments`} className="font-bold text-brand no-underline">
                     التعليقات
                   </Link>
                   <button onClick={() => remove(v)} className="font-bold text-down">

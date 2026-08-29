@@ -1,51 +1,62 @@
 "use client";
 
 import Link from "next/link";
+import { DASHBOARD } from "@/lib/routes";
 import { useEffect, useState } from "react";
 
-type Item = { key: string; label: string; href: string; icon: string };
+import type { Capability, DashboardPermissions } from "@/lib/api";
+
+/** `cap` is the capability the screen needs — the same key the route guard
+ *  (lib/dashboardAccess.ts) and the API's permission classes use, so the nav,
+ *  the redirect and the 403 can never disagree about who may open what.
+ *  Items with no `cap` are open to every invited team member. */
+type Item = { key: string; label: string; href: string; icon: string; cap?: Capability };
 type Group = { label: string; items: Item[] };
 
 const GROUPS: Group[] = [
   {
     label: "المحتوى",
     items: [
-      { key: "overview", label: "نظرة عامة", href: "/dashboard", icon: "⊞" },
-      { key: "articles", label: "المقالات", href: "/dashboard/articles", icon: "≡" },
-      { key: "breaking", label: "الأخبار العاجلة", href: "/dashboard/breaking", icon: "⚡" },
+      { key: "overview", label: "نظرة عامة", href: DASHBOARD, icon: "⊞" },
+      { key: "articles", label: "المقالات", href: `${DASHBOARD}/articles`, icon: "≡" },
+      { key: "breaking", label: "الأخبار العاجلة", href: `${DASHBOARD}/breaking`, icon: "⚡", cap: "breaking" },
     ],
   },
   {
     label: "الوسائط",
     items: [
-      { key: "videos", label: "الفيديوهات", href: "/dashboard/videos", icon: "▶" },
-      { key: "opinion", label: "بالعقل والمنطق", href: "/dashboard/opinion", icon: '"' },
+      { key: "videos", label: "الفيديوهات", href: `${DASHBOARD}/videos`, icon: "▶", cap: "videos" },
+      { key: "opinion", label: "بالعقل والمنطق", href: `${DASHBOARD}/opinion`, icon: '"', cap: "authors" },
     ],
   },
   {
     label: "التفاعل",
-    items: [{ key: "comments", label: "التعليقات", href: "/dashboard/comments", icon: "💬" }],
+    items: [{ key: "comments", label: "التعليقات", href: `${DASHBOARD}/comments`, icon: "💬", cap: "comments" }],
   },
   {
     label: "الإدارة",
     items: [
-      { key: "ads", label: "الإعلانات", href: "/dashboard/ads", icon: "▭" },
-      { key: "ticker", label: "شريط الأسواق", href: "/dashboard/ticker", icon: "↗" },
-      { key: "feeds", label: "المصادر الخارجية", href: "/dashboard/feeds", icon: "⟳" },
-      { key: "media", label: "الوسائط", href: "/dashboard/media", icon: "🖼" },
-      { key: "taxonomy", label: "الأقسام والوسوم", href: "/dashboard/taxonomy", icon: "#" },
+      { key: "ads", label: "الإعلانات", href: `${DASHBOARD}/ads`, icon: "▭", cap: "ads" },
+      { key: "ticker", label: "شريط الأسواق", href: `${DASHBOARD}/ticker`, icon: "↗", cap: "ticker" },
+      { key: "feeds", label: "المصادر الخارجية", href: `${DASHBOARD}/feeds`, icon: "⟳", cap: "feeds" },
+      { key: "media", label: "الوسائط", href: `${DASHBOARD}/media`, icon: "🖼" },
+      { key: "taxonomy", label: "الأقسام والوسوم", href: `${DASHBOARD}/taxonomy`, icon: "#", cap: "taxonomy" },
     ],
   },
   {
     label: "النظام",
     items: [
-      { key: "users", label: "المستخدمون والأدوار", href: "/dashboard/users", icon: "👤" },
-      { key: "settings", label: "الإعدادات", href: "/dashboard/settings", icon: "⚙" },
+      { key: "users", label: "المستخدمون والأدوار", href: `${DASHBOARD}/users`, icon: "👤", cap: "users" },
+      { key: "settings", label: "الإعدادات", href: `${DASHBOARD}/settings`, icon: "⚙", cap: "settings" },
     ],
   },
 ];
 
-export default function AdminSidebar({ active }: { active: string }) {
+export default function AdminSidebar({ active, permissions }: { active: string; permissions?: DashboardPermissions }) {
+  // Undefined while the shell has no account to hand (a server render before
+  // /auth/me answers): show the full nav rather than briefly blanking it —
+  // every link is guarded on its own anyway.
+  const allowed = (item: Item) => !item.cap || !permissions || permissions[item.cap];
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -76,14 +87,16 @@ export default function AdminSidebar({ active }: { active: string }) {
       )}
       {mobileOpen && <div onClick={() => setMobileOpen(false)} className="fixed inset-0 z-[94] bg-[rgba(10,11,13,.5)]" />}
       <aside className={asideClass}>
-        <Link href="/dashboard" className="block border-b border-[#2A2F37] px-4 py-5 no-underline">
+        <Link href={DASHBOARD} className="block border-b border-[#2A2F37] px-4 py-5 no-underline">
           <div className="rule-accent rule-on-dark ps-3.5 font-display-ar text-[17px] font-extrabold text-header-ink">
             الدفتر نيوز
           </div>
           <div className="mt-1 ps-[15px] text-[12px] text-header-muted">لوحة التحكم</div>
         </Link>
         <nav className="flex-1 overflow-y-auto p-2">
-          {GROUPS.map((g) => (
+          {GROUPS.map((g) => ({ ...g, items: g.items.filter(allowed) }))
+            .filter((g) => g.items.length > 0)
+            .map((g) => (
             <div key={g.label}>
               <div className="px-2.5 pb-1.5 pt-3.5 text-[12px] font-bold text-[#565D66]">{g.label}</div>
               {g.items.map((it) => {
