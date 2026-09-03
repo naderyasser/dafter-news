@@ -34,6 +34,24 @@ from .serializers import (
 )
 
 
+#: The comment tally every public surface prints — «الأكثر تعليقاً» on the home
+#: page, the count on a section card.
+#:
+#: Approved rows only. A plain Count("comments") also counts what is still
+#: sitting in the moderation queue and what a moderator has banned, so a story
+#: whose only comments are unpublished spam advertised a discussion no reader
+#: could find — and, once «الأكثر تعليقاً» began filtering on this count
+#: (see ArticleFilterSet.has_comments), that story would have led the tab.
+#:
+#: `distinct=True` stays: the article queryset joins tags and blocks, and
+#: without it those joins multiply the comment rows.
+APPROVED_COMMENTS = Count(
+    "comments",
+    filter=Q(comments__status=Comment.Status.APPROVED),
+    distinct=True,
+)
+
+
 class ArticleViewRateThrottle(SimpleRateThrottle):
     """
     Rate limit for the per-article read beacon, keyed on the caller's IP.
@@ -98,7 +116,7 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     queryset = (
         Article.objects.select_related("section", "author")
         .prefetch_related("tags", "blocks")
-        .annotate(comment_count=Count("comments", distinct=True))
+        .annotate(comment_count=APPROVED_COMMENTS)
         .order_by("-published_at", "-created_at", "-pk")
     )
     permission_classes = [ReadOnlyOrStaff]
@@ -205,7 +223,7 @@ class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
             # Mirror ArticleViewSet.queryset's annotation — without it,
             # ArticleCardSerializer.comment_count has nothing to read and
             # silently falls back to its default of 0 for every card here.
-            .annotate(comment_count=Count("comments", distinct=True))
+            .annotate(comment_count=APPROVED_COMMENTS)
             # ...and its blocks prefetch, which get_excerpt reads: without it
             # every card in this box costs its own query for the paragraph.
             .prefetch_related("blocks")

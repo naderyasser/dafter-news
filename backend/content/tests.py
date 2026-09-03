@@ -336,6 +336,93 @@ class MostReadQueryTests(APITestCase):
         self.assertEqual(len(set(ids1) & set(ids2)), 0)
 
 
+class MostCommentedQueryTests(APITestCase):
+    """
+    «الأكثر تعليقاً» — the second tab of the home page's news box.
+
+    The newsroom reported this tab as showing the latest news, i.e. as being
+    wired to the «الأحدث» tab's query. It never was. `?ordering=-comment_count`
+    over a site where nearly every story has zero comments produces a sort key
+    that everything ties on, and StableOrderingFilter breaks that tie on
+    `-published_at` — so the tab returned the newest stories and looked like a
+    copy of the tab beside it. These tests pin the actual fix: the pool is
+    filtered to stories that have an approved comment.
+    """
+
+    def setUp(self):
+        now = timezone.now()
+        self.busy = Article.objects.create(
+            title="خبر عليه نقاش", status=Article.Status.PUBLISHED,
+            published_at=now - datetime.timedelta(days=2),
+        )
+        self.quiet_but_newer = Article.objects.create(
+            title="خبر جديد بلا تعليقات", status=Article.Status.PUBLISHED, published_at=now,
+        )
+        for i in range(3):
+            Comment.objects.create(
+                article=self.busy, user_name=f"قارئ {i}", text="تعليق",
+                status=Comment.Status.APPROVED,
+            )
+
+    def test_has_comments_drops_the_silent_stories(self):
+        res = self.client.get("/api/articles/?ordering=-comment_count&has_comments=true")
+
+        titles = [a["title"] for a in res.json()["results"]]
+        self.assertEqual(titles, ["خبر عليه نقاش"])
+
+    def test_without_the_filter_the_newest_story_ties_its_way_to_the_top(self):
+        """The exact behaviour the newsroom saw — kept as a test so nobody
+        'fixes' the ordering that was never broken."""
+        res = self.client.get("/api/articles/?ordering=-comment_count")
+
+        titles = [a["title"] for a in res.json()["results"]]
+        self.assertEqual(titles[0], "خبر عليه نقاش")
+        self.assertIn("خبر جديد بلا تعليقات", titles)
+
+    def test_has_comments_false_returns_the_complement(self):
+        res = self.client.get("/api/articles/?has_comments=false")
+
+        titles = [a["title"] for a in res.json()["results"]]
+        self.assertEqual(titles, ["خبر جديد بلا تعليقات"])
+
+    def test_pending_comments_do_not_count(self):
+        """
+        A story whose only comments sit unapproved in the moderation queue
+        advertises a discussion no reader can open — and, with the pool now
+        filtered on this count, it would have LED the tab.
+        """
+        spammed = Article.objects.create(
+            title="خبر عليه سبام", status=Article.Status.PUBLISHED, published_at=timezone.now(),
+        )
+        for i in range(9):
+            Comment.objects.create(article=spammed, user_name=f"س{i}", text="سبام")
+
+        res = self.client.get("/api/articles/?ordering=-comment_count&has_comments=true")
+
+        titles = [a["title"] for a in res.json()["results"]]
+        self.assertNotIn("خبر عليه سبام", titles)
+        self.assertEqual(titles, ["خبر عليه نقاش"])
+
+    def test_banned_comments_do_not_count(self):
+        Comment.objects.create(
+            article=self.quiet_but_newer, user_name="محظور", text="مسيء",
+            status=Comment.Status.BANNED,
+        )
+
+        res = self.client.get("/api/articles/?has_comments=true")
+
+        titles = [a["title"] for a in res.json()["results"]]
+        self.assertNotIn("خبر جديد بلا تعليقات", titles)
+
+    def test_card_count_reports_approved_only(self):
+        Comment.objects.create(article=self.busy, user_name="معلّق", text="بانتظار المراجعة")
+
+        res = self.client.get("/api/articles/?has_comments=true")
+
+        card = next(a for a in res.json()["results"] if a["title"] == "خبر عليه نقاش")
+        self.assertEqual(card["comment_count"], 3)
+
+
 class TrendingScoreOrderingTests(APITestCase):
     """
     `?ordering=-trending_score` — the client's follow-up: «الأكثر قراءة»
@@ -626,8 +713,15 @@ class ArticleAPITests(APITestCase):
         self.assertIsNone(row["author_initial"])
 
     def test_comment_count_is_annotated_and_orderable(self):
-        Comment.objects.create(article=self.published, user_name="سارة", text="تعليق")
-        Comment.objects.create(article=self.published, user_name="عمر", text="تعليق آخر")
+        # APPROVED explicitly: the count is the public tally, so a comment
+        # still in the moderation queue is deliberately not in it — see
+        # content.views.APPROVED_COMMENTS.
+        Comment.objects.create(
+            article=self.published, user_name="سارة", text="تعليق", status=Comment.Status.APPROVED
+        )
+        Comment.objects.create(
+            article=self.published, user_name="عمر", text="تعليق آخر", status=Comment.Status.APPROVED
+        )
 
         res = self.client.get("/api/articles/?ordering=-comment_count")
 
@@ -1000,6 +1094,36 @@ class ArticleWriteAPITests(APITestCase):
         story = Story.objects.get(title=article.title)
         self.assertEqual(story.href, f"/en/article/{article.slug}")
 
+    def test_push_story_accepts_a_headline_longer_than_120_characters(self):
+        """regression: Story.title was capped at 120 while Article.title
+        allows 280, and _push_surfaces copies the headline verbatim — so
+        publishing a long headline with «تثبيت في شريط القصص» ticked blew up
+        in Postgres ("value too long for type character varying(120)"), the
+        whole save rolled back, and the editor got a generic DB-conflict
+        error pointing them at tags and the slug instead."""
+        title = "مفاجأة في لقاء السيسي مع الرئيس الصيني: " + "صفقة ذكاء اصطناعي بين مصر والصين تثير الجدل " * 4
+        title = title.strip()
+        self.assertGreater(len(title), 120)
+        self.assertLessEqual(len(title), 280)
+
+        res = self.client.post(
+            "/api/articles/",
+            {
+                "title": title,
+                "status": "published",
+                "section": self.section.pk,
+                "push_story": True,
+                "push_breaking": True,
+                "blocks": [{"order": 0, "type": "paragraph", "text": "Body text."}],
+            },
+            format="json",
+        )
+
+        self.assertEqual(res.status_code, 201, res.data)
+        article = Article.objects.get(pk=res.json()["id"])
+        self.assertEqual(Story.objects.get(href=f"/article/{article.slug}").title, title)
+        self.assertEqual(BreakingNewsItem.objects.get(href=f"/article/{article.slug}").text, title)
+
     def test_push_breaking_routes_an_english_article_to_its_own_edition(self):
         """Same bug, same fix, the other one-click surface."""
         res = self.client.post(
@@ -1087,6 +1211,30 @@ class ArticleBlockTests(TestCase):
 
         data = ArticleBlockSerializer(article.blocks.first()).data
         self.assertEqual(data["related_article_slug"], "target-article")
+
+    def test_related_block_exposes_target_kind(self):
+        """An «اقرأ أيضاً» box pointing at an opinion piece must let the
+        frontend route to /opinion/[slug] instead of /article/[slug] — the
+        latter 404s any article whose kind isn't "news" (see
+        app/article/[slug]/page.tsx's generateMetadata). Without this field
+        the client can't tell the two apart and always links to /article/."""
+        target = Article.objects.create(title="عمود رأي", slug="opinion-target", kind=Article.Kind.OPINION)
+        article = Article.objects.create(title="مقال", slug="host-article-2")
+        ArticleBlock.objects.create(article=article, order=0, type="related", text=target.title, related_article=target)
+
+        from content.serializers import ArticleBlockSerializer
+
+        data = ArticleBlockSerializer(article.blocks.first()).data
+        self.assertEqual(data["related_article_kind"], "opinion")
+
+    def test_related_block_kind_is_none_without_a_target(self):
+        article = Article.objects.create(title="مقال", slug="host-article-3")
+        ArticleBlock.objects.create(article=article, order=0, type="paragraph", text="نص")
+
+        from content.serializers import ArticleBlockSerializer
+
+        data = ArticleBlockSerializer(article.blocks.first()).data
+        self.assertIsNone(data["related_article_kind"])
 
 
 class CommentAPITests(APITestCase):

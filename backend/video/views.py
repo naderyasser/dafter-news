@@ -3,8 +3,8 @@ from rest_framework import viewsets
 from aldaftar.permissions import PublicSubmission, ReadOnlyOrEditor
 from aldaftar.mixins import SlugOrPkLookupMixin
 
-from .models import Video, VideoComment
-from .serializers import VideoCommentSerializer, VideoDetailSerializer, VideoSerializer
+from .models import Reel, Video, VideoComment
+from .serializers import ReelSerializer, VideoCommentSerializer, VideoDetailSerializer, VideoSerializer
 
 
 class VideoViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
@@ -40,3 +40,24 @@ class VideoCommentViewSet(viewsets.ModelViewSet):
             serializer.save()
         else:
             serializer.save(status=VideoComment.Status.PENDING)
+
+
+class ReelViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
+    """
+    «بالمختصر» — the Facebook shorts shelf, and its own watch page.
+
+    ReadOnlyOrEditor, matching the rest of home-page curation (the stories
+    rail, the breaking strip, the ticker): what sits on the front page is an
+    editor's call, not every staff account's. Reads stay public because the
+    home page renders this without a session, and so does /reel/<slug>.
+
+    SlugOrPkLookupMixin + `lookup_field = "slug"`, same pairing as Video:
+    `GET /api/reels/<slug>/` is what the public watch page calls, while the
+    dashboard still reorders and deletes by numeric id.
+    """
+
+    queryset = Reel.objects.all()
+    serializer_class = ReelSerializer
+    permission_classes = [ReadOnlyOrEditor]
+    search_fields = ["title"]
+    lookup_field = "slug"

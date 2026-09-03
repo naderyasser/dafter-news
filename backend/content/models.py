@@ -40,7 +40,12 @@ class Story(models.Model):
     an article, a section, or an external page.
     """
 
-    title = models.CharField(max_length=120)
+    # Same cap as Article.title: «تثبيت في شريط القصص» copies the article's
+    # headline here verbatim (ArticleWriteSerializer._push_surfaces), so a
+    # shorter limit turned publishing any 121+ character headline with that
+    # box ticked into a DataError — the whole save rolled back, and the
+    # editor saw "value too long for type character varying(120)".
+    title = models.CharField(max_length=280)
     image = models.ImageField(upload_to="stories/", blank=True, null=True)
     href = models.CharField(max_length=300, blank=True)
     section = models.ForeignKey("Section", null=True, blank=True, on_delete=models.SET_NULL, related_name="stories")

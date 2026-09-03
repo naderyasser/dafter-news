@@ -21,6 +21,11 @@ class TagSerializer(serializers.ModelSerializer):
 
 class ArticleBlockSerializer(serializers.ModelSerializer):
     related_article_slug = serializers.CharField(source="related_article.slug", read_only=True, default=None)
+    # The "اقرأ أيضاً" box links straight to the related article's slug — an
+    # opinion piece 404s under /article/[slug] (see app/article/[slug]'s
+    # generateMetadata, which gates on kind === "news"), so the frontend
+    # needs this to route it to /opinion/[slug] instead.
+    related_article_kind = serializers.CharField(source="related_article.kind", read_only=True, default=None)
     # An image block can point at a library asset instead of uploading a new
     # file — the client's «إعادة الاستخدام السريع»: the block reuses the
     # asset's stored file, so nothing is downloaded and re-uploaded and the
@@ -36,7 +41,7 @@ class ArticleBlockSerializer(serializers.ModelSerializer):
         model = ArticleBlock
         fields = [
             "id", "order", "type", "text", "align", "image", "caption", "credit",
-            "related_article", "related_article_slug", "asset_id", "image_name", "keep_image",
+            "related_article", "related_article_slug", "related_article_kind", "asset_id", "image_name", "keep_image",
         ]
 
 

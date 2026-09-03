@@ -72,8 +72,13 @@ class RelatedEndpointTests(APITestCase):
         default of 0 for every related card regardless of real engagement."""
         neighbour = publish(title="خبر من نفس القسم", section=self.section)
         neighbour.tags.set([self.person])
-        Comment.objects.create(article=neighbour, user_name="قارئ 1", text="تعليق")
-        Comment.objects.create(article=neighbour, user_name="قارئ 2", text="تعليق آخر")
+        # Approved, because the annotation counts the public tally only.
+        Comment.objects.create(
+            article=neighbour, user_name="قارئ 1", text="تعليق", status=Comment.Status.APPROVED
+        )
+        Comment.objects.create(
+            article=neighbour, user_name="قارئ 2", text="تعليق آخر", status=Comment.Status.APPROVED
+        )
 
         res = self.related()
         row = next(a for a in res.data["results"] if a["title"] == neighbour.title)

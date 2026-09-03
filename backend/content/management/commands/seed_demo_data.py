@@ -91,7 +91,11 @@ class Command(BaseCommand):
                     is_superuser=(role == User.Role.ADMIN),
                 ),
             )
-            if not user.has_usable_password():
+            # A row update_or_create just made has password="" — which
+            # has_usable_password() counts as usable (only the "!" prefix
+            # marks unusable), so on a fresh database nobody ever got the
+            # demo password and every seeded login was refused.
+            if not user.password or not user.has_usable_password():
                 user.set_password("aldaftar-demo")
                 user.save()
             created[username] = user
