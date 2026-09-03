@@ -665,12 +665,15 @@ export default function ArticleEditorForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="عنوان الخبر"
-          className="font-display-ar w-full border-none text-[24px] font-extrabold text-ink outline-none"
+          dir="auto"
+          maxLength={280}
+          className="font-display-ar w-full border-none text-start text-[24px] font-extrabold text-ink outline-none"
         />
         <textarea
           value={standfirst}
           onChange={(e) => setStandfirst(e.target.value)}
           placeholder="مقدمة الخبر (standfirst)"
+          dir="auto"
           className="min-h-[50px] w-full resize-y border-none border-t border-line pt-3.5 text-[16px] text-ink-2 outline-none"
         />
 

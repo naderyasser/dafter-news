@@ -9,7 +9,11 @@ import { getDashboardOverview } from "@/lib/api";
 
 export const revalidate = 0;
 
-export default async function DashOverviewPage({ searchParams }: { searchParams: { denied?: string } }) {
+export default async function DashOverviewPage({ searchParams }: { searchParams: Promise<{ denied?: string }> }) {
+  // Next 15+: searchParams is a Promise. Reading `.denied` off it directly
+  // always gave undefined (plus a sync-dynamic-APIs error in the server
+  // log), so the «لا تملك صلاحية» banner never showed after a bounce.
+  const { denied } = await searchParams;
   const data = await getDashboardOverview();
   const stats = data?.stats;
   const chart = data?.chart ?? [];
@@ -19,7 +23,7 @@ export default async function DashOverviewPage({ searchParams }: { searchParams:
 
   return (
     <DashboardShell active="overview" breadcrumb="لوحة التحكم" title="نظرة عامة">
-      <AccessDeniedBanner denied={searchParams.denied} />
+      <AccessDeniedBanner denied={denied} />
       {/* A dead feed announces itself on the screen every session opens on —
           newswire sat broken for 4,000+ runs with the record buried in a
           table nobody watches. */}
@@ -68,17 +72,17 @@ export default async function DashOverviewPage({ searchParams }: { searchParams:
       </div>
 
       <div className="grid grid-cols-[2fr_1fr] items-start gap-5 max-lg:grid-cols-1">
-        <div className="overflow-hidden rounded-card border border-line bg-paper">
+        <div className="overflow-x-auto rounded-card border border-line bg-paper">
           <div className="border-b border-line px-4.5 py-4 text-[15px] font-bold">أحدث المقالات</div>
-          <div className="grid grid-cols-[2fr_1fr_1fr_1fr] bg-surface">
+          <div className="grid min-w-[560px] grid-cols-[2fr_1fr_1fr_1fr] bg-surface">
             <div className="px-4.5 py-2.5 text-xs font-bold text-ink-3">العنوان</div>
             <div className="px-4.5 py-2.5 text-xs font-bold text-ink-3">القسم</div>
             <div className="px-4.5 py-2.5 text-xs font-bold text-ink-3">الحالة</div>
             <div className="px-4.5 py-2.5 text-xs font-bold text-ink-3">المشاهدات</div>
           </div>
           {(data?.recent_articles ?? []).map((a) => (
-            <div key={a.id} className="grid min-h-[44px] grid-cols-[2fr_1fr_1fr_1fr] items-center border-t border-line hover:bg-surface">
-              <div className="truncate px-4.5 text-[14.5px] font-semibold text-ink">{a.title}</div>
+            <div key={a.id} className="grid min-h-[44px] min-w-[560px] grid-cols-[2fr_1fr_1fr_1fr] items-center border-t border-line hover:bg-surface">
+              <div dir="auto" className="truncate px-4.5 text-start text-[14.5px] font-semibold text-ink">{a.title}</div>
               <div className="px-4.5 text-[14.5px] text-ink-3">{a.section}</div>
               <div className="px-4.5">
                 <StatusBadge status={a.status} />

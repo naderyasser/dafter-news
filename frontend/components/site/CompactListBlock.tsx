@@ -3,6 +3,7 @@ import Link from "next/link";
 import SectionHeading from "@/components/site/SectionHeading";
 import SectionMore from "@/components/site/SectionMore";
 import TimeAgo from "@/components/ui/TimeAgo";
+import { articleHref } from "@/lib/routes";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
 
 /**
@@ -66,7 +67,7 @@ export default function CompactListBlock({
           {cards.map((a, i) => (
             <li key={a.id} className="break-inside-avoid">
               <Link
-                href={`/${a.kind === "opinion" ? "opinion" : "article"}/${a.slug}`}
+                href={articleHref(a, lang)}
                 className="card-link flex items-baseline gap-3 border-b border-line py-2.5 no-underline"
               >
                 <span

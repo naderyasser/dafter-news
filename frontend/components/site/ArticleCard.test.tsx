@@ -12,7 +12,7 @@ vi.mock("next/link", () => ({
   ),
 }));
 vi.mock("next/image", () => ({
-  default: ({ src, alt }: any) => <img src={src} alt={alt} />,
+  default: ({ src, alt, ...rest }: any) => <img src={src} alt={alt} {...rest} />,
 }));
 
 const base = { lang: "ar" as const, href: "/article/x", title: "عنوان الخبر" };
@@ -32,16 +32,75 @@ describe("ArticleCard", () => {
     expect(screen.getByRole("link")).toHaveAttribute("href", "/article/x");
   });
 
-  it("shows a placeholder instead of a broken image when there is no cover", () => {
+  it("falls back to the site's own mark, not a text placeholder, when there is no cover", () => {
+    // The gray box used to show "أفلت صورة الخبر هنا" — the dashboard's own
+    // drag-and-drop instruction — to an ordinary reader. See the "cover
+    // fallback" describe block below for the full priority.
     render(<ArticleCard {...base} variant="standard" />);
 
-    expect(screen.getByText("أفلت صورة الخبر هنا")).toBeInTheDocument();
+    expect(screen.getByRole("img")).toHaveAttribute("src", "/icon.png");
+    expect(screen.queryByText("أفلت صورة الخبر هنا")).not.toBeInTheDocument();
   });
 
   it("renders the cover image when one is supplied", () => {
     render(<ArticleCard {...base} variant="standard" imageSrc="http://x/a.jpg" />);
 
     expect(screen.getByRole("img")).toHaveAttribute("src", "http://x/a.jpg");
+  });
+
+  describe("cover fallback", () => {
+    // Client's own editorial call: an opinion piece's identity IS its
+    // columnist, so the byline's own photo is the right stand-in for a
+    // missing cover there — the same standard a print op-ed page uses.
+    it("uses the author's avatar for an opinion piece with no cover", () => {
+      render(
+        <ArticleCard {...base} variant="standard" kind="opinion" authorAvatar="http://x/writer.jpg" />,
+      );
+
+      expect(screen.getByRole("img")).toHaveAttribute("src", "http://x/writer.jpg");
+    });
+
+    it("crops the avatar fallback from the top, not the center, so a face survives the frame", () => {
+      const { container } = render(
+        <ArticleCard {...base} variant="standard" kind="opinion" authorAvatar="http://x/writer.jpg" />,
+      );
+
+      expect(container.querySelector("img")!.className).toContain("object-top");
+    });
+
+    it("still falls back to the site's mark for an opinion piece with no avatar either", () => {
+      render(<ArticleCard {...base} variant="standard" kind="opinion" authorAvatar={null} />);
+
+      expect(screen.getByRole("img")).toHaveAttribute("src", "/icon.png");
+    });
+
+    it("never uses the author's avatar for an ordinary news story", () => {
+      render(
+        <ArticleCard {...base} variant="standard" kind="news" authorAvatar="http://x/writer.jpg" />,
+      );
+
+      expect(screen.getByRole("img")).toHaveAttribute("src", "/icon.png");
+    });
+
+    it("prefers a real cover_image over any fallback, opinion piece or not", () => {
+      render(
+        <ArticleCard
+          {...base}
+          variant="standard"
+          kind="opinion"
+          authorAvatar="http://x/writer.jpg"
+          imageSrc="http://x/real-cover.jpg"
+        />,
+      );
+
+      expect(screen.getByRole("img")).toHaveAttribute("src", "http://x/real-cover.jpg");
+    });
+
+    it("keeps the site's mark unscaled and uncropped, not stretched like a photo", () => {
+      const { container } = render(<ArticleCard {...base} variant="standard" kind="news" />);
+
+      expect(container.querySelector("img")!.className).toContain("object-contain");
+    });
   });
 
   describe("badges", () => {

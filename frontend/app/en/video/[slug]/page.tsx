@@ -6,6 +6,7 @@ import SiteShell from "@/components/site/SiteShell";
 import VideoComments from "@/components/site/VideoComments";
 import VideoPlayer from "@/components/site/VideoPlayer";
 import { getVideo, getVideos, mediaUrl } from "@/lib/api";
+import { VIDEO_DESK_HIDDEN } from "@/lib/hiddenDesks";
 import { relativeTime, isLatinScript } from "@/lib/format";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
@@ -13,6 +14,10 @@ export const revalidate = 30;
 
 /** Existence decided before the stream starts — see app/article/[slug]. */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  // Hidden desk — see lib/hiddenDesks.ts. A real 404 rather than an empty
+  // page: the desk is off the public site, so its URLs must not resolve.
+  if (VIDEO_DESK_HIDDEN) notFound();
+
   const _params = await params;
   const video = await getVideo(_params.slug);
   if (!video) notFound();
@@ -49,6 +54,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
  * copy regardless of the video's own language.
  */
 export default async function VideoEnPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Hidden desk — see lib/hiddenDesks.ts. A real 404 rather than an empty
+  // page: the desk is off the public site, so its URLs must not resolve.
+  if (VIDEO_DESK_HIDDEN) notFound();
+
   const _params = await params;
   const video = await getVideo(_params.slug);
   if (!video) notFound();

@@ -54,7 +54,15 @@ export default async function ArticleEnPage({ params }: { params: Promise<{ slug
   const relatedInline = related.results
     .filter((a) => a.slug !== article.slug)
     .slice(0, 3)
-    .map((a) => ({ href: `/en/article/${a.slug}`, title: a.title, section: a.section_name, badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
+    .map((a) => ({
+      href: `/en/article/${a.slug}`,
+      title: a.title,
+      section: a.section_name,
+      badge: a.badge,
+      imageSrc: mediaUrl(a.cover_image),
+      kind: a.kind,
+      authorAvatar: mediaUrl(a.author_avatar),
+    }));
 
   const toNewsCardItem = (a: (typeof latest.results)[number]) => ({
     href: `/en/article/${a.slug}`,

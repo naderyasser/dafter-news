@@ -99,6 +99,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       dir={locale === "en" ? "ltr" : "rtl"}
       className={`${notoKufiArabic.variable} ${ibmPlexSansArabic.variable} ${inter.variable} ${cairo.variable}`}
     >
+      <head>
+        {/* Google AdSense site-ownership verification. */}
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8862600905076788"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body>
         {/* The site's identity — WebSite + publisher, one linked graph.
             Site-wide from the root layout so no page can be the one a

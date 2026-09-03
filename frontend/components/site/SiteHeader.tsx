@@ -10,6 +10,7 @@ import MainNav from "@/components/site/MainNav";
 import SearchBox from "@/components/site/SearchBox";
 import StickyHeader from "@/components/site/StickyHeader";
 import { getBreakingNews, getPrayerTimes, getSections, getSiteSettings, mediaUrl } from "@/lib/api";
+import { visibleSections } from "@/lib/hiddenDesks";
 
 type NavItem = { key: string; label: string; href: string };
 
@@ -33,7 +34,10 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
   ]);
   const logoSrc = mediaUrl(settings?.logo);
   const breaking = breakingRes;
-  const sections = sectionsRes.results;
+  // Hidden desks are filtered out at the source, so the nav bar, the drawer
+  // and everything else built from this list drop «لقطة وتعليق» together —
+  // see lib/hiddenDesks.ts, which is the one switch that brings it back.
+  const sections = visibleSections(sectionsRes.results);
 
   // The nav bar shows the sections themselves; «لقطة وتعليق» was dropped from
   // the masthead buttons on request, so it lives here with the rest.

@@ -25,6 +25,7 @@ const block = (over: Partial<ArticleBlock> = {}): ArticleBlock =>
     credit: "",
     related_article: null,
     related_article_slug: null,
+    related_article_kind: null,
     ...over,
   }) as ArticleBlock;
 
@@ -215,6 +216,47 @@ describe("ArticleBlocks", () => {
 
       expect(screen.getByText("خبر أول ذو صلة")).toBeInTheDocument();
       expect(screen.queryByText("منذ ٣ ساعات")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("«اقرأ أيضاً» related block", () => {
+    // /article/[slug] 404s anything but kind === "news" (see
+    // app/article/[slug]'s generateMetadata) — an editor linking this box at
+    // an opinion piece must land on /opinion/[slug] instead.
+    it("routes a related opinion piece to /opinion/[slug]", () => {
+      render(
+        <ArticleBlocks
+          lang="ar"
+          blocks={[block({ type: "related", text: "عمود رأي مرتبط", related_article_slug: "col-1", related_article_kind: "opinion" })]}
+        />,
+      );
+
+      expect(screen.getByText("عمود رأي مرتبط").closest("a")).toHaveAttribute("href", "/opinion/col-1");
+    });
+
+    it("routes a related news article to /article/[slug]", () => {
+      render(
+        <ArticleBlocks
+          lang="ar"
+          blocks={[block({ type: "related", text: "خبر مرتبط", related_article_slug: "news-1", related_article_kind: "news" })]}
+        />,
+      );
+
+      expect(screen.getByText("خبر مرتبط").closest("a")).toHaveAttribute("href", "/article/news-1");
+    });
+
+    it("falls back to /article/[slug] when the target's kind wasn't sent", () => {
+      // Defends the `?? "news"` fallback in the component — an older API
+      // response or a stale cached page without related_article_kind must
+      // still resolve to something rather than crash.
+      render(
+        <ArticleBlocks
+          lang="ar"
+          blocks={[block({ type: "related", text: "خبر بلا نوع", related_article_slug: "unknown-kind" })]}
+        />,
+      );
+
+      expect(screen.getByText("خبر بلا نوع").closest("a")).toHaveAttribute("href", "/article/unknown-kind");
     });
   });
 });

@@ -33,11 +33,11 @@ export default async function DashboardShell({
 
   return (
     <div dir="rtl" lang="ar" className="flex min-h-screen bg-surface font-dashboard-ar text-ink">
-      <AdminSidebar active={active} permissions={me.permissions} />
+      <AdminSidebar active={active} permissions={me.permissions} user={{ name: me.name, username: me.username, role: me.role }} />
       <div className="flex min-w-0 flex-1 flex-col">
         <AdminTopbar />
-        <div className="flex flex-col gap-6 p-7">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-6 p-7 max-[860px]:gap-4 max-[860px]:p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 max-[860px]:flex-col max-[860px]:items-stretch">
             <div>
               <div className="mb-1 text-[13px] text-ink-3">{breadcrumb}</div>
               <div className="rule-accent ps-3.5">

@@ -63,3 +63,29 @@ describe("CoverImage", () => {
     expect(screen.getByText("أفلت صورة الخبر هنا")).toBeInTheDocument();
   });
 });
+
+describe("CoverImage fallbackSrc", () => {
+  it("shows the fallback image instead of the text placeholder when there is no source", () => {
+    render(<CoverImage {...props} src={null} fallbackSrc="/icon.png" />);
+
+    expect(screen.getByRole("img")).toHaveAttribute("src", "/icon.png");
+    expect(screen.queryByText("أفلت صورة الخبر هنا")).toBeNull();
+  });
+
+  it("swaps a dead source for the fallback image rather than a grey box", () => {
+    render(<CoverImage {...props} src="/media/covers/gone.jpg" fallbackSrc="/icon.png" />);
+
+    fireEvent.error(screen.getByRole("img"));
+
+    expect(screen.getByRole("img")).toHaveAttribute("src", "/icon.png");
+  });
+
+  it("still ends at the text placeholder if the fallback itself is dead", () => {
+    render(<CoverImage {...props} src={null} fallbackSrc="/gone.png" />);
+
+    fireEvent.error(screen.getByRole("img"));
+
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByText("أفلت صورة الخبر هنا")).toBeInTheDocument();
+  });
+});

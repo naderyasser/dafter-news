@@ -9,7 +9,11 @@ import type { ArticleStatus } from "@/lib/types";
 
 export const revalidate = 0;
 
-export default async function DashArticlesPage({ searchParams }: { searchParams: { saved?: string } }) {
+export default async function DashArticlesPage({ searchParams }: { searchParams: Promise<{ saved?: string; q?: string }> }) {
+  // Next 15+: searchParams is a Promise — read synchronously, `saved` was
+  // always undefined, so the «تم الحفظ» confirmation the editor redirects
+  // to (?saved=1) never appeared after a save.
+  const { saved, q } = await searchParams;
   // DRF keeps only the last repeated `status=` param, so fetch each status
   // separately and merge — the dashboard needs the full mix, unlike the
   // public site's list endpoint which defaults to published-only.
@@ -38,7 +42,7 @@ export default async function DashArticlesPage({ searchParams }: { searchParams:
         </Link>
       }
     >
-      <ArticlesTable rows={rows} justSaved={searchParams.saved === "1"} />
+      <ArticlesTable rows={rows} justSaved={saved === "1"} initialQuery={q ?? ""} />
     </DashboardShell>
   );
 }

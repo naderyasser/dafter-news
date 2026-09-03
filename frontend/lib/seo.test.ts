@@ -94,11 +94,97 @@ describe("articleMetadata", () => {
     expect((m.twitter as Record<string, unknown>).card).toBe("summary_large_image");
   });
 
-  it("degrades to a text card when there is no cover", () => {
+  it("degrades to a text card for a NEWS story with no cover", () => {
+    // A news report's identity is the report, not whoever filed it — its
+    // author's face is deliberately not offered as the preview. See the
+    // opinion block below for the case that is.
     const m = articleMetadata(article({ cover_image: null }), "/article/x");
 
     expect((m.twitter as Record<string, unknown>).card).toBe("summary");
     expect((m.openGraph as Record<string, unknown>).images).toBeUndefined();
+  });
+
+  /**
+   * The newsroom's ask, and the same editorial line lib/coverFallback.ts
+   * already follows for the cards themselves: an opinion piece filed without
+   * a cover is previewed with its columnist's own portrait.
+   */
+  describe("opinion pieces with no cover", () => {
+    const columnist = (over: Partial<ArticleDetail> = {}) =>
+      article({
+        kind: "opinion",
+        cover_image: null,
+        slug: "a-column",
+        author: {
+          username: "a.nasry",
+          name: "عبدالرحمن الناصري",
+          name_en: "",
+          initial: "ع",
+          title: "",
+          bio: "",
+          avatar: "/media/avatars/writer.jpg",
+          article_count: 0,
+        },
+        ...over,
+      });
+
+    it("previews with the composed author card, at its exact rendered size", () => {
+      const m = articleMetadata(columnist(), "/opinion/a-column");
+
+      const [img] = (m.openGraph as Record<string, unknown>).images as Record<string, unknown>[];
+      expect(String(img.url)).toBe("https://aldaftarnews.com/og/article/a-column");
+      // The route renders exactly 1200×630 every time, so unlike the cover
+      // branch these are facts rather than a fallback guess.
+      expect(img.width).toBe(1200);
+      expect(img.height).toBe(630);
+      expect(img.type).toBe("image/png");
+    });
+
+    it("asks for the wide card, not the small square one", () => {
+      const m = articleMetadata(columnist(), "/opinion/a-column");
+      const twitter = m.twitter as Record<string, unknown>;
+
+      expect(twitter.card).toBe("summary_large_image");
+      expect(twitter.images).toEqual(["https://aldaftarnews.com/og/article/a-column"]);
+    });
+
+    it("gives the og:image an absolute URL, which is the only kind a crawler accepts", () => {
+      const m = articleMetadata(columnist(), "/opinion/a-column");
+
+      const [img] = (m.openGraph as Record<string, unknown>).images as Record<string, unknown>[];
+      expect(String(img.url).startsWith("https://")).toBe(true);
+      expect(String(img.secureUrl).startsWith("https://")).toBe(true);
+    });
+
+    it("prefers a real cover photo over the author card when the piece has one", () => {
+      const m = articleMetadata(columnist({ cover_image: "/media/covers/real.jpg" }), "/opinion/a-column");
+
+      const [img] = (m.openGraph as Record<string, unknown>).images as Record<string, unknown>[];
+      expect(String(img.url)).toContain("/media/covers/real.jpg");
+    });
+
+    it("degrades to a text card for a columnist with no portrait on file", () => {
+      const m = articleMetadata(columnist({ author: { ...columnist().author!, avatar: null } }), "/opinion/a-column");
+
+      expect((m.twitter as Record<string, unknown>).card).toBe("summary");
+      expect((m.openGraph as Record<string, unknown>).images).toBeUndefined();
+    });
+  });
+
+  /**
+   * The newsroom's report was that shared links carry `?fbclid=…` tracking
+   * strings. Those are appended by Facebook on the outbound click, not by
+   * anything here — the defence is that both the canonical and og:url state
+   * the clean address, so a crawler that follows a decorated link still
+   * files it under the undecorated one.
+   */
+  it("states one clean absolute URL as both canonical and og:url", () => {
+    const m = articleMetadata(article(), "/article/central-bank-holds");
+
+    const canonical = String(m.alternates?.canonical);
+    expect(canonical).toBe("https://aldaftarnews.com/article/central-bank-holds");
+    expect(canonical).not.toContain("?");
+    expect((m.openGraph as Record<string, unknown>).url).toBe(canonical);
   });
 
   /**

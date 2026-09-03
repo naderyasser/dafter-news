@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { API_URL, mediaUrl } from "@/lib/api";
 import { relativeTime, toDisplayNumerals } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import type { ArticleCard, Paginated, Section } from "@/lib/types";
 
 const RECENT_KEY = "aldaftar:recent-searches";
@@ -77,7 +78,6 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
   const router = useRouter();
   const isAr = lang === "ar";
   const t = T[isAr ? "ar" : "en"];
-  const articleBase = isAr ? "/article" : "/en/article";
   const searchBase = isAr ? "/search" : "/en/search";
 
   const [open, setOpen] = useState(false);
@@ -220,7 +220,7 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
   const goTo = (row: ArticleCard) => {
     remember(query);
     close();
-    router.push(`${articleBase}/${row.slug}`);
+    router.push(articleHref(row, lang));
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {

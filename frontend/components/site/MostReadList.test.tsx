@@ -3,6 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import MostReadList from "./MostReadList";
 
+vi.mock("next/image", () => ({
+  default: ({ src, alt, fill: _fill, ...rest }: any) => <img src={src} alt={alt} {...rest} />,
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children, ...rest }: any) => (
     <a href={href} {...rest}>
@@ -128,5 +132,28 @@ describe("MostReadList", () => {
     const row = screen.getByText("خبر بلا قسم").closest("a")!;
     expect(row.textContent).not.toContain("·");
     expect(row.textContent).not.toContain("قراءات");
+  });
+});
+
+describe("MostReadList thumbnails", () => {
+  // alt="" makes the thumbnail decorative (role=presentation), so query the
+  // element directly rather than by the img role.
+  const thumb = (container: HTMLElement) => container.querySelector("img");
+
+  it("shows the site mark, not an empty grey box, for a story with no cover", () => {
+    const { container } = render(<MostReadList lang="ar" items={[{ title: "بلا غلاف", href: "/article/x", imageSrc: null }]} />);
+
+    expect(thumb(container)).toHaveAttribute("src", "/icon.png");
+  });
+
+  it("uses the columnist's portrait for an opinion piece without a cover", () => {
+    const { container } = render(
+      <MostReadList
+        lang="ar"
+        items={[{ title: "رأي", href: "/opinion/x", imageSrc: undefined, kind: "opinion", authorAvatar: "/media/avatars/a.jpg" }]}
+      />,
+    );
+
+    expect(thumb(container)).toHaveAttribute("src", "/media/avatars/a.jpg");
   });
 });

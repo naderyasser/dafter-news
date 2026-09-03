@@ -106,15 +106,15 @@ export default function ColumnistsManager({
 
       <div>
         <div className="mb-3 text-[15px] font-bold">مقالات الرأي</div>
-        <div className="overflow-hidden rounded-card border border-line bg-paper">
-          <div className="grid grid-cols-[2.4fr_1fr_1fr_1fr] bg-surface">
+        <div className="overflow-x-auto rounded-card border border-line bg-paper">
+          <div className="grid min-w-[620px] grid-cols-[2.4fr_1fr_1fr_1fr] bg-surface">
             <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">العنوان</div>
             <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">الكاتب</div>
             <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">الحالة</div>
             <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">التاريخ</div>
           </div>
           {articles.map((o) => (
-            <div key={o.id} className="grid min-h-[48px] grid-cols-[2.4fr_1fr_1fr_1fr] items-center border-t border-line">
+            <div key={o.id} className="grid min-h-[48px] min-w-[620px] grid-cols-[2.4fr_1fr_1fr_1fr] items-center border-t border-line">
               <div className="px-3.5 py-2 text-[14.5px] font-semibold text-ink">{o.title}</div>
               <div className="px-3.5 text-[14.5px] text-ink-3">{o.author_name || "—"}</div>
               <div className="flex items-center gap-2 px-3.5 py-2">

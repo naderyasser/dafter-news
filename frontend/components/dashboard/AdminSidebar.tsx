@@ -5,6 +5,7 @@ import { DASHBOARD } from "@/lib/routes";
 import { useEffect, useState } from "react";
 
 import type { Capability, DashboardPermissions } from "@/lib/api";
+import { ROLE_LABELS, type Role } from "@/lib/types";
 
 /** `cap` is the capability the screen needs — the same key the route guard
  *  (lib/dashboardAccess.ts) and the API's permission classes use, so the nav,
@@ -26,6 +27,7 @@ const GROUPS: Group[] = [
     label: "الوسائط",
     items: [
       { key: "videos", label: "الفيديوهات", href: `${DASHBOARD}/videos`, icon: "▶", cap: "videos" },
+      // «حصل إيه؟» (reels) is deliberately absent — see lib/hiddenDesks.ts.
       { key: "opinion", label: "بالعقل والمنطق", href: `${DASHBOARD}/opinion`, icon: '"', cap: "authors" },
     ],
   },
@@ -52,7 +54,20 @@ const GROUPS: Group[] = [
   },
 ];
 
-export default function AdminSidebar({ active, permissions }: { active: string; permissions?: DashboardPermissions }) {
+export default function AdminSidebar({
+  active,
+  permissions,
+  user,
+}: {
+  active: string;
+  permissions?: DashboardPermissions;
+  /** The signed-in account, for the footer card — it used to be a hard-coded
+   *  «محرر النظام / محرر» whoever was logged in. */
+  user?: { name?: string; username?: string; role?: string };
+}) {
+  const displayName = (user?.name || user?.username || "").trim() || "حساب الفريق";
+  const roleLabel = (user?.role && ROLE_LABELS[user.role as Role]) || "عضو فريق";
+  const initial = displayName.replace(/^(د\.|أ\.|م\.)\s*/, "").charAt(0) || "؟";
   // Undefined while the shell has no account to hand (a server render before
   // /auth/me answers): show the full nav rather than briefly blanking it —
   // every link is guarded on its own anyway.
@@ -121,11 +136,11 @@ export default function AdminSidebar({ active, permissions }: { active: string; 
         </nav>
         <div className="flex items-center gap-2.5 border-t border-[#2A2F37] p-4">
           <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full bg-ink-2 font-bold text-header-ink">
-            م
+            {initial}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-[14px] font-bold text-header-ink">محرر النظام</div>
-            <div className="text-[12px] text-header-muted">محرر</div>
+            <div className="truncate text-[14px] font-bold text-header-ink">{displayName}</div>
+            <div className="text-[12px] text-header-muted">{roleLabel}</div>
           </div>
         </div>
       </aside>

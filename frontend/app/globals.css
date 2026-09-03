@@ -173,7 +173,12 @@
     pointer-events: none;
     background-image: var(--wm-image, none);
     background-repeat: no-repeat;
-    background-position: var(--wm-position, center right);
+    /* `center end`, not `center right`: the physical value pinned the desk's
+       watermark to the right edge in both directions, so on the RTL edition
+       it sat under the start of every headline instead of behind the block's
+       trailing margin. No section overrides --wm-position (lib/sections.ts
+       never sets `position`), so this fallback IS the value everywhere. */
+    background-position: var(--wm-position, center end);
     background-size: var(--wm-size, auto 78%);
     opacity: var(--wm-opacity, 1);
   }
@@ -181,6 +186,75 @@
   @media (max-width: 640px) {
     .section-watermark::before {
       display: none;
+    }
+  }
+
+  /*
+   * The card lifts on hover and on keyboard focus alike — `:focus-visible`
+   * and not `:focus`, so a pointer press doesn't leave the card raised behind
+   * the tab the reader just opened.
+   */
+  .reel-card {
+    transition:
+      transform theme("transitionDuration.med") ease,
+      box-shadow theme("transitionDuration.med") ease;
+  }
+  .reel-card:hover,
+  .reel-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: theme("boxShadow.2");
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reel-card {
+      transition: none;
+    }
+    .reel-card:hover,
+    .reel-card:focus-visible {
+      transform: none;
+    }
+  }
+
+  /*
+   * The reel player's frame on the watch page.
+   *
+   * Sized by HEIGHT, with the width derived from the 9:16 ratio — the reverse
+   * of every other media box on this site, and deliberately so. Sized by width
+   * (`w-full max-w-md` + `aspect-[9/16]`, what this was), a vertical video on a
+   * 360×640 phone renders 360 wide and therefore 640 tall: the exact height of
+   * the screen. The player filled the viewport on its own and pushed the share
+   * and «تفاعل على فيسبوك» buttons under the fold, which is the newsroom's
+   * report — a reader had to scroll past a video that was already playing to
+   * reach the two things they could actually do with it.
+   *
+   * Driving from height instead means the frame is never taller than most of
+   * the screen, so the action row below it is always in view, and `width: auto`
+   * against the aspect ratio keeps it exactly 9:16 at every size rather than
+   * letterboxing the video inside a wider box.
+   *
+   * `svh` (the SMALL viewport height — the one that assumes the mobile
+   * browser's chrome is expanded) rather than `vh`, or the frame is measured
+   * against a viewport taller than the one the reader actually has while the
+   * address bar is showing.
+   *
+   * The fallback is an @supports override rather than the usual two stacked
+   * `height` declarations, because the CSS minifier in the production build
+   * collapses a repeated property to the last one and throws the fallback
+   * away — verified against the shipped stylesheet. A browser too old for
+   * `svh` would then get an aspect-ratio box with no height at all, i.e. no
+   * player. Across a query the minifier has nothing to dedupe.
+   *
+   * The 780px cap is what keeps the desktop player the size it already was
+   * (780 × 9/16 ≈ 439px wide, against the 448px `max-w-md` it used before).
+   */
+  .reel-stage {
+    aspect-ratio: 9 / 16;
+    height: min(72vh, 780px);
+    width: auto;
+    max-width: 100%;
+  }
+  @supports (height: 1svh) {
+    .reel-stage {
+      height: min(72svh, 780px);
     }
   }
 

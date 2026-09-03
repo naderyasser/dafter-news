@@ -10,6 +10,7 @@ import type { SectionBlockCard } from "@/components/site/SectionBlock";
 import { mediaUrl } from "@/lib/api";
 import { paginateBlocks, splitLongParagraph } from "@/lib/richtext";
 import { toDisplayNumerals } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import type { ArticleBlock } from "@/lib/types";
 
 /** Physical, not logical — the editor's alignment menu means "this literal
@@ -39,7 +40,17 @@ function MidArticleRelated({ lang, cards }: { lang: "ar" | "en"; cards: SectionB
       </div>
       <div className="grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2">
         {cards.map((c, i) => (
-          <ArticleCard key={c.href + i} lang={lang} variant="compact" href={c.href} title={c.title} badge={c.badge} imageSrc={c.imageSrc} />
+          <ArticleCard
+            key={c.href + i}
+            lang={lang}
+            variant="compact"
+            href={c.href}
+            title={c.title}
+            badge={c.badge}
+            imageSrc={c.imageSrc}
+            kind={c.kind}
+            authorAvatar={c.authorAvatar}
+          />
         ))}
       </div>
     </aside>
@@ -127,7 +138,11 @@ export default function ArticleBlocks({
       return (
         <Link
           key={b.id}
-          href={b.related_article_slug ? `/article/${b.related_article_slug}` : "#"}
+          href={
+            b.related_article_slug
+              ? articleHref({ kind: b.related_article_kind ?? "news", slug: b.related_article_slug }, lang)
+              : "#"
+          }
           className="my-6 flex flex-col gap-1.5 rounded-card bg-surface px-4.5 py-4 no-underline"
         >
           <span className="text-[13px] font-extrabold text-brand">{isAr ? "اقرأ أيضاً" : "Read also"}</span>

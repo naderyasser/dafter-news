@@ -1,6 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import CoverImage from "@/components/ui/CoverImage";
+import { articleCoverFallback } from "@/lib/coverFallback";
 import { toDisplayNumerals } from "@/lib/format";
 
 /** Rank numeral. Western digits in both editions — see lib/format's
@@ -19,7 +20,17 @@ const toRank = (n: number) => toDisplayNumerals(n);
  * printing them undersells the stories. The rank digit already carries the
  * order, and `views` stays on the type because callers still pass it.
  */
-export type MostReadItem = { title: string; href: string; section?: string; views?: number; imageSrc?: string };
+export type MostReadItem = {
+  title: string;
+  href: string;
+  section?: string;
+  views?: number;
+  /** May be null/undefined (no cover) or a URL that no longer resolves —
+   *  both fall to articleCoverFallback rather than an empty grey slot. */
+  imageSrc?: string | null;
+  kind?: "news" | "opinion";
+  authorAvatar?: string | null;
+};
 
 export default function MostReadList({
   lang,
@@ -57,20 +68,21 @@ export default function MostReadList({
             </span>
             {/* Thumbnail sits at the inline end so the rank column stays the
                 reading anchor and the numbers line up down the list. */}
-            {it.imageSrc ? (
-              // 68×52 slot: the raw cover behind it is up to 470KB, and five
-              // of them made this sidebar the heaviest thing on the page.
-              <Image
-                src={it.imageSrc}
-                alt=""
-                width={68}
-                height={52}
-                sizes="68px"
-                className="h-[52px] w-[68px] flex-shrink-0 rounded object-cover"
-              />
-            ) : (
-              <span className="h-[52px] w-[68px] flex-shrink-0 rounded bg-surface-2" />
-            )}
+            {/* 68×52 slot (sizes="68px": the raw cover behind it is up to
+                470KB, and five of them made this sidebar the heaviest thing
+                on the page). No src, or a src that 404s, falls to the
+                article fallback — the site mark, or the columnist's own
+                portrait for an opinion piece — never to an empty grey box. */}
+            <CoverImage
+              src={it.imageSrc}
+              alt=""
+              placeholder=""
+              sizes="68px"
+              className="relative h-[52px] w-[68px] flex-shrink-0 rounded"
+              fallbackSrc={articleCoverFallback(it.kind, it.authorAvatar).src}
+              fallbackFit={articleCoverFallback(it.kind, it.authorAvatar).fit}
+              position={articleCoverFallback(it.kind, it.authorAvatar).position}
+            />
           </Link>
         ))}
       </div>

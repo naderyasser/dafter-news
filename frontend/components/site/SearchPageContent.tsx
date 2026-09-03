@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ArticleCard from "@/components/site/ArticleCard";
 import { API_URL, mediaUrl } from "@/lib/api";
 import { relativeTime, toDisplayNumerals } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import type { ArticleCard as ArticleCardType, Paginated, Section } from "@/lib/types";
 
 const T = {
@@ -64,7 +65,6 @@ export default function SearchPageContent({
 }) {
   const isAr = lang === "ar";
   const t = T[isAr ? "ar" : "en"];
-  const articleBase = isAr ? "/article" : "/en/article";
   const searchBase = isAr ? "/search" : "/en/search";
 
   const [query, setQuery] = useState(initialQuery);
@@ -219,12 +219,14 @@ export default function SearchPageContent({
                 <ArticleCard
                   lang={lang}
                   variant="compact"
-                  href={`${articleBase}/${r.slug}`}
+                  href={articleHref(r, lang)}
                   title={r.title}
                   section={r.section_name}
                   time={relativeTime(r.published_at, lang)}
                   badge={r.badge}
                   imageSrc={mediaUrl(r.cover_image)}
+                  kind={r.kind}
+                  authorAvatar={mediaUrl(r.author_avatar)}
                 />
               </div>
             ))}

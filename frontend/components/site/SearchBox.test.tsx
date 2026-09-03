@@ -66,7 +66,7 @@ describe("SearchBox routing", () => {
 
   it("sends the English edition's search to /en/search, not the Arabic-only /search", async () => {
     // regression: submit() hardcoded `/search` regardless of `lang` (unlike
-    // articleBase two lines above it, which does branch on lang), so an
+    // goTo()'s own articleHref call, which does branch on lang), so an
     // English reader who pressed Enter with no row highlighted landed on the
     // Arabic-only /search page.
     render(<SearchBox lang="en" />);
@@ -163,6 +163,40 @@ describe("SearchBox — Enter means search unless a row was deliberately picked"
     fireEvent.keyDown(field(), { key: "Enter" });
 
     expect(push).toHaveBeenCalledWith("/article/first-hit");
+  });
+
+  it("opens an opinion piece at /opinion/[slug], not /article/[slug] where it 404s", async () => {
+    // regression: goTo() used to build the href from a hardcoded /article
+    // base regardless of the row's own kind.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          count: 1,
+          next: null,
+          previous: null,
+          results: [
+            {
+              id: 3,
+              slug: "a-column",
+              title: "عمود رأي",
+              section_name: "بالعقل والمنطق",
+              published_at: null,
+              badge: "none",
+              cover_image: null,
+              kind: "opinion",
+            },
+          ],
+        }),
+      }),
+    );
+    await openAndType("مصر");
+
+    fireEvent.keyDown(field(), { key: "ArrowDown" });
+    fireEvent.keyDown(field(), { key: "Enter" });
+
+    expect(push).toHaveBeenCalledWith("/opinion/a-column");
   });
 
   it("a refined query resets the pick — Enter searches again", async () => {

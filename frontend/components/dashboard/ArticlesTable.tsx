@@ -30,11 +30,20 @@ const STATUS_CHIPS: { key: ArticleStatus | "all"; label: string }[] = [
  * straight back out of the URL — otherwise a later reload of this same
  * page would keep re-showing a banner for a save that happened minutes ago.
  */
-export default function ArticlesTable({ rows: initialRows, justSaved = false }: { rows: ArticleRow[]; justSaved?: boolean }) {
+export default function ArticlesTable({
+  rows: initialRows,
+  justSaved = false,
+  initialQuery = "",
+}: {
+  rows: ArticleRow[];
+  justSaved?: boolean;
+  /** From the top bar's search box (?q=) — the table opens already filtered. */
+  initialQuery?: string;
+}) {
   const router = useRouter();
   const [rows, setRows] = useState(initialRows);
   const [statusFilter, setStatusFilter] = useState<ArticleStatus | "all">("all");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [selected, setSelected] = useState<Record<number, boolean>>({});
   const [error, setError] = useState("");
   const [showSaved, setShowSaved] = useState(justSaved);
@@ -158,8 +167,8 @@ export default function ArticlesTable({ rows: initialRows, justSaved = false }: 
         </div>
       )}
 
-      <div className="overflow-hidden rounded-card border border-line bg-paper">
-        <div className="grid grid-cols-[40px_2.2fr_1fr_1fr_1fr_1fr_1fr_150px] items-center bg-surface">
+      <div className="overflow-x-auto rounded-card border border-line bg-paper">
+        <div className="grid min-w-[900px] grid-cols-[40px_2.2fr_1fr_1fr_1fr_1fr_1fr_150px] items-center bg-surface">
           <div />
           <div className="px-4 py-2.5 text-xs font-bold text-ink-3">العنوان</div>
           <div className="px-4 py-2.5 text-xs font-bold text-ink-3">القسم</div>
@@ -170,7 +179,7 @@ export default function ArticlesTable({ rows: initialRows, justSaved = false }: 
           <div />
         </div>
         {filtered.map((a) => (
-          <div key={a.id} className="grid min-h-[44px] grid-cols-[40px_2.2fr_1fr_1fr_1fr_1fr_1fr_150px] items-center border-t border-line">
+          <div key={a.id} className="grid min-h-[44px] min-w-[900px] grid-cols-[40px_2.2fr_1fr_1fr_1fr_1fr_1fr_150px] items-center border-t border-line">
             <div className="ps-3.5">
               <span
                 onClick={() => toggle(a.id)}
@@ -181,7 +190,7 @@ export default function ArticlesTable({ rows: initialRows, justSaved = false }: 
                 {selected[a.id] ? "✓" : ""}
               </span>
             </div>
-            <div className="truncate px-4 text-[14.5px] font-semibold text-ink">{a.title}</div>
+            <div dir="auto" className="truncate px-4 text-start text-[14.5px] font-semibold text-ink">{a.title}</div>
             <div className="px-4 text-[14.5px] text-ink-3">{a.section}</div>
             <div className="px-4 text-[14.5px] text-ink-3">{a.author}</div>
             <div className="px-4">

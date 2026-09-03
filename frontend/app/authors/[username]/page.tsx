@@ -4,6 +4,7 @@ import SectionBlock from "@/components/site/SectionBlock";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticles, getAuthor, mediaUrl } from "@/lib/api";
 import { relativeTime, toDisplayNumerals } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 300;
@@ -35,7 +36,7 @@ export default async function AuthorPage({ params }: { params: Promise<{ usernam
     `?language=ar&author__username=${encodeURIComponent(author.username)}&page_size=12&ordering=-published_at`,
   );
   const cards = articles.results.map((a) => ({
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     section: a.section_name,
     time: relativeTime(a.published_at, "ar"),

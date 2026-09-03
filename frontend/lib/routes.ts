@@ -23,3 +23,23 @@ export const DASHBOARD = "/daftardashboard1595";
 
 /** Build a path inside the newsroom: `dash("/articles")`. */
 export const dash = (path = "") => `${DASHBOARD}${path}`;
+
+/**
+ * Where a story's own page lives, on either edition.
+ *
+ * Opinion pieces are gated by `kind`, not by section or language — they
+ * publish at /opinion/[slug] on the Arabic site, and /article/[slug] rejects
+ * them (see app/article/[slug]/page.tsx's generateMetadata, which 404s
+ * anything but kind === "news"). The English edition has no /en/opinion
+ * route; /en/article/[slug] accepts any English article regardless of kind
+ * (mirrors lib/rss.ts's articleUrl).
+ *
+ * Every list that links to a story — home page blocks, section/tag/author
+ * pages, "most read"/"latest" rails, 404's suggestions — has to route
+ * opinion pieces here instead of guessing /article/ for everything, or a
+ * columnist's byline anywhere outside its own section turns into a 404.
+ */
+export function articleHref(a: { kind: "news" | "opinion"; slug: string }, lang: "ar" | "en" = "ar"): string {
+  if (lang === "en") return `/en/article/${a.slug}`;
+  return a.kind === "opinion" ? `/opinion/${a.slug}` : `/article/${a.slug}`;
+}

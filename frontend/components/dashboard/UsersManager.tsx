@@ -5,14 +5,10 @@ import { useState } from "react";
 import StatusBadge from "@/components/dashboard/StatusBadge";
 import { dashMutate, describeApiError } from "@/lib/api";
 import type { DashUser, Role } from "@/lib/types";
+import { ROLE_LABELS } from "@/lib/types";
 import { AR_LOCALE } from "@/lib/format";
 
-const ROLES: { key: Role; label: string }[] = [
-  { key: "admin", label: "مدير" },
-  { key: "editor", label: "محرر" },
-  { key: "author", label: "كاتب" },
-  { key: "moderator", label: "مشرف تعليقات" },
-];
+const ROLES: { key: Role; label: string }[] = (Object.keys(ROLE_LABELS) as Role[]).map((key) => ({ key, label: ROLE_LABELS[key] }));
 
 export default function UsersManager({ users: initial }: { users: DashUser[] }) {
   const [users, setUsers] = useState(initial);
@@ -169,8 +165,8 @@ export default function UsersManager({ users: initial }: { users: DashUser[] }) 
           + مستخدم جديد
         </button>
       </div>
-      <div className="overflow-hidden rounded-card border border-line bg-paper">
-        <div className="grid grid-cols-[1.5fr_1.7fr_.9fr_.9fr_.8fr_130px] bg-surface">
+      <div className="overflow-x-auto rounded-card border border-line bg-paper">
+        <div className="grid min-w-[800px] grid-cols-[1.5fr_1.7fr_.9fr_.9fr_.8fr_130px] bg-surface">
           <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">الاسم</div>
           <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">البريد الإلكتروني</div>
           <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">الدور</div>
@@ -181,7 +177,7 @@ export default function UsersManager({ users: initial }: { users: DashUser[] }) 
         {users.map((u) => (
           <div
             key={u.id}
-            className={`grid min-h-[48px] grid-cols-[1.5fr_1.7fr_.9fr_.9fr_.8fr_130px] items-center border-t border-line ${
+            className={`grid min-h-[48px] min-w-[800px] grid-cols-[1.5fr_1.7fr_.9fr_.9fr_.8fr_130px] items-center border-t border-line ${
               u.is_active ? "" : "bg-surface/60"
             }`}
           >

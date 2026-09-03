@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { API_ORIGIN, ApiError, apiMutate, describeApiError, getArticle, getArticles, getLatest, getMostCommented, getMostRead, getSectionFeed, getTicker, mediaUrl } from "./api";
+import { API_ORIGIN, ApiError, apiMutate, describeApiError, getArticle, getArticles, getLatest, getMostCommented, getMostRead, MOST_COMMENTED_WINDOW_DAYS, getSectionFeed, getTicker, mediaUrl } from "./api";
 
 const okJson = (body: unknown) =>
   Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) } as Response);
@@ -117,17 +117,36 @@ describe("read helpers", () => {
     expect(url).not.toContain("published_within");
   });
 
-  it("windows «الأكثر تعليقاً» the same way most-read is windowed", async () => {
+  it("windows «الأكثر تعليقاً», on its own horizon rather than most-read's", async () => {
     // regression: comment counts only accumulate, so unbounded this tab was
     // an all-time leaderboard held by the seeded demo articles — it showed
     // three-week-old copy right beside the «الأحدث» tab showing today's.
+    //
+    // The window is 30 days, not the 7 this borrowed from «الأكثر قراءة».
+    // Reads arrive in thousands a day and comments in ones, so seven days
+    // left the tab with nothing to rank on most days — and retiring the demo
+    // import, the second job those seven days were doing badly, is now done
+    // directly by counting approved comments only.
     vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
 
     await getMostCommented("ar");
 
     const url = String(vi.mocked(fetch).mock.calls[0][0]);
     expect(url).toContain("ordering=-comment_count");
-    expect(url).toContain("published_within=7");
+    expect(url).toContain(`published_within=${MOST_COMMENTED_WINDOW_DAYS}`);
+  });
+
+  it("asks «الأكثر تعليقاً» for stories that actually have comments", async () => {
+    // The newsroom reported this tab as showing the latest news, i.e. as
+    // being wired to the «الأحدث» tab's query. It never was: ranked by
+    // -comment_count alone, nearly every story ties at zero, and the
+    // backend's StableOrderingFilter breaks that tie on -published_at — so
+    // the tab returned the newest stories. Filtering the pool is the fix.
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getMostCommented("ar");
+
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain("has_comments=true");
   });
 
   it("keeps both «أحدث الأخبار» tabs on the same 60-second freshness", async () => {

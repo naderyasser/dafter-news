@@ -13,6 +13,7 @@ import SiteShell from "@/components/site/SiteShell";
 import ViewBeacon from "@/components/site/ViewBeacon";
 import { getArticle, getLatest, getMostRead, getRelatedArticles, getSections, mediaUrl } from "@/lib/api";
 import { publishedLine, relativeTime } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import { articleJsonLd, articleMetadata, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 30;
@@ -65,10 +66,18 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   const relatedInline = related.results
     .filter((a) => a.slug !== article.slug)
     .slice(0, 3)
-    .map((a) => ({ href: `/article/${a.slug}`, title: a.title, section: a.section_name, badge: a.badge, imageSrc: mediaUrl(a.cover_image) }));
+    .map((a) => ({
+      href: articleHref(a),
+      title: a.title,
+      section: a.section_name,
+      badge: a.badge,
+      imageSrc: mediaUrl(a.cover_image),
+      kind: a.kind,
+      authorAvatar: mediaUrl(a.author_avatar),
+    }));
 
   const toNewsCardItem = (a: (typeof latest.results)[number]) => ({
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     imageSrc: mediaUrl(a.cover_image),
   });

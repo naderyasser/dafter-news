@@ -11,6 +11,7 @@ import type {
   MediaAsset,
   Match,
   PrayerTimes,
+  Reel,
   Story,
   SyncLog,
   WelcomeAlert,
@@ -213,6 +214,21 @@ export const getRelatedArticles = (slug: string) =>
   safeGet<{ count: number; results: ArticleCard[] }>(`/articles/${encodeSlug(slug)}/related/`, { count: 0, results: [] }, { revalidate: 60 });
 
 /**
+ * How far back «الأكثر قراءة» looks for trending candidates: a "what's hot
+ * right now" list needs a narrow pool, or a story from day six can still
+ * out-decay a story from hour one on raw lifetime views. In hours because
+ * that's the unit the client actually asked for ("24 or 48 hours");
+ * `published_within` itself only takes whole days, so this is converted at
+ * the call site below.
+ *
+ * This replaced a seven-day MOST_READ_WINDOW_DAYS, which «الأكثر تعليقاً»
+ * then borrowed. That tab has its own window now
+ * (MOST_COMMENTED_WINDOW_DAYS), so the seven days had no caller left and are
+ * gone rather than sitting here reading like a live rule.
+ */
+export const MOST_READ_TRENDING_WINDOW_HOURS = 48;
+
+/**
  * «الأكثر قراءة» — trending, not lifetime reads.
  *
  * One helper rather than the same query string written out at each of the
@@ -231,18 +247,6 @@ export const getRelatedArticles = (slug: string) =>
  * the window is what actually retires it from the list rather than just
  * fading its score toward the bottom.
  */
-export const MOST_READ_WINDOW_DAYS = 7;
-
-/**
- * How far back «الأكثر قراءة» looks for trending candidates — deliberately
- * much tighter than MOST_READ_WINDOW_DAYS above (which getMostCommented
- * still uses unchanged): a "what's hot right now" list needs a narrow pool,
- * or a story from day six can still out-decay a story from hour one on raw
- * lifetime views. In hours because that's the unit the client actually
- * asked for ("24 or 48 hours"); `published_within` itself only takes whole
- * days, so this is converted at the call site below.
- */
-export const MOST_READ_TRENDING_WINDOW_HOURS = 48;
 
 export const getMostRead = (lang: "ar" | "en" = "ar", limit = 5) =>
   safeGet<Paginated<ArticleCard>>(
@@ -287,17 +291,34 @@ export const getLatest = (lang: "ar" | "en" = "ar", limit = 12) =>
 /**
  * «الأكثر تعليقاً» — the other tab of that same block.
  *
- * Windowed for exactly the reason «الأكثر قراءة» is: a comment count only
- * ever goes up, so an unbounded ranking is an all-time leaderboard that the
- * oldest stories hold permanently. Every seeded comment in this database
- * sits on an article from the demo import, which is why this tab led with
- * three-week-old demo copy while the «الأحدث» tab beside it was showing
- * today's news correctly — the same list, one tab apart, disagreeing about
- * what year it was.
+ * Windowed for the reason «الأكثر قراءة» is: a comment count only ever goes
+ * up, so an unbounded ranking is an all-time leaderboard that the oldest
+ * stories hold permanently.
+ *
+ * But on its OWN window, not the read list's seven days. Reads arrive in
+ * thousands a day and comments in ones, so a horizon that keeps «الأكثر
+ * قراءة» honest leaves this tab with nothing to rank on most days — and the
+ * seven days were also standing in for a second job they were bad at, namely
+ * retiring the demo import's comments. Counting approved comments only (see
+ * the backend's content.views.APPROVED_COMMENTS) does that job directly and
+ * far better, which is what frees the window to be the length a discussion
+ * actually stays interesting for.
  */
+export const MOST_COMMENTED_WINDOW_DAYS = 30;
+
+/** The «الأكثر تعليقاً» tab's own query. */
 export const getMostCommented = (lang: "ar" | "en" = "ar", limit = 6) =>
   safeGet<Paginated<ArticleCard>>(
-    `/articles/?language=${lang}&ordering=-comment_count&published_within=${MOST_READ_WINDOW_DAYS}&page_size=${limit}`,
+    // `has_comments=true` is what makes this tab differ from «الأحدث» beside
+    // it. Ranked by `-comment_count` alone, nearly every story ties at zero and
+    // StableOrderingFilter breaks the tie on `-published_at` — so the tab
+    // returned the newest stories and the newsroom read the two tabs as wired
+    // to each other's query. They never were; this is the actual cause. With
+    // the ties dropped, the tab either ranks a real discussion or returns
+    // nothing, and LatestNewsTabs states the nothing rather than echoing the
+    // other tab. The count itself is approved comments only — see the
+    // backend's content.views.APPROVED_COMMENTS.
+    `/articles/?language=${lang}&ordering=-comment_count&has_comments=true&published_within=${MOST_COMMENTED_WINDOW_DAYS}&page_size=${limit}`,
     { count: 0, next: null, previous: null, results: [] },
     { revalidate: 60 },
   );
@@ -338,6 +359,21 @@ export const getBreakingNews = (query = "?active=true", opts: FetchOptions = { r
   safeGet<Paginated<BreakingNewsItem>>(`/breaking/${query}`, { count: 0, next: null, previous: null, results: [] }, opts);
 
 export const getVideos = (query = "", opts?: FetchOptions) => safeGet<Paginated<Video>>(`/videos/${query}`, { count: 0, next: null, previous: null, results: [] }, opts);
+
+/** «حصل إيه؟» — the Facebook shorts shelf. 60s like the rest of the media
+ *  desk: this is a curated rail an editor reorders, not a live feed. */
+export const getReels = (limit = 10, opts?: FetchOptions) =>
+  safeGet<Paginated<Reel>>(
+    `/reels/?page_size=${limit}`,
+    { count: 0, next: null, previous: null, results: [] },
+    opts ?? { revalidate: 60 },
+  );
+
+/** One reel by slug — the /reel/<slug> watch page. Same 30s window every
+ *  other detail fetcher (getArticle, getVideo) uses; the list above stays on
+ *  its own 60s since it's a curated rail, not a single reader's own page. */
+export const getReel = (slug: string) =>
+  safeGet<Reel | null>(`/reels/${encodeSlug(slug)}/`, null, { revalidate: 30 });
 
 export const getVideo = (slug: string) =>
   safeGet<VideoDetail | null>(`/videos/${encodeSlug(slug)}/`, null, { revalidate: 30 });

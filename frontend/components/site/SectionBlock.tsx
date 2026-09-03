@@ -12,6 +12,9 @@ export type SectionBlockCard = {
   time?: string;
   badge?: Badge;
   imageSrc?: string | null;
+  /** Gates ArticleCard's author-avatar cover fallback to opinion pieces. */
+  kind?: "news" | "opinion";
+  authorAvatar?: string | null;
   isVideo?: boolean;
   videoDuration?: string;
   comments?: number;
@@ -80,6 +83,8 @@ export default function SectionBlock({
             time={c.time}
             badge={c.badge ?? "none"}
             imageSrc={c.imageSrc}
+            kind={c.kind}
+            authorAvatar={c.authorAvatar}
             isVideo={c.isVideo}
             videoDuration={c.videoDuration}
             comments={c.comments}

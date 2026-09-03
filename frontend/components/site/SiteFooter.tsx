@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { ThreadsGlyph } from "@/components/ui/BrandIcons";
 import { getSections, getSiteSettings, mediaUrl } from "@/lib/api";
+import { visibleSections } from "@/lib/hiddenDesks";
 
 const CONTACT_EMAIL = "aldaftarnews@gmail.com";
 // wa.me takes digits only, no "+" and no spaces.
@@ -105,7 +106,7 @@ export default async function SiteFooter({ lang }: { lang: "ar" | "en" }) {
   // Every real section, in their dashboard order — a section added there
   // shows up here automatically instead of the footer quietly listing five
   // hardcoded ones forever.
-  const sectionBoxes = sections.results.map((s) => {
+  const sectionBoxes = visibleSections(sections.results).map((s) => {
     const mapped = SECTION_HREF[s.key];
     return {
       key: s.key,

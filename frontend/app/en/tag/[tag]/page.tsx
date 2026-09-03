@@ -61,6 +61,8 @@ export default async function TagEnPage({ params }: { params: Promise<{ tag: str
                 time={relativeTime(a.published_at, "en")}
                 badge={a.badge}
                 imageSrc={mediaUrl(a.cover_image)}
+                kind={a.kind}
+                authorAvatar={mediaUrl(a.author_avatar)}
               />
             ))}
           </div>

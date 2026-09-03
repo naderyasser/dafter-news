@@ -3,6 +3,7 @@ import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticles, getTags, mediaUrl, getMostRead } from "@/lib/api";
 import { decodeParam, relativeTime } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import { SITE_NAME, SITE_URL } from "@/lib/seo";
 
 export const revalidate = 60;
@@ -47,12 +48,14 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
                 key={a.id}
                 lang="ar"
                 variant="standard"
-                href={`/article/${a.slug}`}
+                href={articleHref(a)}
                 title={a.title}
                 section={a.section_name}
                 time={relativeTime(a.published_at, "ar")}
                 badge={a.badge}
                 imageSrc={mediaUrl(a.cover_image)}
+                kind={a.kind}
+                authorAvatar={mediaUrl(a.author_avatar)}
               />
             ))}
           </div>
@@ -62,7 +65,7 @@ export default async function TagPage({ params }: { params: Promise<{ tag: strin
             lang="ar"
             items={mostRead.results.map((a) => ({
               title: a.title,
-              href: `/article/${a.slug}`,
+              href: articleHref(a),
               section: a.section_name,
               views: a.views,
             }))}

@@ -126,7 +126,7 @@ export default function ShowcasePage() {
               variant="standard"
               href="#"
               title="كارت فيديو بشارة حصري ومدة"
-              section="لقطة وتعليق"
+              section="ثقافة وفن"
               time="منذ ساعتين"
               badge="exclusive"
               isVideo

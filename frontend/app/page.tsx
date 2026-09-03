@@ -17,13 +17,16 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import SpecialFilesBlock from "@/components/site/SpecialFilesBlock";
+import ReelsRail from "@/components/site/ReelsRail";
 import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getSectionFeed } from "@/lib/api";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getReels, getSectionFeed, getSiteSettings } from "@/lib/api";
 import { isArabicScript } from "@/lib/format";
+import { REELS_HIDDEN, VIDEO_DESK_HIDDEN, visibleSections } from "@/lib/hiddenDesks";
 import { pickLatest } from "@/lib/homeFeed";
+import { articleHref } from "@/lib/routes";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import { sectionsItemListJsonLd } from "@/lib/seo";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
@@ -63,13 +66,15 @@ const CURATED_KEYS = [
 
 function toSectionCard(a: ArticleCardType) {
   return {
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     section: a.section_name,
     badge: a.badge,
     // NO timestamp on a home-page card, deliberately — see the note above
     // HomeContent. The article page still stamps every story.
     imageSrc: mediaUrl(a.cover_image),
+    kind: a.kind,
+    authorAvatar: mediaUrl(a.author_avatar),
   };
 }
 
@@ -79,7 +84,7 @@ function toSectionCard(a: ArticleCardType) {
 // toWorldCard already uses for the same «وسم أحمر» field.
 function toHeroCarouselCard(a: ArticleCardType) {
   return {
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     badge: a.badge,
     chip: a.subcategory || a.section_name,
@@ -89,7 +94,7 @@ function toHeroCarouselCard(a: ArticleCardType) {
 
 function toWorldCard(a: ArticleCardType) {
   return {
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     // Country first (the client's geographic chip), then the editorial
     // subcategory, then the section name — so the chip is never blank.
@@ -154,7 +159,7 @@ const sectionFeed = (key: string, size = BLOCK_SIZE) => getSectionFeed("ar", key
 const MIN_FOR_PHOTO_LED = 2;
 
 async function HomeContent() {
-  const [pinnedRes, recent, politics, egypt, gulf, world, econ, sports, art, tech, special, security, guide, videos, opinion, mostRead, tags, popular, stories, matches, sections] =
+  const [pinnedRes, recent, politics, egypt, gulf, world, econ, sports, art, tech, special, security, guide, videos, opinion, mostRead, tags, popular, stories, matches, sections, reels, settings] =
     await Promise.all([
       getArticles("?language=ar&pinned=true&ordering=-published_at&page_size=5"),
       getLatest("ar", 12),
@@ -180,6 +185,12 @@ async function HomeContent() {
       getStories(),
       getMatches(),
       getSections(),
+      // «حصل إيه؟» — the Facebook shorts shelf that now holds the media slot
+      // on this page. Settings comes along for the paper's own page URL, which
+      // is the rail's footer link; it is the same cached read SiteFooter
+      // already makes, so it costs nothing extra.
+      getReels(),
+      getSiteSettings(),
     ]);
 
   // Symmetric with /en's isLatin filter: stories, videos and tags are
@@ -200,7 +211,7 @@ async function HomeContent() {
 
   // The tail: every section without a bespoke block above. Empty ones are
   // dropped rather than rendered as a bare heading.
-  const tailSections = sections.results.filter((s) => !CURATED_KEYS.includes(s.key));
+  const tailSections = visibleSections(sections.results).filter((s) => !CURATED_KEYS.includes(s.key));
   const tailFeeds = await Promise.all(tailSections.map((s) => sectionFeed(s.key, BLOCK_SIZE)));
   const tail = tailSections
     .map((section, i) => ({ section, articles: tailFeeds[i].results }))
@@ -213,7 +224,7 @@ async function HomeContent() {
   const pinnedIds = new Set(pinnedRes.results.map((a) => a.id));
   const heroPool = [...pinnedRes.results, ...recent.results.filter((a) => !pinnedIds.has(a.id))].slice(0, 5);
   const heroSlides = heroPool.map((a) => ({
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     section: a.section_name,
     badge: a.badge,
@@ -298,7 +309,7 @@ async function HomeContent() {
   }));
 
   const specialItems = specialCards.map((a) => ({
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     imageSrc: mediaUrl(a.cover_image),
     authorName: a.author_name || undefined,
@@ -334,7 +345,7 @@ async function HomeContent() {
    */
   const topOfPage = new Set<number>([...heroIds, ...heroSide.map((a) => a.id)]);
   const newsLatest = pickLatest(recent.results, topOfPage, 6).map((a) => ({
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
   }));
   // Built once: the list renders beside the hero now, not at the foot of the
@@ -343,14 +354,29 @@ async function HomeContent() {
   // being a ranking at all.
   const mostReadItems = mostRead.results.map((a) => ({
     title: a.title,
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     section: a.section_name,
     views: a.views,
     imageSrc: mediaUrl(a.cover_image),
+    kind: a.kind,
+    authorAvatar: mediaUrl(a.author_avatar),
   }));
 
+  const reelCards = reels.results.map((r) => ({
+    id: r.id,
+    title: r.title,
+    thumbnail: mediaUrl(r.thumbnail),
+    href: `/reel/${r.slug}`,
+  }));
+
+  /** The paper's own Facebook page, from Settings → روابط التواصل. Undefined
+   *  when it isn't set, which hides the rail's footer link rather than
+   *  shipping one that goes nowhere. */
+  const facebookPage =
+    settings?.social_links?.find((l) => l.platform === "facebook" && l.url)?.url || undefined;
+
   const newsPopular = popular.results.map((a) => ({
-    href: `/article/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     // «٠ تعليق» under a story in the "most discussed" tab states the exact
     // opposite of what the tab claims — omitted rather than printed.
@@ -365,8 +391,10 @@ async function HomeContent() {
           same two nodes on the homepage. */}
       {/* Documents the site's main sections for a crawler — the technical
           floor sitelinks are decided from, not a switch that turns them on
-          (see lib/seo.ts's sectionsItemListJsonLd for why). */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sectionsItemListJsonLd(sections.results) }} />
+          (see lib/seo.ts's sectionsItemListJsonLd for why). A hidden desk is
+          left out of it — this graph is a list of URLs handed to Google, and
+          a hidden desk's front answers 404. */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: sectionsItemListJsonLd(visibleSections(sections.results)) }} />
       <StoriesRail lang="ar" stories={arStories} />
 
       <div className="mx-auto flex max-w-container flex-wrap gap-8 px-6 pb-8 pt-5">
@@ -379,11 +407,13 @@ async function HomeContent() {
               <ArticleCard
                 lang="ar"
                 variant="compact"
-                href={`/article/${a.slug}`}
+                href={articleHref(a)}
                 title={a.title}
                 section={a.section_name}
                 badge={a.badge}
                 imageSrc={mediaUrl(a.cover_image)}
+                kind={a.kind}
+                authorAvatar={mediaUrl(a.author_avatar)}
               />
             </div>
           ))}
@@ -419,6 +449,18 @@ async function HomeContent() {
             cards={politicsCards.map(toHeroCarouselCard)}
           />
           )}
+          <SectionDivider />
+        </>
+      ) : null}
+
+      {/* «حصل إيه؟» — right after «سياسة», ahead of every other curated desk:
+          the client's own placement call. Light-themed (see ReelsRail's own
+          docstring), so it takes the standard SectionDivider on both sides
+          like any other light block, unlike its old dark-band position
+          lower on the page which separated itself with its own edge. */}
+      {!REELS_HIDDEN && reelCards.length ? (
+        <>
+          <ReelsRail lang="ar" reels={reelCards} facebookUrl={facebookPage} />
           <SectionDivider />
         </>
       ) : null}
@@ -475,9 +517,14 @@ async function HomeContent() {
       {/* جوّه الجون — its own floodlit surface rather than a fourth grid. */}
       <SportsBlock lang="ar" title="جوّه الجون" href="/section/sports" cards={sportsCards.map(toSectionCard)} matches={matches.results} />
 
-      {/* لقطة وتعليق — V4 media strip. No divider after: the navy band's own
-          bottom edge separates it from what follows. */}
-      <VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={showcaseVideos} />
+      {/* لقطة وتعليق — the media slot «بالمختصر» used to double up in here,
+          before it moved to right after «سياسة» (see above). This is now a
+          plain fallback for the one day reelCards is somehow empty AND
+          there's nothing to fill the slot with otherwise — reelCards being
+          empty no longer removes a section from the page the way it used to,
+          since the reels shelf isn't homed in this slot any more; this is
+          just «لقطة وتعليق» running normally in its own spot. */}
+      {!VIDEO_DESK_HIDDEN && <VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={showcaseVideos} />}
 
       {/* ثقافة وفن — photo-first arrow rail. */}
       {artCards.length ? (

@@ -5,6 +5,7 @@ import SectionFrontBody from "@/components/site/fronts/SectionFrontBody";
 import type { FrontStory } from "@/components/site/fronts/types";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl, getMostRead, getSectionFeed } from "@/lib/api";
+import { isHiddenSection } from "@/lib/hiddenDesks";
 import { standfirstFor } from "@/lib/format";
 import { sectionColor } from "@/lib/sections";
 import { sectionFront, sectionTagline } from "@/lib/sectionLayout";
@@ -15,6 +16,7 @@ export const revalidate = 60;
 /** See app/section/[key]/page.tsx's own generateMetadata for why. */
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const _params = await params;
+  if (isHiddenSection(_params.key)) return {};
   const section = await getSection(_params.key);
   if (!section) return {};
   return sectionMetadata(section, "en");
@@ -44,7 +46,8 @@ export default async function SectionEnPage({ params }: { params: Promise<{ key:
     front.feed === "videos" ? getVideos("?page_size=24") : Promise.resolve(null),
   ]);
 
-  if (!section) notFound();
+  // A desk taken off the public site has no front — see lib/hiddenDesks.ts.
+  if (!section || isHiddenSection(_params.key)) notFound();
 
   const accent = sectionColor(_params.key);
   // CTR ask: no relative-time caption on a browsing card — see the Arabic

@@ -156,3 +156,23 @@ describe("ArticlesTable edit action", () => {
     editLinks.forEach((el) => expect(el).not.toHaveStyle({ opacity: 0 }));
   });
 });
+
+describe("ArticlesTable initialQuery", () => {
+  it("opens already filtered by the top bar's ?q= search", () => {
+    render(<ArticlesTable rows={rows} initialQuery="الثاني" />);
+
+    expect(screen.getByDisplayValue("الثاني")).toBeInTheDocument();
+    expect(screen.getByText("الخبر الثاني")).toBeInTheDocument();
+    expect(screen.queryByText("الخبر الأول")).not.toBeInTheDocument();
+  });
+});
+
+describe("ArticlesTable initialQuery", () => {
+  it("opens already filtered by the top bar's ?q= search", () => {
+    render(<ArticlesTable rows={rows} initialQuery="الثاني" />);
+
+    expect(screen.getByText("الخبر الثاني")).toBeInTheDocument();
+    expect(screen.queryByText("الخبر الأول")).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText("بحث في المقالات...")).toHaveValue("الثاني");
+  });
+});

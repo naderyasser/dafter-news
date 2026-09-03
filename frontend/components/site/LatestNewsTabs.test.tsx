@@ -60,6 +60,33 @@ describe("LatestNewsTabs", () => {
     expect(screen.queryByText("الأحدث الأول")).not.toBeInTheDocument();
   });
 
+  it("says the popular tab is empty rather than echoing the latest list", async () => {
+    // The newsroom reported the two tabs as swapped. They never were: an
+    // unfiltered -comment_count ranking ties at zero for nearly every story
+    // and breaks the tie on -published_at, so the tab rendered the newest
+    // news. The pool is filtered now, so empty is a real state — and it has
+    // to READ as empty rather than as a copy of the other tab.
+    render(<LatestNewsTabs lang="ar" latest={latest} popular={[]} />);
+
+    await act(async () => screen.getByRole("button", { name: "الأكثر تعليقاً" }).click());
+
+    expect(screen.getByText("لا توجد أخبار عليها تعليقات بعد.")).toBeInTheDocument();
+  });
+
+  it("keeps the empty note off the latest tab, which can never be empty", () => {
+    render(<LatestNewsTabs lang="ar" latest={[]} popular={popular} />);
+
+    expect(screen.queryByText("لا توجد أخبار عليها تعليقات بعد.")).not.toBeInTheDocument();
+  });
+
+  it("states the empty case in English too", async () => {
+    render(<LatestNewsTabs lang="en" latest={latest} popular={[]} />);
+
+    await act(async () => screen.getByRole("button", { name: "Most Commented" }).click());
+
+    expect(screen.getByText("No stories have been commented on yet.")).toBeInTheDocument();
+  });
+
   it("speaks English on the English edition", () => {
     render(<LatestNewsTabs lang="en" latest={latest} popular={popular} />);
 

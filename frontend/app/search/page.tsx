@@ -1,6 +1,7 @@
 import SearchPageContent from "@/components/site/SearchPageContent";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticles, getSections } from "@/lib/api";
+import { visibleSections } from "@/lib/hiddenDesks";
 
 export const revalidate = 60;
 
@@ -32,7 +33,7 @@ export default async function SearchPage({
           initialTotal={initial.count}
           initialQuery={q}
           initialSection={section}
-          sections={sections.results}
+          sections={visibleSections(sections.results)}
         />
       </div>
     </SiteShell>

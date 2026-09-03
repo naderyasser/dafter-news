@@ -3,11 +3,17 @@ import Link from "next/link";
 import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
 import TimeAgo from "@/components/ui/TimeAgo";
+import { articleCoverFallback } from "@/lib/coverFallback";
+import { SITE_NAME } from "@/lib/seo";
 import type { Badge } from "@/lib/types";
 
 const T = {
-  ar: { drop: "أفلت صورة الخبر هنا", share: "مشاركة", shareGlyph: "↖", breaking: "عاجل", live: "مباشر", exclusive: "خاص" },
-  en: { drop: "Drop image here", share: "Share", shareGlyph: "↗", breaking: "Breaking", live: "Live", exclusive: "Exclusive" },
+  // Reader-facing copy, not the editor's own drag-and-drop instruction —
+  // this is the placeholder's last resort now that a missing cover always
+  // has a real fallback image first (see articleCoverFallback), reachable
+  // only if that image itself fails to load.
+  ar: { drop: SITE_NAME.ar, share: "مشاركة", shareGlyph: "↖", breaking: "عاجل", live: "مباشر", exclusive: "خاص" },
+  en: { drop: SITE_NAME.en, share: "Share", shareGlyph: "↗", breaking: "Breaking", live: "Live", exclusive: "Exclusive" },
 };
 
 function BadgeChip({ badge, lang, size = "md" }: { badge: Badge; lang: "ar" | "en"; size?: "md" | "sm" }) {
@@ -90,6 +96,12 @@ type CardProps = {
   excerpt?: string;
   badge?: Badge;
   imageSrc?: string | null;
+  /** Set for an article card (omitted for a video card) — gates the
+   *  author-avatar fallback to opinion pieces specifically. */
+  kind?: "news" | "opinion";
+  /** The byline's own photo — the fallback cover for an opinion piece with
+   *  no cover_image of its own. Ignored when `kind` isn't "opinion". */
+  authorAvatar?: string | null;
   isVideo?: boolean;
   videoDuration?: string;
   comments?: number;
@@ -115,6 +127,8 @@ export default function ArticleCard({
   excerpt,
   badge = "none",
   imageSrc,
+  kind,
+  authorAvatar,
   isVideo,
   videoDuration,
   comments,
@@ -129,12 +143,20 @@ export default function ArticleCard({
   // render an empty meta row that still costs its margin.
   const stamp = iso ? <TimeAgo iso={iso} lang={lang} /> : time ? <>{time}</> : null;
   const hasTime = Boolean(iso || time);
+  // A missing cover_image always resolves to SOMETHING now — a columnist's
+  // own photo for an opinion piece, the site's own mark otherwise — so
+  // CoverImage's own text placeholder is reached only if that image itself
+  // then fails to load, not on every uncovered story.
+  const fallback = imageSrc ? null : articleCoverFallback(kind, authorAvatar);
+  const coverSrc = imageSrc || fallback?.src;
+  const coverFit = fallback?.fit ?? "cover";
+  const coverPosition = fallback?.position ?? "center";
 
   if (variant === "hero") {
     return (
       <Link href={href} className="relative block overflow-hidden rounded-card">
         <div className="relative aspect-[16/10] max-h-[480px]">
-          <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
+          <CoverImage src={coverSrc} alt={title} placeholder={t.drop} className="absolute inset-0" fit={coverFit} position={coverPosition} />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(10,11,13,.88)] via-[rgba(10,11,13,.15)] to-transparent" />
         </div>
         <BadgeChip badge={badge} lang={lang} />
@@ -168,7 +190,7 @@ export default function ArticleCard({
       <Link href={href} className="card-link flex gap-3 py-2.5 no-underline" style={accentVar}>
         <div className="relative w-[120px] flex-shrink-0 overflow-hidden rounded-card">
           <div className="relative aspect-[4/3]">
-            <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
+            <CoverImage src={coverSrc} alt={title} placeholder={t.drop} className="absolute inset-0" fit={coverFit} position={coverPosition} />
           </div>
           <BadgeChip badge={badge} lang={lang} size="sm" />
           <PhotoChip label={chip} accent={accent} />
@@ -195,7 +217,7 @@ export default function ArticleCard({
   return (
     <Link href={href} className="card-link block overflow-hidden rounded-card border border-line bg-paper no-underline" style={accentVar}>
       <div className="relative aspect-video">
-        <CoverImage src={imageSrc} alt={title} placeholder={t.drop} className="absolute inset-0" />
+        <CoverImage src={coverSrc} alt={title} placeholder={t.drop} className="absolute inset-0" fit={coverFit} position={coverPosition} />
         <BadgeChip badge={badge} lang={lang} />
         <PhotoChip label={chip} accent={accent} />
         {isVideo && (

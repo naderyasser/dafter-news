@@ -1,16 +1,22 @@
 import { Suspense } from "react";
 
+import { notFound } from "next/navigation";
+
 import SiteShell from "@/components/site/SiteShell";
 import VideoGrid from "@/components/site/VideoGrid";
 import PageSkeleton from "@/components/ui/PageSkeleton";
 import { getVideos, mediaUrl } from "@/lib/api";
-import { relativeTime } from "@/lib/format";
+import { VIDEO_DESK_HIDDEN } from "@/lib/hiddenDesks";
+import { isArabicScript, relativeTime } from "@/lib/format";
 
 export const revalidate = 60;
 
 async function VideoListContent() {
   const videos = await getVideos("?page_size=24");
-  const items = videos.results.map((v) => ({
+  // Same script filter the home page's «لقطة وتعليق» block applies: the
+  // video table holds both editions in one column, and without this the
+  // English rows surfaced under the Arabic heading here.
+  const items = videos.results.filter((v) => isArabicScript(v.title)).map((v) => ({
     id: v.id,
     href: `/video/${v.slug}`,
     title: v.title,
@@ -38,6 +44,12 @@ async function VideoListContent() {
 export const metadata = { title: "لقطة وتعليق", description: "فيديوهات الدفتر — تقارير مصوّرة ولقطات من الحدث." };
 
 export default function VideoListPage() {
+  // Hidden desk — see lib/hiddenDesks.ts. Thrown here rather than from a
+  // generateMetadata this route does not have; there is no loading.tsx on
+  // this path (see the note above `metadata`), so nothing has been flushed
+  // yet and the 404 status is real.
+  if (VIDEO_DESK_HIDDEN) notFound();
+
   return (
     <Suspense fallback={<PageSkeleton lang="ar" variant="list" />}>
       <VideoListContent />

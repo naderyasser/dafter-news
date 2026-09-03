@@ -5,7 +5,9 @@ import SectionFrontBody from "@/components/site/fronts/SectionFrontBody";
 import type { FrontStory } from "@/components/site/fronts/types";
 import SiteShell from "@/components/site/SiteShell";
 import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl, getMostRead, getSectionFeed } from "@/lib/api";
+import { isHiddenSection } from "@/lib/hiddenDesks";
 import { standfirstFor } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import { sectionColor } from "@/lib/sections";
 import { sectionFront, sectionTagline } from "@/lib/sectionLayout";
 import { sectionMetadata } from "@/lib/seo";
@@ -21,6 +23,7 @@ export const revalidate = 60;
  */
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const _params = await params;
+  if (isHiddenSection(_params.key)) return {};
   const section = await getSection(_params.key);
   if (!section) return {};
   return sectionMetadata(section, "ar");
@@ -58,7 +61,8 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
     front.feed === "videos" ? getVideos("?page_size=24") : Promise.resolve(null),
   ]);
 
-  if (!section) notFound();
+  // A desk taken off the public site has no front — see lib/hiddenDesks.ts.
+  if (!section || isHiddenSection(_params.key)) notFound();
 
   const accent = sectionColor(_params.key);
   // CTR ask: a relative-time caption on a browsing card discourages a click
@@ -72,7 +76,7 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
   const keepDateStructure = front.front === "politics" || front.front === "security";
   const stories: FrontStory[] = articles.results.map((a) => ({
     id: a.id,
-    href: `/${a.kind === "opinion" ? "opinion" : "article"}/${a.slug}`,
+    href: articleHref(a),
     title: a.title,
     // Deduplicated once, here: almost every story in the database carries a
     // standfirst identical to its headline, and a front that printed both
@@ -98,7 +102,7 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
   const more: FrontStory[] = latest.results
     .map((a) => ({
       id: a.id,
-      href: `/${a.kind === "opinion" ? "opinion" : "article"}/${a.slug}`,
+      href: articleHref(a),
       title: a.title,
       imageSrc: mediaUrl(a.cover_image),
       time: "",
@@ -139,7 +143,7 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
               lang="ar"
               items={mostRead.results.map((a) => ({
                 title: a.title,
-                href: `/article/${a.slug}`,
+                href: articleHref(a),
                 section: a.section_name,
                 views: a.views,
                 imageSrc: mediaUrl(a.cover_image),

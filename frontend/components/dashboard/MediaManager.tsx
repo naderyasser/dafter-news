@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
 import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
+import { articleHref } from "@/lib/routes";
 import type { MediaAsset, MediaLicense } from "@/lib/types";
 
 /** Mirrors MediaAsset.License on the server. */
@@ -175,7 +176,11 @@ export default function MediaManager({
           return (
             <div key={m.id} className="group overflow-hidden rounded-card border border-line bg-paper">
               {m.article_slug ? (
-                <Link href={`/article/${m.article_slug}`} title={`فتح: ${m.article_title}`} className={frameClass}>
+                <Link
+                  href={articleHref({ kind: m.article_kind ?? "news", slug: m.article_slug })}
+                  title={`فتح: ${m.article_title}`}
+                  className={frameClass}
+                >
                   {thumb}
                 </Link>
               ) : (

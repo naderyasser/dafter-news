@@ -51,8 +51,8 @@ export default function CommentsManager({ comments: initial }: { comments: Comme
           </button>
         ))}
       </div>
-      <div className="overflow-hidden rounded-card border border-line bg-paper">
-        <div className="grid grid-cols-[1fr_2.4fr_1.6fr_1fr_130px] bg-surface">
+      <div className="overflow-x-auto rounded-card border border-line bg-paper">
+        <div className="grid min-w-[760px] grid-cols-[1fr_2.4fr_1.6fr_1fr_130px] bg-surface">
           <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">المستخدم</div>
           <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">التعليق</div>
           <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">على الخبر</div>
@@ -60,7 +60,7 @@ export default function CommentsManager({ comments: initial }: { comments: Comme
           <div className="px-3.5 py-2.5 text-xs font-bold text-ink-3">إجراءات</div>
         </div>
         {filtered.map((c) => (
-          <div key={c.id} className="grid min-h-[52px] grid-cols-[1fr_2.4fr_1.6fr_1fr_130px] items-center border-t border-line">
+          <div key={c.id} className="grid min-h-[52px] min-w-[760px] grid-cols-[1fr_2.4fr_1.6fr_1fr_130px] items-center border-t border-line">
             <div className="px-3.5 text-[14.5px] font-semibold text-ink">{c.user_name}</div>
             <div className="px-3.5 text-[14.5px] leading-[1.5] text-ink-3">{c.text}</div>
             <div className="px-3.5 text-[14.5px] text-ink-3">{c.article_title}</div>

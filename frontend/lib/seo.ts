@@ -184,10 +184,31 @@ export function articleDescription(article: ArticleDetail): string {
  * loading.tsx boundary, after the 200 has already gone out; the body
  * said «غير موجود» while the status told crawlers to index it.
  */
+/**
+ * The share card for a story filed without a cover photo.
+ *
+ * Only an opinion piece gets one, and only when its columnist has a
+ * portrait on file — the same editorial line the article cards themselves
+ * follow (see lib/coverFallback.ts): a column's identity is the person who
+ * wrote it, a news report's is the report. A news story with no cover keeps
+ * falling back to the paper's own branding image from the root layout,
+ * because its author's face is not what it is about.
+ *
+ * Points at app/og/article/[slug], which composes the portrait onto a
+ * 1200×630 canvas rather than handing the square avatar file to a crawler
+ * that would crop the face to fit — see that route for the whole reasoning.
+ */
+function authorCardImage(article: ArticleDetail): string | null {
+  if (article.kind !== "opinion") return null;
+  if (!article.author?.avatar) return null;
+  return `${SITE_URL}/og/article/${encodeURIComponent(article.slug)}`;
+}
+
 export function articleMetadata(article: ArticleDetail, path: string): Metadata {
   const lang = article.language === "en" ? "en" : "ar";
   const description = articleDescription(article);
   const cover = mediaUrl(article.cover_image);
+  const authorCard = cover ? null : authorCardImage(article);
   const url = `${SITE_URL}${path}`;
 
   return {
@@ -224,13 +245,30 @@ export function articleMetadata(article: ArticleDetail, path: string): Metadata 
               type: imageMimeType(cover),
             },
           ]
-        : undefined,
+        : authorCard
+          ? [
+              {
+                url: authorCard,
+                secureUrl: authorCard,
+                // Not a guess, unlike the cover branch's fallback pair: the
+                // route renders at exactly this size every time.
+                width: 1200,
+                height: 630,
+                alt: article.author?.name || article.title,
+                type: "image/png",
+              },
+            ]
+          : undefined,
     },
     twitter: {
-      card: cover ? "summary_large_image" : "summary",
+      // The wide card, never the small square one, whenever there is a
+      // picture to put in it — a 1200×630 image in a `summary` card is
+      // rendered by X as a thumbnail beside the text, which is the format
+      // the newsroom was comparing itself against and losing.
+      card: cover || authorCard ? "summary_large_image" : "summary",
       title: article.title,
       description,
-      images: cover ? [cover] : undefined,
+      images: cover ? [cover] : authorCard ? [authorCard] : undefined,
     },
   };
 }

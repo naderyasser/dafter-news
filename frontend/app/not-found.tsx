@@ -3,6 +3,7 @@ import Link from "next/link";
 import MostReadList from "@/components/site/MostReadList";
 import SiteShell from "@/components/site/SiteShell";
 import { getMostRead } from "@/lib/api";
+import { articleHref } from "@/lib/routes";
 
 export default async function NotFound() {
   const mostRead = await getMostRead("ar");
@@ -22,7 +23,7 @@ export default async function NotFound() {
           lang="ar"
           items={mostRead.results.map((a) => ({
             title: a.title,
-            href: `/article/${a.slug}`,
+            href: articleHref(a),
             section: a.section_name,
             views: a.views,
           }))}

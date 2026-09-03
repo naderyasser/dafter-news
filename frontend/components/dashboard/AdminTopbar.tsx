@@ -3,15 +3,17 @@ import { DASHBOARD } from "@/lib/routes";
 
 export default function AdminTopbar() {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-5 border-b border-line bg-paper px-6 py-3.5 font-dashboard-ar">
-      <div className="relative min-w-[180px] max-w-[420px] flex-1">
+    <div className="flex flex-wrap items-center justify-between gap-5 border-b border-line bg-paper px-6 py-3.5 font-dashboard-ar max-[860px]:sticky max-[860px]:top-0 max-[860px]:z-[90] max-[860px]:gap-3 max-[860px]:px-4 max-[860px]:ps-16">
+      <form action={`${DASHBOARD}/articles`} method="get" role="search" className="relative min-w-[180px] max-w-[420px] flex-1">
         <span className="pointer-events-none absolute start-3.5 top-1/2 -translate-y-1/2 text-[14px] text-header-muted">🔍</span>
         <input
-          type="text"
-          placeholder="بحث شامل في لوحة التحكم..."
+          type="search"
+          name="q"
+          placeholder="بحث في المقالات..."
+          aria-label="بحث في المقالات"
           className="w-full rounded-lg border border-line bg-surface py-2.5 pe-3.5 ps-9 text-[14px] text-ink outline-none focus:border-brand focus:bg-paper"
         />
-      </div>
+      </form>
       <div className="flex items-center gap-4">
         <Link
           href={`${DASHBOARD}/articles/new`}

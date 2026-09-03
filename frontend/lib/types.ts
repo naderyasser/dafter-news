@@ -11,6 +11,13 @@ export type Badge = "none" | "breaking" | "exclusive" | "live";
 export type ArticleStatus = "draft" | "review" | "scheduled" | "published" | "rejected";
 export type Role = "admin" | "editor" | "author" | "moderator";
 
+export const ROLE_LABELS: Record<Role, string> = {
+  admin: "مدير",
+  editor: "محرر",
+  author: "كاتب",
+  moderator: "مشرف تعليقات",
+};
+
 export type Section = {
   id: number;
   key: string;
@@ -91,6 +98,7 @@ export type ArticleBlock = {
   credit: string;
   related_article: number | null;
   related_article_slug: string | null;
+  related_article_kind: "news" | "opinion" | null;
 };
 
 export type ArticleDetail = {
@@ -184,6 +192,21 @@ export type Video = {
   created_at: string;
 };
 
+/** «حصل إيه؟» — a Facebook reel the home page posters, and deliberately does
+ *  not play. Three editorial fields and an ordering handle; see the backend's
+ *  video.models.Reel for why there is nothing else on it. */
+export type Reel = {
+  id: number;
+  title: string;
+  /** System-derived from the title once it settles (backend's Reel.assign_slug)
+   *  — read-only, never sent on write. Builds the /reel/<slug> watch page URL. */
+  slug: string;
+  thumbnail: string | null;
+  facebook_url: string;
+  order: number;
+  created_at: string;
+};
+
 export type VideoComment = { id: number; video: number; name: string; initial: string; text: string; created_at: string };
 
 export type VideoDetail = Video & { comments: VideoComment[] };
@@ -260,6 +283,7 @@ export type MediaAsset = {
   article: number | null;
   article_title: string | null;
   article_slug: string | null;
+  article_kind: "news" | "opinion" | null;
   created_at: string;
 };
 

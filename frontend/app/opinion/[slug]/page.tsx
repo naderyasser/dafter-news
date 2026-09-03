@@ -10,6 +10,7 @@ import SiteShell from "@/components/site/SiteShell";
 import ViewBeacon from "@/components/site/ViewBeacon";
 import { getArticle, mediaUrl, getMostRead } from "@/lib/api";
 import { publishedLine } from "@/lib/format";
+import { articleHref } from "@/lib/routes";
 import { articleJsonLd, articleMetadata, SITE_URL } from "@/lib/seo";
 import Link from "next/link";
 
@@ -84,7 +85,7 @@ export default async function ArticleOpinionPage({ params }: { params: Promise<{
             lang="ar"
             items={mostRead.results.map((a) => ({
               title: a.title,
-              href: `/article/${a.slug}`,
+              href: articleHref(a),
               section: a.section_name,
               views: a.views,
               imageSrc: mediaUrl(a.cover_image),

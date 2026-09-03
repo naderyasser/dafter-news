@@ -15,3 +15,8 @@ tsconfig.tsbuildinfo
 # fourth one got committed, 239 files of build output, because nobody thought
 # to extend it before running `git add -A`.
 .next-*/
+
+# Written by `next build`/`next dev` itself (Next 16's agent rules), not by
+# anyone here — regenerated on every build, so it is output, not source.
+AGENTS.md
+CLAUDE.md

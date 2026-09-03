@@ -14,11 +14,13 @@ import SectionDivider from "@/components/site/SectionDivider";
 import SectionHeading from "@/components/site/SectionHeading";
 import SiteShell from "@/components/site/SiteShell";
 import SpecialFilesBlock from "@/components/site/SpecialFilesBlock";
+import ReelsRail from "@/components/site/ReelsRail";
 import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getSectionFeed } from "@/lib/api";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getReels, getSectionFeed, getSiteSettings } from "@/lib/api";
+import { REELS_HIDDEN, VIDEO_DESK_HIDDEN, visibleSections } from "@/lib/hiddenDesks";
 import { isLatinScript } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
@@ -59,6 +61,8 @@ function toCard(a: ArticleCardType) {
     section: a.section_name,
     badge: a.badge,
     imageSrc: mediaUrl(a.cover_image),
+    kind: a.kind,
+    authorAvatar: mediaUrl(a.author_avatar),
   };
 }
 
@@ -93,7 +97,7 @@ const sectionFeed = (key: string, size = 6) =>
   getSectionFeed("en", key, size);
 
 async function HomeEnContent() {
-  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, sections, matches] =
+  const [pinnedRes, recent, egypt, gulf, world, econ, sports, art, tech, special, videos, opinion, mostRead, tags, popular, stories, sections, matches, reels, settings] =
     await Promise.all([
       getArticles("?language=en&pinned=true&ordering=-published_at&page_size=5"),
       getLatest("en", 12),
@@ -115,9 +119,15 @@ async function HomeEnContent() {
       getStories(),
       getSections(),
       getMatches(),
+      // «حصل إيه؟» / Catch Up — the same shelf the Arabic home carries. Reels
+      // are one shared list, not a per-language one: a reel is a video with a
+      // title on it, and the desk publishes one Facebook page for both
+      // editions. Settings comes along for that page's URL.
+      getReels(),
+      getSiteSettings(),
     ]);
 
-  const tailSections = sections.results.filter((s) => !CURATED_KEYS.includes(s.key));
+  const tailSections = visibleSections(sections.results).filter((s) => !CURATED_KEYS.includes(s.key));
   const tailFeeds = await Promise.all(tailSections.map((s) => sectionFeed(s.key, 4)));
   const tail = tailSections
     .map((section, i) => ({ section, articles: tailFeeds[i].results }))
@@ -186,6 +196,18 @@ async function HomeEnContent() {
     // Arabic home's own newsLatest for why this is blanked, not dropped.
     time: "",
   }));
+  const reelCards = reels.results.map((r) => ({
+    id: r.id,
+    title: r.title,
+    thumbnail: mediaUrl(r.thumbnail),
+    href: `/en/reel/${r.slug}`,
+  }));
+
+  /** Settings → social links. Undefined hides the rail's footer link rather
+   *  than shipping one that goes nowhere — mirrors the Arabic home. */
+  const facebookPage =
+    settings?.social_links?.find((l) => l.platform === "facebook" && l.url)?.url || undefined;
+
   const newsPopular = popular.results.map((a) => ({
     href: `/en/article/${a.slug}`,
     title: a.title,
@@ -214,6 +236,8 @@ async function HomeEnContent() {
                 section={a.section_name}
                 badge={a.badge}
                 imageSrc={mediaUrl(a.cover_image)}
+                kind={a.kind}
+                authorAvatar={mediaUrl(a.author_avatar)}
               />
             </div>
           ))}
@@ -228,6 +252,19 @@ async function HomeEnContent() {
           same pattern WorldNewsBlock's own divider already uses below. */}
       {egypt.results.length ? <SectionDivider /> : null}
 
+      {/* «Catch Up» — right after the FIRST curated section, mirroring the
+          Arabic home's own placement right after «سياسة» as closely as this
+          edition can: the English home curates no Politics block at all
+          (there is no `politicsCards` here), so "right after the first real
+          section" is the structural equivalent of the client's own "right
+          after سياسة" call. Light-themed; see ReelsRail's own docstring. */}
+      {!REELS_HIDDEN && reelCards.length ? (
+        <>
+          <ReelsRail lang="en" reels={reelCards} facebookUrl={facebookPage} />
+          <SectionDivider />
+        </>
+      ) : null}
+
       {gulf.results.length ? (
         <>
           <SectionBlock lang="en" title={T.gulf} seeAllHref="/en/section/gulf" cards={gulf.results.map(toGulfCard)} initialCount={4} sectionKey="gulf" />
@@ -235,10 +272,12 @@ async function HomeEnContent() {
         </>
       ) : null}
 
-      {/* Video desk third in the page order, mirroring the Arabic home block
-          for block. Hidden until there are English video headlines — a heading
-          with no player under it reads as a broken block. */}
-      {showcaseVideos.length ? <VideoShowcase lang="en" title={T.video} href="/video" videos={showcaseVideos} /> : null}
+      {/* لقطة وتعليق — the media slot «Catch Up» used to double up in here,
+          before it moved up to right after the first section (see above).
+          VideoShowcase guards its own empty state, so this is safe to render
+          unconditionally now that it is no longer sharing this slot with a
+          second component. */}
+      {!VIDEO_DESK_HIDDEN && <VideoShowcase lang="en" title={T.video} href="/video" videos={showcaseVideos} />}
 
       <WorldNewsBlock lang="en" title={T.world} href="/en/section/world" cards={world.results.map(toWorldCard)} sectionKey="world" />
       {world.results.length ? <SectionDivider /> : null}
@@ -312,6 +351,8 @@ async function HomeEnContent() {
               section: a.section_name,
               views: a.views,
               imageSrc: mediaUrl(a.cover_image),
+              kind: a.kind,
+              authorAvatar: mediaUrl(a.author_avatar),
             }))}
           />
           {enTags.length > 0 && (

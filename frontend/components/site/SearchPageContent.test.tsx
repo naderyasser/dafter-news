@@ -90,4 +90,36 @@ describe("SearchPageContent lang", () => {
     expect(fetchMock.mock.calls[0][0]).toContain("language=en");
     expect(screen.getByText("Delta bridge opens").closest("a")).toHaveAttribute("href", "/en/article/delta-bridge");
   });
+
+  it("links an opinion result to /opinion/[slug], not /article/[slug] where it 404s", async () => {
+    // regression: this component used to build every result's href from a
+    // hardcoded /article (or /en/article) base regardless of the row's kind.
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        count: 1,
+        next: null,
+        previous: null,
+        results: [
+          {
+            id: 2,
+            slug: "a-column",
+            title: "عمود رأي",
+            section_name: "بالعقل والمنطق",
+            badge: "none",
+            cover_image: null,
+            published_at: null,
+            kind: "opinion",
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SearchPageContent initial={[]} initialQuery="مصر" />);
+    fireEvent.change(screen.getByPlaceholderText("ابحث عن خبر، كاتب، أو قسم…"), { target: { value: "عمود" } });
+    await settle(250);
+
+    expect(screen.getByText("عمود رأي").closest("a")).toHaveAttribute("href", "/opinion/a-column");
+  });
 });

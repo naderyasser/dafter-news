@@ -47,6 +47,28 @@ export default function LatestNewsTabs({
         {rows.map((n, i) => (
           <ArticleCard key={n.href + i} lang={lang} variant="text" href={n.href} title={n.title} time={n.time} iso={n.iso} />
         ))}
+        {/*
+          «الأكثر تعليقاً» can now legitimately come back empty, and that is the
+          point of the fix rather than a hole in it.
+
+          The tab used to be fed an unfiltered `-comment_count` ranking. Almost
+          every story carries zero comments, so they all tied at the top of
+          that sort and the tie broke on `-published_at` — the tab rendered the
+          newest stories, an exact copy of «الأحدث» beside it, which is what
+          the newsroom reported as the two tabs being swapped. The pool is now
+          filtered to stories that actually have an approved comment (see
+          lib/api.ts's getMostCommented), so on a quiet day it has nothing to
+          rank. Saying so is honest; silently echoing the other tab was not.
+
+          Only the popular tab gets this: «الأحدث» is topped up from the full
+          list and can never be empty, so an empty state there would be a
+          message for a state that cannot happen.
+        */}
+        {rows.length === 0 && tab === "popular" && (
+          <p className="m-0 border-t border-line py-6 text-center text-ui text-ink-3">
+            {isAr ? "لا توجد أخبار عليها تعليقات بعد." : "No stories have been commented on yet."}
+          </p>
+        )}
       </div>
     </div>
   );
