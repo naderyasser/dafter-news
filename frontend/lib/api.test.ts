@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { API_ORIGIN, ApiError, apiMutate, describeApiError, getArticle, getArticles, getLatest, getMostCommented, getMostRead, MOST_COMMENTED_WINDOW_DAYS, getSectionFeed, getTicker, mediaUrl } from "./api";
+import { API_ORIGIN, ApiError, apiMutate, describeApiError, getArticle, getArticles, getLatest, getMostCommented, getMostRead, getSectionMostRead, MOST_COMMENTED_WINDOW_DAYS, SECTION_MOST_READ_WINDOW_DAYS, getSectionFeed, getTicker, mediaUrl } from "./api";
 
 const okJson = (body: unknown) =>
   Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(body) } as Response);
@@ -94,6 +94,32 @@ describe("read helpers", () => {
     expect(url).not.toContain("pinned");
     expect(url).toContain("section__key=gulf");
     expect(url).toContain("page_size=6");
+  });
+
+  it("ranks the section rail by the same trending score as the site-wide list, scoped to the desk", async () => {
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getSectionMostRead("ar", "pol");
+
+    const url = String(vi.mocked(fetch).mock.calls[0][0]);
+    expect(url).toContain("ordering=-trending_score");
+    expect(url).toContain("section__key=pol");
+    expect(url).toContain(`published_within=${SECTION_MOST_READ_WINDOW_DAYS}`);
+  });
+
+  it("gives the section rail a wider window than the site-wide list — one desk does not fill five rows in 48 hours", async () => {
+    // Measured on the live database: at 48 hours «سياسة» had two entries and
+    // «ملف خاص» none, so the desk-scoped rail would have fallen back to the
+    // site-wide list on nearly every section.
+    expect(SECTION_MOST_READ_WINDOW_DAYS).toBeGreaterThan(2);
+  });
+
+  it("encodes a section key on the rail too", async () => {
+    vi.mocked(fetch).mockReturnValue(okJson({ count: 0, next: null, previous: null, results: [] }));
+
+    await getSectionMostRead("ar", "a b&c");
+
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain(encodeURIComponent("a b&c"));
   });
 
   it("encodes a section key rather than pasting it into the URL", async () => {

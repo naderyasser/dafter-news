@@ -263,16 +263,32 @@ export const getMostRead = (lang: "ar" | "en" = "ar", limit = 5) =>
   );
 
 /**
- * «الأكثر قراءة» within one desk — the section page's own rail.
+ * A month, where the site-wide list uses two days.
  *
- * Same ranking and the same 48-hour window as the site-wide list, scoped by
- * `section__key`. The page tops a thin result up from the site-wide list
- * (see app/section/[key]/page.tsx), so this asks for a few more than it
- * shows to leave room for the dedupe.
+ * The window exists to stop a popularity list becoming an all-time
+ * leaderboard (see MOST_READ_TRENDING_WINDOW_HOURS). Two days is right for a
+ * list drawn from the whole paper, which files enough every day to fill five
+ * rows. One desk does not: measured on the live database, a 48-hour window
+ * left «سياسة» with two entries and «ملف خاص» with none, so the section rail
+ * the client asked for would have shown the site-wide list on nearly every
+ * desk. Thirty days fills all thirteen while still ranking what is being read
+ * NOW rather than the desk's best-performing story of all time — the
+ * trending score itself decays by age, so a fortnight-old piece has to be
+ * genuinely popular to outrank yesterday's.
+ */
+export const SECTION_MOST_READ_WINDOW_DAYS = 30;
+
+/**
+ * «الأكثر قراءة» within one desk — the section page's own rail, the client's
+ * 2026-09-09 ask («قسم/شريط جانبي للأخبار الأكثر قراءة داخل القسم»).
+ *
+ * Same trending ranking as the site-wide list, scoped by `section__key` and
+ * over the wider window above. A desk too quiet even for that falls back to
+ * the site-wide list — see lib/sectionRail.
  */
 export const getSectionMostRead = (lang: "ar" | "en", key: string, limit = 5) =>
   safeGet<Paginated<ArticleCard>>(
-    `/articles/?language=${lang}&section__key=${encodeURIComponent(key)}&ordering=-trending_score&published_within=${Math.round(MOST_READ_TRENDING_WINDOW_HOURS / 24)}&page_size=${limit}`,
+    `/articles/?language=${lang}&section__key=${encodeURIComponent(key)}&ordering=-trending_score&published_within=${SECTION_MOST_READ_WINDOW_DAYS}&page_size=${limit}`,
     { count: 0, next: null, previous: null, results: [] },
     { revalidate: 30 },
   );
