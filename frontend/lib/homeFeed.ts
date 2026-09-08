@@ -1,33 +1,37 @@
 /**
  * Picking what «أحدث الأخبار» shows.
  *
- * Small enough to look obvious, and it has been got wrong twice — which is
- * why it lives here with tests rather than inline in app/page.tsx.
+ * Small enough to look obvious, and it has been got wrong three times —
+ * which is why it lives here with tests rather than inline in app/page.tsx.
  *
- * The home page keeps a set of stories it has already put on screen. The
- * first attempt filtered this list against that whole set, which was fine
- * until the section blocks began recording what they show; the marked set
- * then covered nearly every recent story and the tab rendered an empty box
- * under its own heading.
+ * The rule is the one the heading promises and nothing more: the newest
+ * stories, newest first, exactly as the API orders them (`-published_at`).
  *
- * The rule that survives both failures: prefer stories the reader has not
- * just scrolled past at the TOP of the page, then top up from the rest, and
- * never return fewer than the input can fill. A list labelled "latest news"
- * repeating one story from the top of a long page is a far smaller cost
- * than a heading over nothing.
+ * What it must NOT do, because both were shipped and both were reported:
+ *
+ *  1. Filter against everything the page has already shown. Once the section
+ *     blocks began recording their stories, that set covered nearly every
+ *     recent story and the tab rendered an empty box under its own heading.
+ *  2. Demote the stories the hero and its side rail show to the END of the
+ *     list. The hero takes the newest stories on the site, so "prefer what
+ *     the reader has not scrolled past" put the freshest headline — the one
+ *     the newsroom had just published — at the bottom of a list labelled
+ *     latest. That is the "«الدفعات الجوية تتصدى لهجمات» is at the bottom"
+ *     report, and it was not a caching or timezone problem: the API answered
+ *     newest-first and this function reordered it.
+ *
+ * Repeating a story from the top of a long page is a far smaller cost than
+ * a list called "latest" that is not.
  */
-export function pickLatest<T extends { id: number }>(
-  recent: T[],
-  topOfPageIds: ReadonlySet<number>,
-  count: number,
-): T[] {
+export function pickLatest<T extends { id: number }>(recent: T[], count: number): T[] {
   if (count <= 0) return [];
-  const fresh: T[] = [];
-  const seenAtTop: T[] = [];
+  const seen = new Set<number>();
+  const picked: T[] = [];
   for (const item of recent) {
-    (topOfPageIds.has(item.id) ? seenAtTop : fresh).push(item);
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    picked.push(item);
+    if (picked.length === count) break;
   }
-  // Order is preserved within each group, so the list stays newest-first
-  // among the stories that are actually new to the reader.
-  return [...fresh, ...seenAtTop].slice(0, count);
+  return picked;
 }
