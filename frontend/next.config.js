@@ -15,6 +15,11 @@ const nextConfig = {
    * and leave the deployed build alone; only the actual deploy writes `.next`.
    */
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // Development only: the QA recipe drives the dev server at 127.0.0.1:3399
+  // (so the browser and the API on 127.0.0.1:8899 are one site for cookies),
+  // and Next 16 treats a bare IP as a foreign origin and answers 403 for the
+  // /_next/ chunks it requests — the login form then never hydrates.
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   images: {
     remotePatterns: [
       { protocol: "http", hostname: "localhost" },
