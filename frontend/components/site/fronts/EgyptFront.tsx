@@ -95,7 +95,7 @@ export default function EgyptFront({ lang, accent, sectionKey, title, tagline, s
                   className="card-link flex gap-4 border-b border-line py-4 no-underline first:pt-0 last:border-b-0 md:block"
                   style={accentVar}
                 >
-                  <div className="relative aspect-[4/3] w-[110px] flex-shrink-0 overflow-hidden rounded-card md:w-full">
+                  <div className="relative aspect-square w-[88px] flex-shrink-0 overflow-hidden rounded-md md:aspect-[4/3] md:w-full md:rounded-card">
                     <CoverImage src={s.imageSrc} alt={s.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 768px) 300px, 110px" />
                   </div>
                   <div className="min-w-0">

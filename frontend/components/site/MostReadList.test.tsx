@@ -96,11 +96,10 @@ describe("MostReadList", () => {
     expect(links[links.length - 1].className).not.toContain("border-b");
   });
 
-  it("renders nothing but the heading for an empty list", () => {
-    render(<MostReadList lang="ar" items={[]} />);
+  it("renders nothing at all for an empty list — never a heading over nothing", () => {
+    const { container } = render(<MostReadList lang="ar" items={[]} />);
 
-    expect(screen.getByText("الأكثر قراءة")).toBeInTheDocument();
-    expect(screen.queryAllByRole("link")).toHaveLength(0);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it("captions a row with its section alone, never the read count", () => {

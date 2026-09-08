@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import { withoutSectionPrefix } from "@/lib/format";
 import { sectionArtUrl } from "@/lib/sections";
 import type { FrontProps } from "./types";
@@ -85,11 +86,6 @@ export default function GuideFront({ lang, accent, sectionKey, title, tagline, s
         <div>
           {rest.map((s) => (
             <Link key={s.id} href={s.href} className="card-link flex items-start gap-5 border-t border-line py-6 no-underline" style={accentVar}>
-              {s.imageSrc && (
-                <div className="relative hidden h-[88px] w-[88px] flex-shrink-0 overflow-hidden rounded-card sm:block">
-                  <CoverImage src={s.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="88px" />
-                </div>
-              )}
               <div className="min-w-0 flex-1">
                 <h3 className={`${fontDisplay} card-title m-0 text-[17px] font-extrabold leading-[1.55] text-ink`}>{withoutSectionPrefix(s.title, title)}</h3>
                 {s.standfirst && (
@@ -102,6 +98,7 @@ export default function GuideFront({ lang, accent, sectionKey, title, tagline, s
                 )}
                 {s.time && <div className="mt-2 text-[12px] font-semibold text-ink-3">{s.time}</div>}
               </div>
+              {s.imageSrc && <ListThumb src={s.imageSrc} className="hidden sm:block" />}
             </Link>
           ))}
         </div>

@@ -50,8 +50,9 @@ describe("SectionNewswire", () => {
   it("runs the rest as a dense list, not a card grid", () => {
     const { container } = render(<SectionNewswire lang="ar" cards={cards} />);
 
-    // The compact row's 120px thumbnail is the tell; a standard card has none.
-    expect(container.querySelectorAll(".w-\\[120px\\]").length).toBeGreaterThan(4);
+    // The compact row's square list thumbnail is the tell; a standard card
+    // carries a 16:9 photo instead.
+    expect(container.querySelectorAll(".aspect-square").length).toBeGreaterThan(4);
   });
 
   it("paginates past the first eight rows", () => {

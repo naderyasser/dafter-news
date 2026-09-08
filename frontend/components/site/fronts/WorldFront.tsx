@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import { sectionArtUrl } from "@/lib/sections";
 import type { FrontProps } from "./types";
 
@@ -105,15 +106,11 @@ export default function WorldFront({ lang, accent, sectionKey, title, tagline, s
       <div className="flex flex-col">
         {feed.map((s) => (
           <Link key={s.id} href={s.href} className="flex items-center gap-3.5 border-b border-line py-4 no-underline last:border-b-0">
-            {s.imageSrc ? (
-              <div className="relative h-[64px] w-[64px] flex-shrink-0 overflow-hidden rounded-[8px]">
-                <CoverImage src={s.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="64px" />
-              </div>
-            ) : null}
             <div className="min-w-0 flex-1">
               {!s.imageSrc && s.subject && <div className="mb-1 text-[12px] font-semibold text-ink-3">{s.subject}</div>}
               <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-extrabold leading-[1.6] text-ink`}>{s.title}</h3>
             </div>
+            {s.imageSrc ? <ListThumb src={s.imageSrc} size="sm" /> : null}
           </Link>
         ))}
         {feed.length === 0 && active && <p className="py-8 text-center text-[14px] text-ink-3">{t.empty}</p>}

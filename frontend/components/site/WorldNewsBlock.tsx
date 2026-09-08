@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import SectionHeading from "@/components/site/SectionHeading";
 import SectionMore from "@/components/site/SectionMore";
 import { sectionColor, sectionStyle } from "@/lib/sections";
@@ -133,13 +134,7 @@ function Lead({ card, lang, accent }: { card: WorldCard; lang: Lang; accent: str
  */
 function Side({ card, lang, accent }: { card: WorldCard; lang: Lang; accent: string }) {
   return (
-    <Link href={card.href} className="card-link flex gap-3 no-underline" style={{ "--card-accent": accent } as React.CSSProperties}>
-      <div className="relative w-[112px] flex-shrink-0 overflow-hidden rounded-card sm:w-[128px]">
-        <div className="relative aspect-[4/3]">
-          <CoverImage src={card.imageSrc} alt={card.title} placeholder={DROP[lang]} className="absolute inset-0" sizes="128px" />
-        </div>
-        <Chip label={card.label} placement="corner" />
-      </div>
+    <Link href={card.href} className="card-link flex items-center gap-3.5 no-underline" style={{ "--card-accent": accent } as React.CSSProperties}>
       <div className="min-w-0 flex-1">
         {card.kicker && (
           <div className="mb-1 text-[11px] font-bold" style={{ color: accent }}>
@@ -149,6 +144,12 @@ function Side({ card, lang, accent }: { card: WorldCard; lang: Lang; accent: str
         <h3 className={`${lang === "ar" ? "font-display-ar" : "font-display-en"} text-[15px] font-bold leading-[1.5] card-title text-ink`}>{card.title}</h3>
         {card.time && <div className="mt-1.5 text-caption text-ink-3">{card.time}</div>}
       </div>
+      {/* The shared square list frame, at the row's inline end like every
+          other feed row on the site — this rail used to be the one place
+          with a 128px 4:3 photo leading the row. */}
+      <ListThumb src={card.imageSrc} alt={card.title} placeholder={DROP[lang]}>
+        <Chip label={card.label} placement="corner" />
+      </ListThumb>
     </Link>
   );
 }

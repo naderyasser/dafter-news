@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import Chevron from "@/components/ui/Chevron";
 import SectionHeading from "@/components/site/SectionHeading";
 import SectionMore from "@/components/site/SectionMore";
@@ -179,8 +180,7 @@ export default function LeadListBlock({
                   )}
                 </div>
                 {c.imageSrc && (
-                  <div className="relative h-[64px] w-[92px] flex-shrink-0 overflow-hidden rounded-[3px] sm:h-[72px] sm:w-[104px]">
-                    <CoverImage src={c.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="104px" />
+                  <ListThumb src={c.imageSrc}>
                     {c.chip && (
                       <span
                         className="absolute start-1 top-1 z-10 rounded-badge px-1.5 py-0.5 text-[9px] font-extrabold text-paper shadow-1 ring-1 ring-inset ring-white/15"
@@ -189,7 +189,7 @@ export default function LeadListBlock({
                         {c.chip}
                       </span>
                     )}
-                  </div>
+                  </ListThumb>
                 )}
               </Link>
             ))}

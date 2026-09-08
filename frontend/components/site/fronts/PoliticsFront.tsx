@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import { clockTime, dayBucket, formatDate } from "@/lib/format";
 import { sectionArtUrl } from "@/lib/sections";
 import type { FrontProps, FrontStory } from "./types";
@@ -148,11 +149,7 @@ export default function PoliticsFront({ lang, accent, sectionKey, title, tagline
                     </h3>
                     {s.standfirst && <p className="mt-1.5 line-clamp-2 text-[14px] leading-[1.7] text-ink-2">{s.standfirst}</p>}
                   </div>
-                  {s.imageSrc && (
-                    <div className="relative hidden h-[64px] w-[96px] flex-shrink-0 overflow-hidden rounded-[3px] sm:block">
-                      <CoverImage src={s.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="96px" />
-                    </div>
-                  )}
+                  {s.imageSrc && <ListThumb src={s.imageSrc} size="sm" className="hidden sm:block" />}
                 </Link>
               </li>
             ))}

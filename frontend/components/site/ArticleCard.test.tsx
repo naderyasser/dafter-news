@@ -189,10 +189,13 @@ describe("ArticleCard", () => {
       expect(screen.getByText("منذ ٣ ساعات")).toBeInTheDocument();
     });
 
-    it("renders the compact variant with a 120px side image", () => {
+    it("renders the compact variant with the shared square thumbnail at the row's end", () => {
       const { container } = render(<ArticleCard {...base} variant="compact" time="منذ ساعتين" />);
 
-      expect(container.querySelector(".w-\\[120px\\]")).not.toBeNull();
+      const frame = container.querySelector(".aspect-square");
+      expect(frame).not.toBeNull();
+      // Headline first, photo last — the thumbnail sits at the inline end.
+      expect(frame!.previousElementSibling?.querySelector("h3")).not.toBeNull();
       expect(screen.getByText("منذ ساعتين")).toBeInTheDocument();
     });
 

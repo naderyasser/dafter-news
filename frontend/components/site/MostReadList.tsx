@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import { articleCoverFallback } from "@/lib/coverFallback";
 import { toDisplayNumerals } from "@/lib/format";
 
@@ -43,6 +43,9 @@ export default function MostReadList({
 }) {
   const isAr = lang === "ar";
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
+  // A heading over an empty ranking is the one thing no block on the site
+  // shows; the English edition hit it on a day with no read stories.
+  if (!items.length) return null;
   return (
     <aside className="rounded-card border border-line bg-paper p-5">
       <div className={`${fontDisplay} rule-accent ps-3.5 text-[17px] font-extrabold text-ink`}>
@@ -67,18 +70,16 @@ export default function MostReadList({
               )}
             </span>
             {/* Thumbnail sits at the inline end so the rank column stays the
-                reading anchor and the numbers line up down the list. */}
-            {/* 68×52 slot (sizes="68px": the raw cover behind it is up to
-                470KB, and five of them made this sidebar the heaviest thing
-                on the page). No src, or a src that 404s, falls to the
-                article fallback — the site mark, or the columnist's own
-                portrait for an opinion piece — never to an empty grey box. */}
-            <CoverImage
+                reading anchor and the numbers line up down the list. The
+                shared square frame (ListThumb, `sm`): sizes="64px" because
+                the raw cover behind it is up to 470KB, and five of them made
+                this sidebar the heaviest thing on the page. No src, or a src
+                that 404s, falls to the article fallback — the site mark, or
+                the columnist's own portrait for an opinion piece — never to
+                an empty grey box. */}
+            <ListThumb
               src={it.imageSrc}
-              alt=""
-              placeholder=""
-              sizes="68px"
-              className="relative h-[52px] w-[68px] flex-shrink-0 rounded"
+              size="sm"
               fallbackSrc={articleCoverFallback(it.kind, it.authorAvatar).src}
               fallbackFit={articleCoverFallback(it.kind, it.authorAvatar).fit}
               position={articleCoverFallback(it.kind, it.authorAvatar).position}

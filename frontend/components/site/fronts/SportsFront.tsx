@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import { clockTime } from "@/lib/format";
 import { teamName } from "@/lib/teamNames";
 import type { Match, Paginated } from "@/lib/types";
@@ -103,13 +104,9 @@ export default function SportsFront({ lang, accent, title, tagline, stories, mat
             {rest.map((s) => (
               <li key={s.id} className="odd:bg-surface">
                 <Link href={s.href} className="card-link flex items-center gap-4 px-3 py-3 no-underline" style={accentVar}>
-                  {s.imageSrc && (
-                    <div className="relative hidden h-[52px] w-[70px] flex-shrink-0 overflow-hidden rounded-[3px] sm:block">
-                      <CoverImage src={s.imageSrc} alt="" placeholder="" className="absolute inset-0" sizes="70px" />
-                    </div>
-                  )}
                   <h3 className={`${fontDisplay} card-title m-0 min-w-0 flex-1 text-[15px] font-extrabold leading-[1.6] text-ink`}>{s.title}</h3>
                   {s.time && <span className="hidden flex-shrink-0 text-[12px] font-semibold text-ink-3 sm:block">{s.time}</span>}
+                  {s.imageSrc && <ListThumb src={s.imageSrc} size="sm" className="hidden sm:block" />}
                 </Link>
               </li>
             ))}

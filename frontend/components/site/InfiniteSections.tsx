@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import Chevron from "@/components/ui/Chevron";
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import { API_URL, mediaUrl } from "@/lib/api";
 import { sectionColor } from "@/lib/sections";
 import type { ArticleCard as ArticleCardType, Section } from "@/lib/types";
@@ -102,14 +103,12 @@ function SectionPanel({
                   // stacking at the top of a column with nothing under them.
                   className="card-link flex flex-1 items-center gap-3.5 p-4 no-underline transition-colors duration-fast hover:bg-surface"
                 >
-                  <div className="relative h-[62px] w-[84px] shrink-0 overflow-hidden rounded bg-surface-2">
-                    <CoverImage src={mediaUrl(a.cover_image)} alt="" placeholder="" className="absolute inset-0" sizes="84px" />
-                  </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h3 className={`${fontDisplay} card-title m-0 line-clamp-2 text-[14.5px] font-bold leading-[1.55] text-ink`}>
                       {a.title}
                     </h3>
                   </div>
+                  <ListThumb src={mediaUrl(a.cover_image)} size="sm" />
                 </Link>
               ))}
             </div>
@@ -222,7 +221,7 @@ export default function InfiniteSections({
               <div className="flex flex-col divide-y divide-line border-t border-line md:border-s md:border-t-0">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="flex gap-3.5 p-4">
-                    <div className="h-[62px] w-[84px] shrink-0 rounded bg-surface-2" />
+                    <div className="aspect-square w-[64px] shrink-0 rounded-md bg-surface-2" />
                     <div className="flex-1 space-y-2">
                       <div className="h-3.5 w-full rounded bg-surface-2" />
                       <div className="h-3.5 w-2/3 rounded bg-surface-2" />

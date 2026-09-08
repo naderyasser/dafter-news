@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import ClockIcon from "@/components/ui/ClockIcon";
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import TimeAgo from "@/components/ui/TimeAgo";
 import { articleCoverFallback } from "@/lib/coverFallback";
 import { SITE_NAME } from "@/lib/seo";
@@ -186,19 +187,20 @@ export default function ArticleCard({
   }
 
   if (variant === "compact") {
+    // The row shape every feed on the site shares: headline first, then the
+    // one square thumbnail (see ListThumb) at the inline end. This used to
+    // be a 120px 4:3 photo at the inline START, which was one of the ten
+    // frames the client read as "some wide, some square".
     return (
-      <Link href={href} className="card-link flex gap-3 py-2.5 no-underline" style={accentVar}>
-        <div className="relative w-[120px] flex-shrink-0 overflow-hidden rounded-card">
-          <div className="relative aspect-[4/3]">
-            <CoverImage src={coverSrc} alt={title} placeholder={t.drop} className="absolute inset-0" fit={coverFit} position={coverPosition} />
-          </div>
-          <BadgeChip badge={badge} lang={lang} size="sm" />
-          <PhotoChip label={chip} accent={accent} />
-        </div>
+      <Link href={href} className="card-link flex items-center gap-3.5 py-2.5 no-underline" style={accentVar}>
         <div className="min-w-0 flex-1">
-          <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-bold leading-[1.45] text-ink`}>{title}</h3>
+          <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-bold leading-[1.5] text-ink`}>{title}</h3>
           {hasTime && <div className="mt-1.5 text-xs text-ink-3">{stamp}</div>}
         </div>
+        <ListThumb src={coverSrc} alt={title} placeholder={t.drop} fit={coverFit} position={coverPosition}>
+          <BadgeChip badge={badge} lang={lang} size="sm" />
+          <PhotoChip label={chip} accent={accent} />
+        </ListThumb>
       </Link>
     );
   }

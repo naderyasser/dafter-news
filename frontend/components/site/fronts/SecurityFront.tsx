@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import { dayBucket } from "@/lib/format";
 import { sectionArtUrl } from "@/lib/sections";
 import type { FrontProps } from "./types";
@@ -99,11 +100,7 @@ export default function SecurityFront({ lang, accent, sectionKey, title, tagline
                     <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-extrabold leading-[1.65] text-ink sm:text-[16px]`}>{s.title}</h3>
                     {s.standfirst && <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.7] text-ink-2">{s.standfirst}</p>}
                   </div>
-                  {s.imageSrc && (
-                    <div className="relative hidden h-[54px] w-[54px] flex-shrink-0 overflow-hidden rounded-[3px] sm:block">
-                      <CoverImage src={s.imageSrc} alt="" placeholder="" className="absolute inset-0 grayscale" sizes="54px" />
-                    </div>
-                  )}
+                  {s.imageSrc && <ListThumb src={s.imageSrc} size="sm" className="hidden grayscale sm:block" />}
                 </Link>
               </li>
             ))}

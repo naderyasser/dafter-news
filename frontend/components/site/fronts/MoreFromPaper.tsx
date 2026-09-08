@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 import type { FrontStory } from "./types";
 
 const T = {
@@ -44,11 +44,7 @@ export default function MoreFromPaper({ lang, items }: { lang: "ar" | "en"; item
                 {s.time && <span>{s.time}</span>}
               </div>
             </div>
-            {s.imageSrc && (
-              <div className="relative h-[52px] w-[70px] flex-shrink-0 overflow-hidden rounded-[3px]">
-                <CoverImage src={s.imageSrc} alt="" placeholder={t.drop} className="absolute inset-0" sizes="70px" />
-              </div>
-            )}
+            {s.imageSrc && <ListThumb src={s.imageSrc} size="sm" placeholder={t.drop} />}
           </Link>
         ))}
       </div>

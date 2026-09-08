@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import CoverImage from "@/components/ui/CoverImage";
+import ListThumb from "@/components/ui/ListThumb";
 
 export type NewsCardItem = { href: string; title: string; imageSrc?: string | null };
 
@@ -72,12 +72,10 @@ export default function LatestNewsCard({
             href={r.href}
             className="flex items-center gap-3 rounded-lg border border-line bg-paper p-2 no-underline transition-colors duration-fast hover:border-accent"
           >
-            <span className="relative h-[52px] w-[72px] flex-shrink-0 overflow-hidden rounded-md">
-              <CoverImage src={r.imageSrc} alt="" placeholder={t.drop} className="absolute inset-0" sizes="72px" />
-            </span>
             <span className={`${fontDisplay} min-w-0 flex-1 text-[14px] font-bold leading-[1.5] text-ink`}>
               {r.title}
             </span>
+            <ListThumb src={r.imageSrc} size="sm" placeholder={t.drop} />
           </Link>
         ))}
       </div>
