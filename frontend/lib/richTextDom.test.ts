@@ -112,11 +112,30 @@ describe("renderTokensInto / domToTokens round-trip", () => {
     expect(domToTokens(el)).toBe("{c:#B01F2E|b|نص}");
   });
 
-  it("drops a bare <br> rather than emitting a stray character", () => {
+  it("drops the trailing placeholder <br> a browser leaves on an emptied line rather than emitting a stray character", () => {
     const el = box();
     el.appendChild(document.createTextNode("سطر"));
     el.appendChild(document.createElement("br"));
     expect(domToTokens(el)).toBe("سطر");
+  });
+
+  it("reads a <br> between two lines back as a line break — regression: a phone keyboard's clipboard paste (IME, no paste event) lost every break", () => {
+    const el = box();
+    el.appendChild(document.createTextNode("سطر أول"));
+    el.appendChild(document.createElement("br"));
+    el.appendChild(document.createTextNode("سطر ثانٍ"));
+    expect(domToTokens(el)).toBe("سطر أول\nسطر ثانٍ");
+  });
+
+  it("reads the <div> per line Chrome wraps an IME-inserted paste in back as separate lines", () => {
+    const el = box();
+    el.appendChild(document.createTextNode("سطر أول"));
+    for (const line of ["سطر ثانٍ", "سطر ثالث"]) {
+      const div = document.createElement("div");
+      div.appendChild(document.createTextNode(line));
+      el.appendChild(div);
+    }
+    expect(domToTokens(el)).toBe("سطر أول\nسطر ثانٍ\nسطر ثالث");
   });
 
   it("clears previous content before painting new content", () => {

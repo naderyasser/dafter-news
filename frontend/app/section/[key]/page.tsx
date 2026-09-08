@@ -4,12 +4,13 @@ import MostReadList from "@/components/site/MostReadList";
 import SectionFrontBody from "@/components/site/fronts/SectionFrontBody";
 import type { FrontStory } from "@/components/site/fronts/types";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl, getMostRead, getSectionFeed } from "@/lib/api";
+import { getArticles, getMatches, getMostRead, getSection, getSectionFeed, getSectionMostRead, getTicker, getVideos, mediaUrl } from "@/lib/api";
 import { isHiddenSection } from "@/lib/hiddenDesks";
 import { standfirstFor } from "@/lib/format";
 import { articleHref } from "@/lib/routes";
 import { sectionColor } from "@/lib/sections";
 import { sectionFront, sectionTagline } from "@/lib/sectionLayout";
+import { pickMostReadRail } from "@/lib/sectionRail";
 import { sectionMetadata } from "@/lib/seo";
 
 export const revalidate = 60;
@@ -30,31 +31,30 @@ export async function generateMetadata({ params }: { params: Promise<{ key: stri
 }
 
 /**
- * One section page, thirteen fronts.
+ * One section page.
  *
- * The client rejected the shared-archetype version — read back, four grids
- * across thirteen desks is one page recoloured thirteen times, and it showed.
- * Each desk now owns a component under components/site/fronts with its own
- * masthead and its own structural device; SectionFrontBody picks between them.
- *
- * What stays here is everything that is not layout: fetching, the 404, the
- * «الأكثر قراءة» rail, and the single mapping from API rows to FrontStory. A
- * front receives a list and renders it — so a renamed API field is one edit,
- * and a desk can be moved onto a different front from lib/sectionLayout.ts
- * without this file changing at all.
+ * What lives here is everything that is not layout: fetching, the 404, the
+ * «الأكثر قراءة» rail, and the single mapping from API rows to FrontStory.
+ * SectionFrontBody picks the front (one grid for every article desk since
+ * 2026-09-09 — see NewsGridFront) and a front receives a list and renders
+ * it, so a renamed API field is one edit and a desk can be moved onto a
+ * different front from lib/sectionLayout.ts without this file changing.
  */
 export default async function SectionPage({ params }: { params: Promise<{ key: string }> }) {
   const _params = await params;
   const front = sectionFront(_params.key);
 
-  const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
+  const [section, articles, deskMostRead, siteMostRead, latest, matches, ticker, videos] = await Promise.all([
     getSection(_params.key),
     // Strictly newest-first. This led with `-pinned` and so did the home
     // page's blocks, which is how «الخليج العربي» came to show a 22-hour-old
     // story above one published an hour before — see app/page.tsx's
     // sectionFeed. «الظهور في الرئيسية» still leads the hero.
     getSectionFeed("ar", _params.key, 24),
-    getMostRead("ar"),
+    // The desk's own most-read, with the site-wide list behind it for a
+    // quiet week — see lib/sectionRail.
+    front.aside ? getSectionMostRead("ar", _params.key) : Promise.resolve(null),
+    front.aside ? getMostRead("ar") : Promise.resolve(null),
     getArticles("?language=ar&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),
     front.feed === "markets" ? getTicker() : Promise.resolve(null),
@@ -68,12 +68,7 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
   // CTR ask: a relative-time caption on a browsing card discourages a click
   // when the story doesn't look brand-new, so no front-facing card carries
   // one — the article's own byline is still where a reader reads the real
-  // published time. `iso` stays wired for Politics/Security only: those two
-  // fronts aren't decorating a card with a timestamp, the dated spine/
-  // register IS the front's whole structural device (see PoliticsFront's
-  // and SecurityFront's own docstrings) — hiding it there breaks the desk's
-  // design, not just a caption.
-  const keepDateStructure = front.front === "politics" || front.front === "security";
+  // published time.
   const stories: FrontStory[] = articles.results.map((a) => ({
     id: a.id,
     href: articleHref(a),
@@ -84,7 +79,7 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
     standfirst: standfirstFor(a.title, a.standfirst),
     imageSrc: mediaUrl(a.cover_image),
     time: "",
-    iso: keepDateStructure ? a.published_at : null,
+    iso: null,
     badge: a.badge,
     views: a.views,
     country: a.country || undefined,
@@ -113,6 +108,28 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
     .filter((s) => !ownHrefs.has(s.href))
     .slice(0, 6);
 
+  // Rendered twice, once per breakpoint: inside the front between the card
+  // grid and the rows on a phone (where the aside would land under two
+  // dozen stories), and as the sidebar from `lg` up. Five rows, so the
+  // duplicate costs nothing worth measuring.
+  const rail = pickMostReadRail(deskMostRead?.results ?? [], siteMostRead?.results ?? []);
+  const railNode =
+    front.aside && rail.items.length > 0 ? (
+      <MostReadList
+        lang="ar"
+        heading={rail.scoped ? `الأكثر قراءة في ${section.name_ar}` : undefined}
+        items={rail.items.map((a) => ({
+          title: a.title,
+          href: articleHref(a),
+          section: a.section_name,
+          views: a.views,
+          imageSrc: mediaUrl(a.cover_image),
+          kind: a.kind,
+          authorAvatar: mediaUrl(a.author_avatar),
+        }))}
+      />
+    ) : null;
+
   return (
     <SiteShell lang="ar" active={_params.key}>
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
@@ -120,8 +137,8 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
           <SectionFrontBody
             front={front.front}
             feeds={{ matches, ticker, videos }}
-            count={articles.count}
             more={more}
+            between={railNode}
             lang="ar"
             accent={accent}
             sectionKey={_params.key}
@@ -134,21 +151,12 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
             globals.css). Setting it on the aside is what keeps the rail beside
             a green sports page green and beside an oxblood politics page
             oxblood, instead of every sidebar reverting to the default blue. */}
-        {front.aside && (
+        {railNode && (
           <aside
-            className="min-w-[260px] max-w-[320px] flex-[1_1_280px]"
+            className="hidden min-w-[260px] max-w-[320px] flex-[1_1_280px] lg:block"
             style={{ "--rule-b": accent } as React.CSSProperties}
           >
-            <MostReadList
-              lang="ar"
-              items={mostRead.results.map((a) => ({
-                title: a.title,
-                href: articleHref(a),
-                section: a.section_name,
-                views: a.views,
-                imageSrc: mediaUrl(a.cover_image),
-              }))}
-            />
+            {railNode}
           </aside>
         )}
       </div>

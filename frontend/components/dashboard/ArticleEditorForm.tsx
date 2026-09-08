@@ -797,7 +797,23 @@ export default function ArticleEditorForm({
                   is from its own styling below, per the client's explicit
                   "zero UI elements interrupting the text flow" ask.
                 */}
-                <div className="pointer-events-none absolute top-1 end-1 z-10 flex items-center gap-1 rounded-md border border-line bg-paper px-1.5 py-0.5 opacity-0 shadow-1 transition-opacity duration-fast focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100">
+                {/*
+                  On a phone (the same ≤860px cut the sticky toolbar above
+                  uses) the overlay is the wrong shape: there is no hover, a
+                  tap's sticky :hover painted it straight over the first
+                  line's end, and the newsroom could not select the words
+                  underneath it. So below 860px it is a static row ABOVE the
+                  field with its own margin — never over the text — shown for
+                  the block being edited (activeBlockId is set on focus and
+                  never cleared on blur, so tapping a control keeps it up).
+                  Every control is a real button at a 36px touch size there.
+                */}
+                <div
+                  data-block-controls={b.id}
+                  className={`pointer-events-none absolute top-1 end-1 z-10 flex items-center gap-1 rounded-md border border-line bg-paper px-1.5 py-0.5 opacity-0 shadow-1 transition-opacity duration-fast focus-within:pointer-events-auto focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100 max-[860px]:static max-[860px]:mb-1.5 max-[860px]:ms-auto max-[860px]:w-fit max-[860px]:gap-1.5 max-[860px]:px-1 max-[860px]:shadow-none ${
+                    activeBlockId === b.id ? "max-[860px]:pointer-events-auto max-[860px]:opacity-100" : "max-[860px]:hidden"
+                  }`}
+                >
                   {b.type === "paragraph" ? (
                     <span className="relative">
                       <button
@@ -806,7 +822,7 @@ export default function ArticleEditorForm({
                         title="محاذاة الفقرة"
                         aria-label="محاذاة الفقرة"
                         aria-expanded={alignMenuFor === b.id}
-                        className="flex h-6 w-6 items-center justify-center rounded text-ink-3 hover:bg-surface hover:text-accent"
+                        className="flex h-6 w-6 items-center justify-center rounded text-ink-3 hover:bg-surface hover:text-accent max-[860px]:h-9 max-[860px]:w-9"
                       >
                         <AlignIcon align={b.align} />
                       </button>
@@ -832,15 +848,33 @@ export default function ArticleEditorForm({
                       ) : null}
                     </span>
                   ) : null}
-                  <span onClick={() => moveBlock(b.id, -1)} title="نقل لأعلى" className="cursor-pointer text-xs text-header-muted hover:text-accent">
+                  <button
+                    type="button"
+                    onClick={() => moveBlock(b.id, -1)}
+                    title="نقل لأعلى"
+                    aria-label="نقل لأعلى"
+                    className="flex h-6 w-6 items-center justify-center rounded text-xs text-header-muted hover:bg-surface hover:text-accent max-[860px]:h-9 max-[860px]:w-9 max-[860px]:text-sm"
+                  >
                     ▲
-                  </span>
-                  <span onClick={() => moveBlock(b.id, 1)} title="نقل لأسفل" className="cursor-pointer text-xs text-header-muted hover:text-accent">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveBlock(b.id, 1)}
+                    title="نقل لأسفل"
+                    aria-label="نقل لأسفل"
+                    className="flex h-6 w-6 items-center justify-center rounded text-xs text-header-muted hover:bg-surface hover:text-accent max-[860px]:h-9 max-[860px]:w-9 max-[860px]:text-sm"
+                  >
                     ▼
-                  </span>
-                  <span onClick={() => removeBlock(b.id)} title="حذف" className="cursor-pointer text-xs text-down">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeBlock(b.id)}
+                    title="حذف"
+                    aria-label="حذف الفقرة"
+                    className="flex h-6 w-6 items-center justify-center rounded text-xs text-down hover:bg-down-tint max-[860px]:h-9 max-[860px]:w-9 max-[860px]:text-sm"
+                  >
                     🗑
-                  </span>
+                  </button>
                 </div>
                 {b.type === "paragraph" && (
                   <RichTextEditor

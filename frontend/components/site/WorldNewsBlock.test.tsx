@@ -26,9 +26,13 @@ const cards = Array.from({ length: 8 }, (_, i) => ({
 
 /**
  * «عرب وعالم» is the one section the client asked to look unlike every other:
- * a lead story with a rail beside it and a tile row beneath, explicitly not
- * the grid that «الفن» uses. These lock that shape in place — a regression
+ * a lead story with a rail beside it and three more rows beneath, explicitly
+ * not the grid that «الفن» uses. These lock that shape in place — a regression
  * here reads as "the client's request was quietly undone".
+ *
+ * The foot used to be a row of overlay tiles like the lead; the client's
+ * 2026-09-09 note asked for it to match the rail's rows instead, so the
+ * overlay is now asserted to appear exactly once — on the lead.
  */
 describe("WorldNewsBlock", () => {
   it("renders nothing rather than a bare heading when the feed is empty", () => {
@@ -41,7 +45,7 @@ describe("WorldNewsBlock", () => {
     render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} />);
 
     const headings = screen.getAllByRole("heading", { level: 3 });
-    // 1 lead + 3 side + 3 tiles = 7; the eighth card is beyond the block.
+    // 1 lead + 3 side + 3 foot rows = 7; the eighth card is beyond the block.
     expect(headings).toHaveLength(7);
     expect(headings[0]).toHaveTextContent("عنوان 0");
     expect(screen.queryByText("عنوان 7")).not.toBeInTheDocument();
@@ -72,12 +76,29 @@ describe("WorldNewsBlock", () => {
     expect(lead.querySelector(".text-paper\\/85")).not.toBeNull();
   });
 
-  it("holds back the tile row until the side rail is full", () => {
+  it("holds back the foot rows until the side rail is full", () => {
     render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards.slice(0, 4)} />);
 
-    // 1 lead + 3 side, no tiles — and no empty bordered strip under them.
+    // 1 lead + 3 side, no foot — and no empty bordered strip under them.
     expect(screen.getAllByRole("heading", { level: 3 })).toHaveLength(4);
     expect(document.querySelector(".border-t.border-line")).toBeNull();
+  });
+
+  it("lays the foot out in the rail's own row shape — thumbnail beside the headline, no overlay — so the block reads as one feed (client note, 2026-09-09)", () => {
+    const { container } = render(<WorldNewsBlock lang="ar" title="عرب وعالم" href="/section/world" cards={cards} />);
+
+    // The dark gradient appears exactly once: on the lead.
+    expect(container.querySelectorAll('[class*="from-\\[rgba(10,11,13"]')).toHaveLength(1);
+    // Every story after the lead is a plain-ink headline beside a square
+    // thumbnail — the side rail's shape — including the three at the foot.
+    const headings = screen.getAllByRole("heading", { level: 3 }).slice(1);
+    expect(headings).toHaveLength(6);
+    for (const h of headings) {
+      expect(h).toHaveClass("text-ink");
+      expect(h).not.toHaveClass("text-paper");
+      const link = h.closest("a")!;
+      expect(link.querySelector(".aspect-square")).not.toBeNull();
+    }
   });
 
   it("paints the chip flat red, regardless of the section — the client's own reference for this block", () => {

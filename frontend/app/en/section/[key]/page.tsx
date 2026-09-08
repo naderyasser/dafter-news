@@ -4,11 +4,12 @@ import MostReadList from "@/components/site/MostReadList";
 import SectionFrontBody from "@/components/site/fronts/SectionFrontBody";
 import type { FrontStory } from "@/components/site/fronts/types";
 import SiteShell from "@/components/site/SiteShell";
-import { getArticles, getMatches, getSection, getTicker, getVideos, mediaUrl, getMostRead, getSectionFeed } from "@/lib/api";
+import { getArticles, getMatches, getMostRead, getSection, getSectionFeed, getSectionMostRead, getTicker, getVideos, mediaUrl } from "@/lib/api";
 import { isHiddenSection } from "@/lib/hiddenDesks";
 import { standfirstFor } from "@/lib/format";
 import { sectionColor } from "@/lib/sections";
 import { sectionFront, sectionTagline } from "@/lib/sectionLayout";
+import { pickMostReadRail } from "@/lib/sectionRail";
 import { sectionMetadata } from "@/lib/seo";
 
 export const revalidate = 60;
@@ -35,11 +36,12 @@ export default async function SectionEnPage({ params }: { params: Promise<{ key:
   const _params = await params;
   const front = sectionFront(_params.key);
 
-  const [section, articles, mostRead, latest, matches, ticker, videos] = await Promise.all([
+  const [section, articles, deskMostRead, siteMostRead, latest, matches, ticker, videos] = await Promise.all([
     getSection(_params.key),
     // Newest-first — mirrors the Arabic section page; see its own comment.
     getSectionFeed("en", _params.key, 24),
-    getMostRead("en"),
+    front.aside ? getSectionMostRead("en", _params.key) : Promise.resolve(null),
+    front.aside ? getMostRead("en") : Promise.resolve(null),
     getArticles("?language=en&ordering=-published_at&page_size=12"),
     front.feed === "matches" ? getMatches() : Promise.resolve(null),
     front.feed === "markets" ? getTicker() : Promise.resolve(null),
@@ -51,10 +53,7 @@ export default async function SectionEnPage({ params }: { params: Promise<{ key:
 
   const accent = sectionColor(_params.key);
   // CTR ask: no relative-time caption on a browsing card — see the Arabic
-  // section page's own comment for the full reasoning. `iso` stays wired
-  // for Politics/Security only, where it drives the front's own dated
-  // spine/register rather than a decorative timestamp.
-  const keepDateStructure = front.front === "politics" || front.front === "security";
+  // section page's own comment for the full reasoning.
   const stories: FrontStory[] = articles.results.map((a) => ({
     id: a.id,
     href: `/en/article/${a.slug}`,
@@ -62,7 +61,7 @@ export default async function SectionEnPage({ params }: { params: Promise<{ key:
     standfirst: standfirstFor(a.title, a.standfirst),
     imageSrc: mediaUrl(a.cover_image),
     time: "",
-    iso: keepDateStructure ? a.published_at : null,
+    iso: null,
     badge: a.badge,
     views: a.views,
     country: a.country || undefined,
@@ -91,6 +90,26 @@ export default async function SectionEnPage({ params }: { params: Promise<{ key:
     .filter((s) => !ownHrefs.has(s.href))
     .slice(0, 6);
 
+  // Same two-breakpoint rail as the Arabic page — see its own comment.
+  const rail = pickMostReadRail(deskMostRead?.results ?? [], siteMostRead?.results ?? []);
+  const title = section.name_en || section.name_ar;
+  const railNode =
+    front.aside && rail.items.length > 0 ? (
+      <MostReadList
+        lang="en"
+        heading={rail.scoped ? `Most read in ${title}` : undefined}
+        items={rail.items.map((a) => ({
+          title: a.title,
+          href: `/en/article/${a.slug}`,
+          section: a.section_name,
+          views: a.views,
+          imageSrc: mediaUrl(a.cover_image),
+          kind: a.kind,
+          authorAvatar: mediaUrl(a.author_avatar),
+        }))}
+      />
+    ) : null;
+
   return (
     <SiteShell lang="en" active={_params.key}>
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-10 px-6 py-8">
@@ -98,31 +117,22 @@ export default async function SectionEnPage({ params }: { params: Promise<{ key:
           <SectionFrontBody
             front={front.front}
             feeds={{ matches, ticker, videos }}
-            count={articles.count}
             more={more}
+            between={railNode}
             lang="en"
             accent={accent}
             sectionKey={_params.key}
-            title={section.name_en || section.name_ar}
+            title={title}
             tagline={sectionTagline(_params.key, "en")}
             stories={stories}
           />
         </main>
-        {front.aside && (
+        {railNode && (
           <aside
-            className="min-w-[260px] max-w-[320px] flex-[1_1_280px]"
+            className="hidden min-w-[260px] max-w-[320px] flex-[1_1_280px] lg:block"
             style={{ "--rule-b": accent } as React.CSSProperties}
           >
-            <MostReadList
-              lang="en"
-              items={mostRead.results.map((a) => ({
-                title: a.title,
-                href: `/en/article/${a.slug}`,
-                section: a.section_name,
-                views: a.views,
-                imageSrc: mediaUrl(a.cover_image),
-              }))}
-            />
+            {railNode}
           </aside>
         )}
       </div>

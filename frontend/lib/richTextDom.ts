@@ -9,6 +9,12 @@
  */
 import { parseInline, PLACEHOLDER, SUBHEADING_COLOR } from "./richtext";
 
+/** Block-level tags a pasted article's paragraph breaks actually come from —
+ *  walked by htmlToTokenParagraphs, one output string per tag — and the
+ *  ones walk() treats as a line of their own when a browser inserts them
+ *  into the live field itself. */
+const BLOCK_TAGS = new Set(["P", "DIV", "LI", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "TR", "SECTION", "ARTICLE"]);
+
 /**
  * Paint `text` into `root` as plain Text nodes and styled `<span>`s — one
  * level, no nesting — clearing whatever was there first.
@@ -130,7 +136,16 @@ function walk(node: Node, active: ActiveStyle): string {
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return "";
   const el = node as HTMLElement;
-  if (el.tagName === "BR") return "";
+  // A <br> is a line break — the same soft "\n" Enter inserts here (see
+  // RichTextEditor's insertLineBreak). This used to read back as "" on the
+  // grounds that renderTokensInto never paints one; but a phone keyboard's
+  // clipboard chip (Gboard, Samsung Keyboard) inserts through the IME, not
+  // through a `paste` event, and the browser then lays the pasted lines out
+  // with its own <br>/<div>s — so an article pasted that way on a phone
+  // came back as one block with every paragraph break silently dropped.
+  // The one <br> that is NOT a break is the trailing placeholder browsers
+  // leave behind to keep an emptied line's height — nothing follows it.
+  if (el.tagName === "BR") return el.nextSibling ? "\n" : "";
   // The image chip's own children (the label text, the <img> if one is ever
   // added, the PLACEHOLDER text node) are internal to how it's painted —
   // never walked as if they were ordinary editable content.
@@ -147,6 +162,16 @@ function walk(node: Node, active: ActiveStyle): string {
   };
   let out = "";
   for (const child of Array.from(el.childNodes)) out += walk(child, merged);
+  // A block-level wrapper the browser inserted on its own (the <div> Chrome
+  // wraps each IME-inserted line in) is a line of its own: a break before it
+  // when it follows inline content (Chrome leaves the first line as a bare
+  // text node and wraps only the lines after it), and one after it unless it
+  // is the field's last line. A preceding block already closed itself.
+  if (BLOCK_TAGS.has(el.tagName)) {
+    const prev = el.previousSibling;
+    if (prev && !(prev.nodeType === Node.ELEMENT_NODE && BLOCK_TAGS.has((prev as HTMLElement).tagName))) out = "\n" + out;
+    if (el.nextSibling) out += "\n";
+  }
   return out;
 }
 
@@ -162,10 +187,6 @@ export function domToTokens(root: HTMLElement): string {
   for (const child of Array.from(root.childNodes)) out += walk(child, {});
   return out;
 }
-
-/** Block-level tags a pasted article's paragraph breaks actually come from —
- *  walked by htmlToTokenParagraphs below, one output string per tag. */
-const BLOCK_TAGS = new Set(["P", "DIV", "LI", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "TR", "SECTION", "ARTICLE"]);
 
 /** Strips the two characters this editor's token grammar is built out of —
  *  pasted third-party content is the one place a literal `{`/`}` is actually

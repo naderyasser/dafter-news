@@ -486,7 +486,7 @@ describe("ArticleEditorForm paste splits into blocks", () => {
     expect(payload.blocks.every((b) => b.type === "paragraph")).toBe(true);
   });
 
-  it("keeps a single-newline paste (no blank line) as one block — regression: WhatsApp-composed text, one sentence per line with no blank lines, exploded into a block per line", async () => {
+  it("splits a single-newline paste (no blank line) into one block per line — the client's 2026-09-09 note: a phone's clipboard flattens paragraph gaps to one break, and the article landed as one block with no per-paragraph controls", async () => {
     dashMutate.mockResolvedValue({ id: 9, slug: "test" });
     render(<ArticleEditorForm initial={null} sections={sections} />);
 
@@ -496,13 +496,29 @@ describe("ArticleEditorForm paste splits into blocks", () => {
       clipboardData: { getData: (type: string) => (type === "text/plain" ? "سطر أول\nسطر ثاني\nسطر ثالث" : "") },
     });
 
-    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" })).toHaveLength(1);
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" })).toHaveLength(3);
 
     fireEvent.change(screen.getByPlaceholderText("عنوان الخبر"), { target: { value: "خبر" } });
     await act(async () => fireEvent.click(screen.getByText("حفظ كأرشفة")));
 
     const [, , payload] = dashMutate.mock.calls[0] as [string, string, { blocks: { text: string }[] }];
-    expect(payload.blocks.map((b) => b.text)).toEqual(["سطر أول\nسطر ثاني\nسطر ثالث"]);
+    expect(payload.blocks.map((b) => b.text)).toEqual(["سطر أول", "سطر ثاني", "سطر ثالث"]);
+  });
+
+  it("a phone keyboard's clipboard insert (native beforeinput, no paste event) lands as one block per paragraph too", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    const field = screen.getByRole("textbox", { name: "نص الفقرة" });
+    field.focus();
+    // A native event, not a React one — the state update it triggers is
+    // flushed by React on its own schedule, so it is wrapped in act().
+    act(() => {
+      field.dispatchEvent(new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: "insertText", data: "أولى\nثانية\nثالثة" }));
+    });
+
+    const fields = screen.getAllByRole("textbox", { name: "نص الفقرة" });
+    expect(fields).toHaveLength(3);
+    expect(fields.map((f) => f.textContent)).toEqual(["أولى", "ثانية", "ثالثة"]);
   });
 
   it("a single-line paste still lands in the one block, unaffected", async () => {
@@ -865,6 +881,62 @@ describe("ArticleEditorForm unified body — one static toolbar for every paragr
     // No horizontal-rule/divider utility classes anywhere in the body — the
     // paragraphs must never look like separated stacked cards.
     expect(document.querySelector(".divide-y")).toBeNull();
+  });
+});
+
+describe("ArticleEditorForm block controls on a phone", () => {
+  /**
+   * The per-paragraph controls (align / move / delete) float over the
+   * block's top corner on desktop, invisible until hover. On a phone a
+   * tap's sticky :hover painted them over the first line's end and the
+   * newsroom could not select the words underneath. Below 860px they are a
+   * static row above the field instead, for the block being edited only.
+   * jsdom has no media queries, so this checks the class contract each
+   * block carries rather than the rendered layout.
+   */
+  const controlsOf = (id: string) => document.querySelector(`[data-block-controls="${id}"]`) as HTMLElement;
+
+  it("shows the phone row for the block being edited and hides it for the others", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.click(screen.getByText("+ المحتوى"));
+
+    const [first, second] = screen.getAllByRole("textbox", { name: "نص الفقرة" });
+    const ids = Array.from(document.querySelectorAll("[data-block-controls]")).map((el) => (el as HTMLElement).dataset.blockControls!);
+    expect(ids).toHaveLength(2);
+
+    fireEvent.focus(second);
+    expect(controlsOf(ids[1]).className).toContain("max-[860px]:opacity-100");
+    expect(controlsOf(ids[1]).className).toContain("max-[860px]:static");
+    expect(controlsOf(ids[0]).className).toContain("max-[860px]:hidden");
+
+    fireEvent.focus(first);
+    expect(controlsOf(ids[0]).className).toContain("max-[860px]:opacity-100");
+    expect(controlsOf(ids[1]).className).toContain("max-[860px]:hidden");
+  });
+
+  it("makes move and delete real buttons with a touch-sized target, not bare clickable glyphs", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    for (const name of ["نقل لأعلى", "نقل لأسفل", "حذف الفقرة"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button.className).toContain("max-[860px]:h-9");
+    }
+  });
+
+  it("still moves and deletes through those buttons", () => {
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+    fireEvent.click(screen.getByText("+ المحتوى"));
+    const [first, second] = screen.getAllByRole("textbox", { name: "نص الفقرة" });
+    first.textContent = "أ";
+    fireEvent.input(first);
+    second.textContent = "ب";
+    fireEvent.input(second);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "نقل لأعلى" })[1]);
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" }).map((f) => f.textContent)).toEqual(["ب", "أ"]);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "حذف الفقرة" })[0]);
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" }).map((f) => f.textContent)).toEqual(["أ"]);
   });
 });
 

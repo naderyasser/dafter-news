@@ -1,15 +1,12 @@
-import Link from "next/link";
-
-import CoverImage from "@/components/ui/CoverImage";
-import ListThumb from "@/components/ui/ListThumb";
 import { clockTime } from "@/lib/format";
 import { teamName } from "@/lib/teamNames";
 import type { Match, Paginated } from "@/lib/types";
+import { NewsGridBody } from "./NewsGridFront";
 import type { FrontProps } from "./types";
 
 const T = {
-  ar: { drop: "أفلت صورة الخبر هنا", results: "النتائج", live: "مباشر", done: "انتهت", soon: "لم تبدأ", empty: "لا أخبار على هذا المكتب بعد." },
-  en: { drop: "Drop image here", results: "Results", live: "Live", done: "FT", soon: "Kick-off", empty: "Nothing on this desk yet." },
+  ar: { live: "مباشر", done: "انتهت", soon: "لم تبدأ" },
+  en: { live: "Live", done: "FT", soon: "Kick-off" },
 };
 
 /**
@@ -22,15 +19,22 @@ const T = {
  *
  * The scoreboard sits inside the same green surface because a stadium board is
  * part of the ground, not a widget bolted above the page. Below it the stories
- * run as a striped fixtures table — the list idiom this audience already reads
- * results in — rather than as another grid of photo cards.
+ * run in the site's one section body (NewsGridBody) — the striped results
+ * table this desk used to have was one more list shape the client asked to
+ * see gone, and the masthead is where this desk's identity lives.
  */
-export default function SportsFront({ lang, accent, title, tagline, stories, matches }: FrontProps & { matches?: Paginated<Match> | null }) {
+export default function SportsFront({
+  lang,
+  accent,
+  title,
+  tagline,
+  stories,
+  matches,
+  between,
+}: FrontProps & { matches?: Paginated<Match> | null; between?: React.ReactNode }) {
   const isAr = lang === "ar";
   const t = T[lang];
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
-  const accentVar = { "--card-accent": accent } as React.CSSProperties;
-  const [lead, ...rest] = stories;
   const fixtures = (matches?.results ?? []).slice(0, 4);
 
   const statusLabel = (m: Match) =>
@@ -77,42 +81,7 @@ export default function SportsFront({ lang, accent, title, tagline, stories, mat
         )}
       </header>
 
-      {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
-
-      {lead && (
-        <Link href={lead.href} className="card-link mb-8 block no-underline" style={accentVar}>
-          <article className="grid gap-5 sm:grid-cols-[1.2fr_1fr] sm:items-center">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-card">
-              <CoverImage src={lead.imageSrc} alt={lead.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 768px) 48vw, 100vw" />
-            </div>
-            <div>
-              <h2 className={`${fontDisplay} card-title m-0 text-[clamp(1.25rem,1rem+1.4vw,1.75rem)] font-extrabold leading-[1.45] text-ink`}>{lead.title}</h2>
-              {lead.standfirst && <p className="mt-2 text-[15px] leading-[1.75] text-ink-2">{lead.standfirst}</p>}
-              {lead.time && <div className="mt-2 text-[13px] font-semibold text-ink-3">{lead.time}</div>}
-            </div>
-          </article>
-        </Link>
-      )}
-
-      {rest.length > 0 && (
-        <section>
-          <h2 className={`${fontDisplay} m-0 border-b-2 pb-2 text-[15px] font-extrabold`} style={{ borderColor: accent, color: accent }}>
-            {t.results}
-          </h2>
-          {/* Striped rows, the shape a results table already has. */}
-          <ul className="m-0 list-none p-0">
-            {rest.map((s) => (
-              <li key={s.id} className="odd:bg-surface">
-                <Link href={s.href} className="card-link flex items-center gap-4 px-3 py-3 no-underline" style={accentVar}>
-                  <h3 className={`${fontDisplay} card-title m-0 min-w-0 flex-1 text-[15px] font-extrabold leading-[1.6] text-ink`}>{s.title}</h3>
-                  {s.time && <span className="hidden flex-shrink-0 text-[12px] font-semibold text-ink-3 sm:block">{s.time}</span>}
-                  {s.imageSrc && <ListThumb src={s.imageSrc} size="sm" className="hidden sm:block" />}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <NewsGridBody lang={lang} accent={accent} stories={stories} between={between} />
     </>
   );
 }

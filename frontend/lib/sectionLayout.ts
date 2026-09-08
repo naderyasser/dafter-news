@@ -1,43 +1,33 @@
 /**
- * Which front each section page wears — the client's «تصميم فريد لكل قسم»,
- * taken literally the second time of asking.
+ * Which front each section page wears.
  *
- * The first pass shared four archetypes across thirteen desks and told them
- * apart by an accent colour and a watermark. Read back, that is one page
- * thirteen times: same coloured band, same lead photo, same run of rows. The
- * client's note was blunt about it, so every desk now has its own component
- * under components/site/fronts — its own masthead, its own grid, its own
- * structural device.
+ * Two client notes, a year apart, pulled this in opposite directions. The
+ * first («تصميم فريد لكل قسم») gave every desk its own component under
+ * components/site/fronts — its own masthead, its own grid, its own
+ * structural device. The second (2026-09-09) looked at the result and asked
+ * for the opposite: an organised, responsive grid, no dark overlays, the same
+ * card everywhere. So every article desk now wears `news` (NewsGridFront),
+ * and what tells the desks apart is the accent, the tagline and — for the two
+ * desks whose masthead is data — that masthead.
  *
- * What keeps this from becoming thirteen unrelated websites: the fronts share
- * the shell, the tokens and the type ramp, and each one is a *layout* only.
- * Data fetching, SEO, ads and the aside stay in the page, so a shared concern
- * still lands in one place rather than thirteen.
- *
- * The device each front is built around is not decoration — it is the thing
- * that desk actually deals in. Politics deals in dated statements, so it gets
- * a chronicle. Courts deal in cases, so they get a docket. Markets deal in
- * numbers, so the numbers are the hero. A desk whose device would be a lie
- * (a governorate rail over stories with no governorate) does not get one.
+ * What stays true from the first pass: the fronts share the shell, the
+ * tokens and the type ramp, and each one is a *layout* only. Data fetching,
+ * SEO, ads and the aside stay in the page, so a shared concern still lands
+ * in one place.
  */
 
-/** The component that renders the section's body. One per desk. */
+/** The component that renders the section's body. */
 export type FrontKey =
-  | "politics"
-  | "egypt"
-  | "gulf"
-  | "world"
+  /** Every article desk, and anything created in the dashboard later. */
+  | "news"
+  /** «حركة السوق» — the price board over the news body. */
   | "markets"
+  /** «جوّه الجون» — the pitch and fixtures over the news body. */
   | "sports"
-  | "security"
-  | "tech"
-  | "culture"
-  | "special"
-  | "guide"
+  /** «لقطة وتعليق» — the video table; its own page. */
   | "watch"
-  | "opinion"
-  /** Anything created in the dashboard later — never a blank page. */
-  | "newswire";
+  /** «بالعقل والمنطق» — the columnists; its own page. */
+  | "opinion";
 
 /** Extra data a front needs beyond the section's own stories. */
 export type FrontFeed = "markets" | "matches" | "videos" | null;
@@ -48,32 +38,34 @@ export type SectionFront = {
   /**
    * Whether the «الأكثر قراءة» rail sits beside the front.
    *
-   * Three desks refuse it. The screening room and the cinema stage are dark
-   * full-bleed surfaces and a white column beside them reads as a rendering
-   * fault; the op-ed page is a measured single column of argument and a
-   * popularity list next to it argues with the whole point of the page.
+   * Two desks refuse it. The screening room is a dark full-bleed surface and a
+   * white column beside it reads as a rendering fault; the op-ed page is a
+   * measured single column of argument and a popularity list next to it
+   * argues with the whole point of the page.
    */
   aside: boolean;
 };
 
+const NEWS: SectionFront = { front: "news", feed: null, aside: true };
+
 const FRONTS: Record<string, SectionFront> = {
-  pol: { front: "politics", feed: null, aside: true },
-  egypt: { front: "egypt", feed: null, aside: true },
-  gulf: { front: "gulf", feed: null, aside: true },
-  world: { front: "world", feed: null, aside: true },
+  pol: NEWS,
+  egypt: NEWS,
+  gulf: NEWS,
+  world: NEWS,
   economy: { front: "markets", feed: "markets", aside: true },
   sports: { front: "sports", feed: "matches", aside: true },
-  security: { front: "security", feed: null, aside: true },
-  tech: { front: "tech", feed: null, aside: true },
-  art: { front: "culture", feed: null, aside: true },
-  guide: { front: "guide", feed: null, aside: true },
-  special: { front: "special", feed: null, aside: false },
+  security: NEWS,
+  tech: NEWS,
+  art: NEWS,
+  guide: NEWS,
+  special: NEWS,
   video: { front: "watch", feed: "videos", aside: false },
   opinion: { front: "opinion", feed: null, aside: false },
 };
 
 export function sectionFront(key?: string | null): SectionFront {
-  return (key && FRONTS[key]) || { front: "newswire", feed: null, aside: true };
+  return (key && FRONTS[key]) || NEWS;
 }
 
 /**

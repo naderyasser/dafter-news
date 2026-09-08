@@ -284,7 +284,7 @@ describe("RichTextEditor", () => {
     expect(onSplitPaste).toHaveBeenCalledWith("قبل ", ["فقرة أولى", "فقرة ثانية"], "بعد");
   });
 
-  it("a paste with only single line breaks (no blank line) stays one block, kept as soft breaks — regression: WhatsApp-composed text (one sentence per line, no blank lines) exploded into a block per line", () => {
+  it("a paste with only single line breaks (no blank line) splits on every break — the client's 2026-09-09 note: a phone's clipboard flattens paragraph gaps to one break and the whole article landed as one block", () => {
     const onChange = vi.fn();
     const onSplitPaste = vi.fn();
     render(<RichTextEditor value="" onChange={onChange} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
@@ -293,8 +293,106 @@ describe("RichTextEditor", () => {
     const clipboardData = { getData: (type: string) => (type === "text/plain" ? "سطر أول\nسطر ثاني\nسطر ثالث" : "") };
     fireEvent.paste(field(), { clipboardData });
 
-    expect(onChange).toHaveBeenCalledWith("سطر أول\nسطر ثاني\nسطر ثالث");
+    expect(onSplitPaste).toHaveBeenCalledWith("", ["سطر أول", "سطر ثاني", "سطر ثالث"], "");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("a paste that has real blank lines keeps a single break inside a paragraph as a soft break — the per-line rule only applies when there is no paragraph gap to go by", () => {
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={() => {}} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const clipboardData = { getData: (type: string) => (type === "text/plain" ? "أولى\nتكملتها\n\nثانية" : "") };
+    fireEvent.paste(field(), { clipboardData });
+
+    expect(onSplitPaste).toHaveBeenCalledWith("", ["أولى\nتكملتها", "ثانية"], "");
+  });
+
+  /**
+   * The phone path — a keyboard's clipboard chip (Gboard / Samsung Keyboard
+   * clipboard history) never fires `paste`; the text arrives as a native
+   * beforeinput, so these drive that event directly. jsdom's InputEvent
+   * carries inputType/data; dataTransfer is stubbed where a test needs it.
+   */
+  const beforeInput = (el: HTMLElement, init: { inputType: string; data?: string | null; dataTransfer?: { getData: (t: string) => string } }) => {
+    const ev = new InputEvent("beforeinput", { bubbles: true, cancelable: true, inputType: init.inputType, data: init.data ?? null });
+    if (init.dataTransfer) Object.defineProperty(ev, "dataTransfer", { value: init.dataTransfer });
+    el.dispatchEvent(ev);
+    return ev;
+  };
+
+  it("a phone keyboard's clipboard insert (beforeinput insertText carrying line breaks, no paste event) is split into blocks like a paste", () => {
+    const onChange = vi.fn();
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={onChange} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const ev = beforeInput(field(), { inputType: "insertText", data: "فقرة أولى\nفقرة ثانية\nفقرة ثالثة" });
+
+    expect(ev.defaultPrevented).toBe(true);
+    expect(onSplitPaste).toHaveBeenCalledWith("", ["فقرة أولى", "فقرة ثانية", "فقرة ثالثة"], "");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("a beforeinput insertFromPaste takes its text off the event's dataTransfer and splits it the same way", () => {
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={() => {}} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const ev = beforeInput(field(), {
+      inputType: "insertFromPaste",
+      dataTransfer: { getData: (type) => (type === "text/plain" ? "أولى\n\nثانية" : "") },
+    });
+
+    expect(ev.defaultPrevented).toBe(true);
+    expect(onSplitPaste).toHaveBeenCalledWith("", ["أولى", "ثانية"], "");
+  });
+
+  it("a paste that begins with a break, dropped at the end of a paragraph, starts a new block instead of gluing its first line onto that paragraph", () => {
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="قبل" onChange={() => {}} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    const el = field();
+    const node = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!;
+    const range = document.createRange();
+    range.setStart(node, 3);
+    range.collapse(true);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    beforeInput(el, { inputType: "insertText", data: "\nأولى\nثانية" });
+
+    expect(onSplitPaste).toHaveBeenCalledWith("قبل", ["", "أولى", "ثانية"], "");
+  });
+
+  it("leaves an ordinary keystroke's beforeinput to the browser", () => {
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={() => {}} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const ev = beforeInput(field(), { inputType: "insertText", data: "أ" });
+
+    expect(ev.defaultPrevented).toBe(false);
     expect(onSplitPaste).not.toHaveBeenCalled();
+  });
+
+  it("turns an Android keyboard's Enter (beforeinput insertParagraph, no keydown Enter) into the same soft break the desktop Enter inserts", () => {
+    const onChange = vi.fn();
+    render(<RichTextEditor value="قبل" onChange={onChange} placeholder="نص الفقرة" />);
+    const el = field();
+    const node = document.createTreeWalker(el, NodeFilter.SHOW_TEXT).nextNode()!;
+    const range = document.createRange();
+    range.setStart(node, 3);
+    range.collapse(true);
+    const sel = window.getSelection()!;
+    sel.removeAllRanges();
+    sel.addRange(range);
+
+    const ev = beforeInput(el, { inputType: "insertParagraph" });
+
+    expect(ev.defaultPrevented).toBe(true);
+    expect(onChange).toHaveBeenCalledWith("قبل\n");
+    expect(el.querySelector("div, br")).toBeNull();
   });
 
   it("a single-line paste with onSplitPaste set still lands in this field, not split", () => {

@@ -263,6 +263,21 @@ export const getMostRead = (lang: "ar" | "en" = "ar", limit = 5) =>
   );
 
 /**
+ * «الأكثر قراءة» within one desk — the section page's own rail.
+ *
+ * Same ranking and the same 48-hour window as the site-wide list, scoped by
+ * `section__key`. The page tops a thin result up from the site-wide list
+ * (see app/section/[key]/page.tsx), so this asks for a few more than it
+ * shows to leave room for the dedupe.
+ */
+export const getSectionMostRead = (lang: "ar" | "en", key: string, limit = 5) =>
+  safeGet<Paginated<ArticleCard>>(
+    `/articles/?language=${lang}&section__key=${encodeURIComponent(key)}&ordering=-trending_score&published_within=${Math.round(MOST_READ_TRENDING_WINDOW_HOURS / 24)}&page_size=${limit}`,
+    { count: 0, next: null, previous: null, results: [] },
+    { revalidate: 30 },
+  );
+
+/**
  * One section's feed — the homepage category blocks and the section fronts.
  *
  * Strictly newest-first. It used to lead with `-pinned`, which made

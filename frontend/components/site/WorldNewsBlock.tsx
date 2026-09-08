@@ -26,7 +26,9 @@ const DROP = { ar: "أفلت صورة الخبر هنا", en: "Drop image here" 
 const MORE = { ar: "عرض الكل", en: "See all" };
 
 /**
- * Image-led section block — the approved «عرب وعالم» treatment.
+ * Image-led section block — the approved «عرب وعالم» treatment: one overlaid
+ * lead, then every other story as the same thumbnail row (Side), beside the
+ * lead and again under it.
  *
  * The photo runs to the edge of the card with no border or panel, and the
  * country rides *on* the photo as a solid red chip — the client's own
@@ -154,35 +156,6 @@ function Side({ card, lang, accent }: { card: WorldCard; lang: Lang; accent: str
   );
 }
 
-/** Same full-bleed, gradient-and-overlay treatment as the lead, at tile size. */
-function Tile({ card, lang, accent }: { card: WorldCard; lang: Lang; accent: string }) {
-  return (
-    <Link href={card.href} className="card-link relative block no-underline" style={{ "--card-accent": accent } as React.CSSProperties}>
-      <div className="relative overflow-hidden rounded-card">
-        <div className="relative aspect-[16/10] max-h-[480px]">
-          <CoverImage
-            src={card.imageSrc}
-            alt={card.title}
-            placeholder={DROP[lang]}
-            className="absolute inset-0"
-            sizes="(min-width: 768px) 30vw, 100vw"
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[rgba(10,11,13,.9)] via-[rgba(10,11,13,.2)] to-transparent"
-          />
-        </div>
-        <div className="absolute inset-x-0 bottom-0 p-4">
-          <h3 className={`${lang === "ar" ? "font-display-ar" : "font-display-en"} card-title m-0 line-clamp-2 text-h3 font-bold leading-[1.35] text-paper`}>
-            {card.title}
-          </h3>
-          <MetaRow chip={card.label} time={card.time} size="tile" />
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 export default function WorldNewsBlock({
   lang,
   title,
@@ -201,7 +174,14 @@ export default function WorldNewsBlock({
 
   const [lead, ...rest] = cards;
   const side = rest.slice(0, 3);
-  const tiles = rest.slice(3, 6);
+  // The foot of the block — three more stories in the SAME row shape the
+  // side rail uses (thumbnail at the inline end, headline, chip on the
+  // photo). These were full-bleed overlay tiles like the lead until the
+  // client's 2026-09-09 note: one wide dark card under three plain rows
+  // read as a different design, not as the same feed continuing. Only the
+  // lead keeps the overlay treatment — that one is the client's own
+  // reference for this block.
+  const foot = rest.slice(3, 6);
   const accent = sectionColor(sectionKey);
 
   return (
@@ -225,10 +205,15 @@ export default function WorldNewsBlock({
         ) : null}
       </div>
 
-      {tiles.length ? (
-        <div className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-5 border-t border-line pt-6">
-          {tiles.map((c, i) => (
-            <Tile key={c.href + i} card={c} lang={lang} accent={accent} />
+      {foot.length ? (
+        <div className="mt-5 grid gap-x-8 border-t border-line pt-1 sm:grid-cols-2 lg:grid-cols-3">
+          {foot.map((c, i) => (
+            // Hairlines between the rows on a phone, where they stack; on a
+            // wider screen the columns separate them and the last row's
+            // rule would only underline the block for no reason.
+            <div key={c.href + i} className={`py-4 ${i === foot.length - 1 ? "" : "border-b border-line sm:border-b-0"}`}>
+              <Side card={c} lang={lang} accent={accent} />
+            </div>
           ))}
         </div>
       ) : null}

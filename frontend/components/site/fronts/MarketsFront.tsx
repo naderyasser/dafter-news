@@ -1,13 +1,13 @@
 import Link from "next/link";
 
 import Chevron from "@/components/ui/Chevron";
-import CoverImage from "@/components/ui/CoverImage";
 import type { TickerPayload } from "@/lib/types";
+import { NewsGridBody } from "./NewsGridFront";
 import type { FrontProps } from "./types";
 
 const T = {
-  ar: { drop: "أفلت صورة الخبر هنا", full: "الأسعار كاملة", gold: "ذهب", analysis: "التحليل", empty: "لا تحليلات على هذا المكتب بعد." },
-  en: { drop: "Drop image here", full: "All prices", gold: "Gold", analysis: "Analysis", empty: "Nothing on this desk yet." },
+  ar: { full: "الأسعار كاملة", gold: "ذهب" },
+  en: { full: "All prices", gold: "Gold" },
 };
 
 /**
@@ -53,14 +53,21 @@ function Sparkline({ series, up }: { series: number[]; up: boolean }) {
  *
  * This is the only front on the site whose hero is data rather than a
  * photograph, which is the right way round for the one desk where a reader
- * arrives wanting a figure and only then wants an explanation.
+ * arrives wanting a figure and only then wants an explanation. Under the
+ * board the stories run in the site's one section body (NewsGridBody).
  */
-export default function MarketsFront({ lang, accent, title, tagline, stories, ticker }: FrontProps & { ticker?: TickerPayload | null }) {
+export default function MarketsFront({
+  lang,
+  accent,
+  title,
+  tagline,
+  stories,
+  ticker,
+  between,
+}: FrontProps & { ticker?: TickerPayload | null; between?: React.ReactNode }) {
   const isAr = lang === "ar";
   const t = T[lang];
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
-  const accentVar = { "--card-accent": accent } as React.CSSProperties;
-  const [lead, ...rest] = stories;
 
   const currencies = [...(ticker?.currencies ?? [])].sort((a, b) => a.order - b.order).slice(0, 4);
   const gold = [...(ticker?.gold ?? [])].sort((a, b) => a.order - b.order).slice(0, 2);
@@ -110,39 +117,7 @@ export default function MarketsFront({ lang, accent, title, tagline, stories, ti
         )}
       </header>
 
-      {!lead && <p className="border-y border-line py-10 text-center text-[15px] text-ink-3">{t.empty}</p>}
-
-      {lead && (
-        <Link href={lead.href} className="card-link mb-8 block no-underline" style={accentVar}>
-          <article className="grid gap-5 sm:grid-cols-[1.15fr_1fr] sm:items-center">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-card">
-              <CoverImage src={lead.imageSrc} alt={lead.title} placeholder={t.drop} className="absolute inset-0" sizes="(min-width: 768px) 45vw, 100vw" />
-            </div>
-            <div>
-              <h2 className={`${fontDisplay} card-title m-0 text-[clamp(1.25rem,1rem+1.4vw,1.75rem)] font-extrabold leading-[1.45] text-ink`}>{lead.title}</h2>
-              {lead.standfirst && <p className="mt-2 text-[15px] leading-[1.75] text-ink-2">{lead.standfirst}</p>}
-              {lead.time && <div className="mt-2 text-[13px] font-semibold text-ink-3">{lead.time}</div>}
-            </div>
-          </article>
-        </Link>
-      )}
-
-      {rest.length > 0 && (
-        <section>
-          <h2 className={`${fontDisplay} m-0 border-b-2 border-gold pb-2 text-[15px] font-extrabold text-gold`}>{t.analysis}</h2>
-          {/* No photographs below the lead. On a desk read for figures, a row
-              of stock skylines adds nothing a headline does not already say. */}
-          <div className="grid gap-x-7 sm:grid-cols-2">
-            {rest.map((s) => (
-              <Link key={s.id} href={s.href} className="card-link block border-b border-line py-4 no-underline" style={accentVar}>
-                <h3 className={`${fontDisplay} card-title m-0 text-[15px] font-extrabold leading-[1.65] text-ink`}>{s.title}</h3>
-                {s.standfirst && <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.7] text-ink-2">{s.standfirst}</p>}
-                {s.time && <div className="mt-1.5 text-[12px] font-semibold text-ink-3">{s.time}</div>}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <NewsGridBody lang={lang} accent={accent} stories={stories} between={between} />
     </>
   );
 }

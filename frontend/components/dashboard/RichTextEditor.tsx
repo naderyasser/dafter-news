@@ -129,10 +129,44 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, {
     commit(next);
   };
 
-  const onPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const html = e.clipboardData.getData("text/html");
-    const text = e.clipboardData.getData("text/plain");
+  /**
+   * Splits pasted plain text into the paragraphs that become blocks.
+   *
+   * Two rules, tried in order:
+   *
+   *  1. A blank line — two or more consecutive breaks — is the signal every
+   *     desktop source (Word, Docs, a plain .txt wire copy) uses for "new
+   *     paragraph". When the text has any, those are the boundaries and a
+   *     single break inside a paragraph stays a soft "\n" (the same character
+   *     Enter inserts here — see insertLineBreak).
+   *  2. No blank line anywhere but more than one line: every line is a
+   *     paragraph. This is what a phone's clipboard delivers — Android's
+   *     clipboard history and most news apps flatten the paragraph gap to a
+   *     single "\n" — and it used to land as ONE block with the breaks
+   *     buried inside it, so no paragraph had its own move/delete/align
+   *     controls. The client's note (2026-09-09): «تفكيك النص الملصوق من
+   *     الحافظة تلقائياً إلى بلوكات/فقرات مستقلة».
+   *
+   * Rule 2 reverses the earlier WhatsApp decision (one sentence per line
+   * stayed one block). Text with real paragraph gaps still takes rule 1,
+   * so a WhatsApp draft that leaves a blank line between paragraphs is
+   * unaffected; one that never does now splits per line, which the client
+   * asked for over the alternative of no split at all.
+   */
+  const splitPlainText = (text: string): string[] => {
+    const normalized = text.replace(/\r\n?/g, "\n");
+    const trim = (p: string) => p.replace(/^[ \t\n]+|[ \t\n]+$/g, "");
+    const byBlankLine = normalized.split(/\n[ \t]*\n+/).map(trim).filter(Boolean);
+    if (byBlankLine.length > 1) return byBlankLine;
+    return normalized.split("\n").map(trim).filter(Boolean);
+  };
+
+  /**
+   * One entry point for everything that lands in this field from outside
+   * the keyboard — the `paste` event AND the phone-keyboard clipboard chip
+   * (see the beforeinput effect below), so both take the same route.
+   */
+  const insertClipboard = (html: string, text: string) => {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
 
@@ -175,28 +209,23 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, {
 
     if (!text) return;
     const normalized = text.replace(/\r\n?/g, "\n");
-
-    // A blank line — two or more consecutive breaks — is the one signal
-    // every source (Word, Docs, a plain .txt wire copy) uses for "this is a
-    // new paragraph". A *single* line break inside otherwise-continuous text
-    // is a soft wrap, not a paragraph boundary — WhatsApp in particular
-    // breaks almost every sentence onto its own line without ever leaving a
-    // blank one between them, and treating that the same as a real
-    // paragraph gap turned every WhatsApp-composed article into a wall of
-    // one-sentence blocks the moment it was pasted in. A lone break stays
-    // inside the block, as the same soft "\n" character Enter inserts here
-    // (see insertLineBreak) — only a real paragraph gap starts a new block.
-    const paragraphs = normalized
-      .split(/\n[ \t]*\n+/)
-      .map((p) => p.replace(/^[ \t\n]+|[ \t\n]+$/g, ""))
-      .filter(Boolean);
+    const paragraphs = splitPlainText(normalized);
 
     if (paragraphs.length > 1 && onSplitPaste) {
       const el = elRef.current;
       const vis = el ? getVisibleSelection(el) : null;
       const visStart = vis ? vis.start : 0;
       const visEnd = vis ? vis.end : visStart;
-      onSplitPaste(value.slice(0, rawOffsetFromVisible(value, visStart)), paragraphs, value.slice(rawOffsetFromVisible(value, visEnd)));
+      const before = value.slice(0, rawOffsetFromVisible(value, visStart));
+      const after = value.slice(rawOffsetFromVisible(value, visEnd));
+      // Text that starts with a break — a phone paste at the end of a
+      // paragraph that already has text — asked for a new paragraph before
+      // its first line; an empty first entry keeps `before` as its own
+      // block instead of gluing the first pasted line onto it. Same at the
+      // end, for text after the cursor.
+      if (before && /^\s*\n/.test(normalized)) paragraphs.unshift("");
+      if (after && /\n\s*$/.test(normalized)) paragraphs.push("");
+      onSplitPaste(before, paragraphs, after);
       return;
     }
 
@@ -208,6 +237,16 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, {
     sel.addRange(range);
     onInput();
   };
+
+  const onPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    insertClipboard(e.clipboardData.getData("text/html"), e.clipboardData.getData("text/plain"));
+  };
+
+  // The latest handlers, for the native listener below — it is bound once
+  // per field and must not act on a stale `value` or a stale onSplitPaste.
+  const latest = useRef({ insertClipboard, insertLineBreak: () => {} });
+  latest.current.insertClipboard = insertClipboard;
 
   // A plain "\n" text character, not a browser-invented <div>/<br> — the
   // field's `whitespace-pre-wrap` already renders that as a real line break,
@@ -229,6 +268,58 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, {
     sel.addRange(range);
     onInput();
   };
+
+  latest.current.insertLineBreak = insertLineBreak;
+
+  /**
+   * The phone path. A keyboard's clipboard chip (Gboard's and Samsung
+   * Keyboard's clipboard history, the one the newsroom pastes from on a
+   * phone) commits text through the IME — no `paste` event ever fires, so
+   * onPaste above never ran and the browser inserted the text itself: one
+   * block, every paragraph break laid out as its own <br>/<div> that the
+   * field's reader then dropped. What the IME does fire is a native
+   * `beforeinput`, with the text in `data` (insertText) or on the event's
+   * dataTransfer (insertFromPaste). Both are routed into the same
+   * insertClipboard the paste event uses, so a phone paste splits into
+   * blocks exactly like a desktop one.
+   *
+   * Native addEventListener, not React's onBeforeInput: React synthesises
+   * that one from keypress/textInput/compositionend and does not reliably
+   * carry `inputType`, which is the whole signal here.
+   *
+   * insertParagraph/insertLineBreak: Android keyboards send Enter as a
+   * beforeinput rather than a keydown with key === "Enter", which is the
+   * only Enter the onKeyDown below intercepts — left alone, the browser's
+   * own Enter inserts a <div> into this field. Same "\n" character instead.
+   *
+   * A paste that the IME reports mid-composition (insertCompositionText)
+   * cannot be cancelled and is deliberately not touched — that case is what
+   * the <br>/<div> reading in lib/richTextDom's walk() exists for.
+   */
+  useEffect(() => {
+    const el = elRef.current;
+    if (!el) return;
+    const onBeforeInput = (e: Event) => {
+      const ev = e as InputEvent;
+      const type = ev.inputType;
+      if (type === "insertParagraph" || type === "insertLineBreak") {
+        ev.preventDefault();
+        latest.current.insertLineBreak();
+        return;
+      }
+      const isPaste = type === "insertFromPaste";
+      const text = ev.dataTransfer ? ev.dataTransfer.getData("text/plain") : ev.data ?? "";
+      const html = ev.dataTransfer ? ev.dataTransfer.getData("text/html") : "";
+      // A plain keystroke is an insertText with a single character and no
+      // break — the browser handles that itself, as it always has.
+      if (!isPaste && !(type === "insertText" && text.includes("\n"))) return;
+      if (!text && !html) return;
+      ev.preventDefault();
+      latest.current.insertClipboard(html, text);
+    };
+    el.addEventListener("beforeinput", onBeforeInput);
+    return () => el.removeEventListener("beforeinput", onBeforeInput);
+  }, []);
 
   /** The current selection as raw offsets into `value`, or null when
    *  there's nothing selected in this field. */

@@ -3,26 +3,26 @@ import { describe, expect, it } from "vitest";
 import { sectionFront, sectionTagline } from "./sectionLayout";
 
 /**
- * The mapping IS the client's «تصميم فريد لكل قسم». The complaint that
- * produced these fronts was that thirteen desks shared four layouts and were
- * told apart only by an accent colour — so the test that matters most is the
- * one asserting no two desks share a front again.
+ * The mapping is the client's 2026-09-09 note taken literally: one grid for
+ * every article desk, so «عرض المزيد» on any of them lands on the same page
+ * shape. The test that matters most is the one asserting no article desk
+ * has quietly grown a front of its own again.
  */
 describe("sectionFront", () => {
   const DESKS = ["pol", "egypt", "gulf", "world", "economy", "sports", "security", "tech", "art", "special", "guide", "video", "opinion"];
+  const ARTICLE_DESKS = ["pol", "egypt", "gulf", "world", "security", "tech", "art", "special", "guide"];
 
-  it("gives every desk a front of its own", () => {
-    const fronts = DESKS.map((key) => sectionFront(key).front);
-    expect(new Set(fronts).size).toBe(DESKS.length);
+  it("puts every article desk on the one news grid", () => {
+    for (const key of ARTICLE_DESKS) {
+      expect(sectionFront(key).front, key).toBe("news");
+    }
   });
 
-  it("never leaves a desk on the newswire fallback", () => {
-    // `newswire` exists for sections created in the dashboard later. A named
-    // desk landing on it means someone added a section here and forgot the
-    // component — which looks exactly like the bug this replaced.
-    for (const key of DESKS) {
-      expect(sectionFront(key).front).not.toBe("newswire");
-    }
+  it("keeps the data mastheads and the two different content types on their own fronts", () => {
+    expect(sectionFront("economy").front).toBe("markets");
+    expect(sectionFront("sports").front).toBe("sports");
+    expect(sectionFront("video").front).toBe("watch");
+    expect(sectionFront("opinion").front).toBe("opinion");
   });
 
   it("asks for the extra feed only where a front actually renders one", () => {
@@ -34,19 +34,19 @@ describe("sectionFront", () => {
     for (const key of others) expect(sectionFront(key).feed).toBeNull();
   });
 
-  it("drops the most-read rail on the three desks that own their full width", () => {
-    for (const key of ["special", "video", "opinion"]) {
+  it("drops the most-read rail on the two desks that own their full width, and keeps it everywhere else", () => {
+    for (const key of ["video", "opinion"]) {
       expect(sectionFront(key).aside).toBe(false);
     }
-    for (const key of ["pol", "egypt", "economy", "art"]) {
-      expect(sectionFront(key).aside).toBe(true);
+    // «ملف خاص» refused the rail while it was a dark full-bleed page; on the
+    // shared grid it takes it like every other article desk.
+    for (const key of [...ARTICLE_DESKS, "economy", "sports"]) {
+      expect(sectionFront(key).aside, key).toBe(true);
     }
   });
 
-  it("falls back to a working page for a section added in the dashboard later", () => {
-    // A new section must never render a blank page just because nobody
-    // remembered to add it here.
-    const fallback = { front: "newswire", feed: null, aside: true };
+  it("gives a section added in the dashboard later the same news grid, never a blank page", () => {
+    const fallback = { front: "news", feed: null, aside: true };
     expect(sectionFront("brand-new-desk")).toEqual(fallback);
     expect(sectionFront(null)).toEqual(fallback);
     expect(sectionFront(undefined)).toEqual(fallback);
