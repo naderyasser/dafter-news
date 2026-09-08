@@ -127,13 +127,16 @@ export default async function SectionEnPage({ params }: { params: Promise<{ key:
             stories={stories}
           />
         </main>
+        {/* A plain wrapper, not an <aside>: MostReadList is itself the
+            <aside> landmark, and nesting one inside another gives a screen
+            reader two complementary regions where the page has one. */}
         {railNode && (
-          <aside
+          <div
             className="hidden min-w-[260px] max-w-[320px] flex-[1_1_280px] lg:block"
             style={{ "--rule-b": accent } as React.CSSProperties}
           >
             {railNode}
-          </aside>
+          </div>
         )}
       </div>
     </SiteShell>

@@ -151,13 +151,16 @@ export default async function SectionPage({ params }: { params: Promise<{ key: s
             globals.css). Setting it on the aside is what keeps the rail beside
             a green sports page green and beside an oxblood politics page
             oxblood, instead of every sidebar reverting to the default blue. */}
+        {/* A plain wrapper, not an <aside>: MostReadList is itself the
+            <aside> landmark, and nesting one inside another gives a screen
+            reader two complementary regions where the page has one. */}
         {railNode && (
-          <aside
+          <div
             className="hidden min-w-[260px] max-w-[320px] flex-[1_1_280px] lg:block"
             style={{ "--rule-b": accent } as React.CSSProperties}
           >
             {railNode}
-          </aside>
+          </div>
         )}
       </div>
     </SiteShell>
