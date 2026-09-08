@@ -1,16 +1,17 @@
 import { Suspense } from "react";
 
-import Link from "next/link";
-
 import ArrowCarousel from "@/components/site/ArrowCarousel";
 import ArticleCard from "@/components/site/ArticleCard";
 import HeroSlider from "@/components/site/HeroSlider";
 import LatestNewsTabs from "@/components/site/LatestNewsTabs";
 import MostReadList from "@/components/site/MostReadList";
-import OpinionCarousel from "@/components/site/OpinionCarousel";
+import OpinionSlider from "@/components/site/OpinionSlider";
 import HeroCarouselBlock from "@/components/site/HeroCarouselBlock";
 import LeadListBlock from "@/components/site/LeadListBlock";
 import CompactListBlock from "@/components/site/CompactListBlock";
+import CultureCard from "@/components/site/CultureCard";
+import SnapSlider from "@/components/site/SnapSlider";
+import TrendingTags from "@/components/site/TrendingTags";
 import SectionBlock from "@/components/site/SectionBlock";
 import SportsBlock from "@/components/site/SportsBlock";
 import SectionDivider from "@/components/site/SectionDivider";
@@ -22,7 +23,7 @@ import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getReels, getSectionFeed, getSiteSettings } from "@/lib/api";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getReels, getSectionFeed, getSiteSettings, getTrendingTags } from "@/lib/api";
 import { isArabicScript } from "@/lib/format";
 import { REELS_HIDDEN, VIDEO_DESK_HIDDEN, visibleSections } from "@/lib/hiddenDesks";
 import { pickLatest } from "@/lib/homeFeed";
@@ -121,12 +122,23 @@ function toGulfCard(a: ArticleCardType) {
   return { ...toSectionCard(a), section: a.country || undefined, chip: a.country || undefined };
 }
 
-/** «ثقافة وفن» — the one field this section was missing entirely: the red
- *  corner tag every other photo-led block on the page carries, same
- *  subcategory-then-section fallback toHeroCarouselCard uses for «سياسة». */
+/** «ثقافة وفن» — the portrait interview card (CultureCard): the red corner
+ *  tag (subcategory, then section name) and the byline badge on the photo. */
 function toArtCard(a: ArticleCardType) {
-  return { ...toSectionCard(a), chip: a.subcategory || a.section_name };
+  return {
+    href: articleHref(a),
+    title: a.title,
+    imageSrc: mediaUrl(a.cover_image),
+    chip: a.subcategory || a.section_name,
+    authorName: a.author_name || undefined,
+    authorAvatar: mediaUrl(a.author_avatar),
+    authorInitial: a.author_initial || undefined,
+  };
 }
+
+/** Slot widths for the two paged rails: one card and a peek on a phone,
+ *  two on a tablet, three abreast on a desktop. */
+const RAIL_SLOT = "w-[82%] sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]";
 
 /**
  * A section block is strictly newest-first.
@@ -180,15 +192,14 @@ async function HomeContent() {
       getVideos("?page_size=12"),
       getArticles("?language=ar&kind=opinion&ordering=-published_at&page_size=6"),
       getMostRead("ar"),
-      getTags(),
+      getTrendingTags(),
       getMostCommented("ar"),
       getStories(),
       getMatches(),
       getSections(),
-      // «حصل إيه؟» — the Facebook shorts shelf that now holds the media slot
-      // on this page. Settings comes along for the paper's own page URL, which
-      // is the rail's footer link; it is the same cached read SiteFooter
-      // already makes, so it costs nothing extra.
+      // «حصل إيه؟» — the YouTube shorts shelf. Settings comes along for the
+      // paper's channel URL (the rail's «المزيد» link); it is the same cached
+      // read SiteFooter already makes, so it costs nothing extra.
       getReels(),
       getSiteSettings(),
     ]);
@@ -199,7 +210,7 @@ async function HomeContent() {
   // English rows would surface under Arabic headings here.
   const arStories = stories.results.filter((st) => isArabicScript(st.title));
   const arVideos = videos.results.filter((v) => isArabicScript(v.title));
-  const arTags = tags.results.filter((t) => isArabicScript(t.name));
+  const arTags = tags.results.filter((t) => isArabicScript(t.name)).slice(0, 10);
 
   // A curated block's masthead — cover photo + tagline — is set per section
   // in the dashboard, not hardcoded here. Undefined for a section with
@@ -323,28 +334,20 @@ async function HomeContent() {
     href: `/opinion/${a.slug}`,
     initial: a.author_initial || "؟",
     avatar: mediaUrl(a.author_avatar),
+    imageSrc: mediaUrl(a.cover_image),
   }));
 
-  // Claimed last, matching where «آخر الأخبار» actually renders (foot of the
-  // page): it fills with whatever the sections above did not already take,
-  // rather than repeating the hero back to a reader who has just scrolled
-  // the whole page past it.
   /**
-   * «أحدث الأخبار» — the latest, always non-empty.
+   * «أحدث الأخبار» — the latest, newest first, always non-empty.
    *
-   * This is NOT run through `claim`. Once section blocks began marking every
-   * story they show (so the desks stop losing their own newest), the marked
-   * set covers most of `recent` — and a `claim` here returned nothing at
-   * all, leaving the tab rendering an empty box under its own heading.
-   *
-   * Instead it skips only what the TOP of the page is already showing (the
-   * hero and its side rail, which a reader has just scrolled past), and then
-   * tops up from the full list so a busy day can never empty it. A tab
-   * labelled "latest news" showing nothing is worse than one repeating a
-   * story from the top of a long page.
+   * Strictly the API's own `-published_at` order. This is NOT filtered
+   * against `seenIds` (that emptied the tab once the section blocks began
+   * marking their stories) and it does NOT demote what the hero shows (that
+   * put the newest story on the site at the bottom of a list called
+   * latest — the newsroom's «المفروض يطلع أحدث الأخبار» report). Both rules
+   * are pinned in lib/homeFeed.test.ts.
    */
-  const topOfPage = new Set<number>([...heroIds, ...heroSide.map((a) => a.id)]);
-  const newsLatest = pickLatest(recent.results, topOfPage, 6).map((a) => ({
+  const newsLatest = pickLatest(recent.results, 6).map((a) => ({
     href: articleHref(a),
     title: a.title,
   }));
@@ -367,13 +370,14 @@ async function HomeContent() {
     title: r.title,
     thumbnail: mediaUrl(r.thumbnail),
     href: `/reel/${r.slug}`,
+    youtubeId: r.youtube_id,
   }));
 
-  /** The paper's own Facebook page, from Settings → روابط التواصل. Undefined
-   *  when it isn't set, which hides the rail's footer link rather than
+  /** The paper's own YouTube channel, from Settings → روابط التواصل. Undefined
+   *  when it isn't set, which hides the rail's «المزيد» link rather than
    *  shipping one that goes nowhere. */
-  const facebookPage =
-    settings?.social_links?.find((l) => l.platform === "facebook" && l.url)?.url || undefined;
+  const youtubeChannel =
+    settings?.social_links?.find((l) => l.platform === "youtube" && l.url)?.url || undefined;
 
   const newsPopular = popular.results.map((a) => ({
     href: articleHref(a),
@@ -456,11 +460,10 @@ async function HomeContent() {
       {/* «حصل إيه؟» — right after «سياسة», ahead of every other curated desk:
           the client's own placement call. Light-themed (see ReelsRail's own
           docstring), so it takes the standard SectionDivider on both sides
-          like any other light block, unlike its old dark-band position
-          lower on the page which separated itself with its own edge. */}
+          like any other light block. */}
       {!REELS_HIDDEN && reelCards.length ? (
         <>
-          <ReelsRail lang="ar" reels={reelCards} facebookUrl={facebookPage} />
+          <ReelsRail lang="ar" reels={reelCards} channelUrl={youtubeChannel} />
           <SectionDivider />
         </>
       ) : null}
@@ -526,16 +529,23 @@ async function HomeContent() {
           just «لقطة وتعليق» running normally in its own spot. */}
       {!VIDEO_DESK_HIDDEN && <VideoShowcase lang="ar" title="لقطة وتعليق" href="/video" videos={showcaseVideos} />}
 
-      {/* ثقافة وفن — photo-first arrow rail. */}
+      {/* ثقافة وفن — the interview rail: portrait cards with the byline on
+          the photo, arrows on the nameplate row, dots under it, and the
+          header-level «المزيد» this section was missing (the client's
+          report — it was the one block on the page with no way to its desk). */}
       {artCards.length ? (
         <>
           <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("art")}>
-            <SectionHeading lang="ar" title="ثقافة وفن" href="/section/art" sectionKey="art" />
-            <ArrowCarousel lang="ar" itemClassName="w-[480px] max-w-[88vw]" overlayArrows>
+            <SnapSlider
+              lang="ar"
+              ariaLabel="ثقافة وفن"
+              itemClassName={RAIL_SLOT}
+              heading={<SectionHeading lang="ar" title="ثقافة وفن" href="/section/art" sectionKey="art" moreHref="/section/art" className="" />}
+            >
               {artCards.map((a) => (
-                <ArticleCard key={a.id} lang="ar" variant="hero" {...toArtCard(a)} accent={sectionColor("art")} />
+                <CultureCard key={a.id} lang="ar" {...toArtCard(a)} accent={sectionColor("art")} />
               ))}
-            </ArrowCarousel>
+            </SnapSlider>
           </section>
           <SectionDivider />
         </>
@@ -545,7 +555,7 @@ async function HomeContent() {
           not photographs. */}
       {guideCards.length ? (
         <>
-          <CompactListBlock lang="ar" title="دليلك الأول" href="/section/guide" sectionKey="guide" cards={guideCards} showTime={false} />
+          <CompactListBlock lang="ar" title="دليلك الأول" href="/section/guide" sectionKey="guide" cards={guideCards} layout="spotlight" showTime={false} />
           <SectionDivider />
         </>
       ) : null}
@@ -555,7 +565,7 @@ async function HomeContent() {
       {techCards.length ? (
         <>
           <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("tech")}>
-            <SectionHeading lang="ar" title="علوم وتكنولوجيا" href="/section/tech" sectionKey="tech" />
+            <SectionHeading lang="ar" title="علوم وتكنولوجيا" href="/section/tech" sectionKey="tech" moreHref="/section/tech" />
             <ArrowCarousel lang="ar" itemClassName="w-[300px]">
               {techCards.map((a) => (
                 <ArticleCard key={a.id} lang="ar" variant="standard" {...toSectionCard(a)} accent={sectionColor("tech")} />
@@ -593,7 +603,8 @@ async function HomeContent() {
         </div>
       ))}
 
-      <OpinionCarousel lang="ar" items={opinionItems} seeAllHref="/opinion" />
+      {/* بالعقل والمنطق — the «مقالات» slider on paper (see OpinionSlider). */}
+      <OpinionSlider lang="ar" items={opinionItems} seeAllHref="/opinion" />
 
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-8 px-6 py-8">
         <LatestNewsTabs lang="ar" latest={newsLatest} popular={newsPopular} />
@@ -604,20 +615,7 @@ async function HomeContent() {
             is what they browse once the news itself is spent. */}
         <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-5">
           <MostReadList lang="ar" items={mostReadItems} />
-          <div className="rounded-card border border-line bg-paper p-5">
-            <div className="rule-accent ps-3.5 font-display-ar text-[15px] font-extrabold text-ink">وسوم رائجة</div>
-            <div className="mt-3.5 flex flex-wrap gap-2">
-              {arTags.slice(0, 5).map((t) => (
-                <Link
-                  key={t.id}
-                  href={`/tag/${t.slug}`}
-                  className="rounded-pill bg-brand-tint px-3.5 py-1.5 text-[13px] font-semibold text-brand no-underline hover:bg-brand hover:text-paper"
-                >
-                  {t.name}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <TrendingTags lang="ar" tags={arTags} />
         </div>
       </div>
     </SiteShell>

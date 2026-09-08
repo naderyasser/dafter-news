@@ -1,13 +1,14 @@
 import { Suspense } from "react";
 
-import Link from "next/link";
-
 import ArrowCarousel from "@/components/site/ArrowCarousel";
 import ArticleCard from "@/components/site/ArticleCard";
 import HeroSlider from "@/components/site/HeroSlider";
 import LatestNewsTabs from "@/components/site/LatestNewsTabs";
 import MostReadList from "@/components/site/MostReadList";
-import OpinionCarousel from "@/components/site/OpinionCarousel";
+import OpinionSlider from "@/components/site/OpinionSlider";
+import CultureCard from "@/components/site/CultureCard";
+import SnapSlider from "@/components/site/SnapSlider";
+import TrendingTags from "@/components/site/TrendingTags";
 import SectionBlock from "@/components/site/SectionBlock";
 import SportsBlock from "@/components/site/SportsBlock";
 import SectionDivider from "@/components/site/SectionDivider";
@@ -19,7 +20,7 @@ import VideoShowcase from "@/components/site/VideoShowcase";
 import StoriesRail from "@/components/site/StoriesRail";
 import WorldNewsBlock from "@/components/site/WorldNewsBlock";
 import PageSkeleton from "@/components/ui/PageSkeleton";
-import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getReels, getSectionFeed, getSiteSettings } from "@/lib/api";
+import { getArticles, getMatches, getSections, getStories, getTags, getVideos, mediaUrl, getMostRead, getLatest, getMostCommented, getReels, getSectionFeed, getSiteSettings, getTrendingTags } from "@/lib/api";
 import { REELS_HIDDEN, VIDEO_DESK_HIDDEN, visibleSections } from "@/lib/hiddenDesks";
 import { isLatinScript } from "@/lib/format";
 import { sectionColor, sectionStyle } from "@/lib/sections";
@@ -76,9 +77,17 @@ function toGulfCard(a: ArticleCardType) {
   return { ...toCard(a), section: a.country || undefined, chip: a.country || undefined };
 }
 
-/** Culture & Art's own corner tag — mirrors the Arabic home's toArtCard. */
+/** Culture & Art's portrait card — mirrors the Arabic home's toArtCard. */
 function toArtCard(a: ArticleCardType) {
-  return { ...toCard(a), chip: a.subcategory || a.section_name };
+  return {
+    href: `/en/article/${a.slug}`,
+    title: a.title,
+    imageSrc: mediaUrl(a.cover_image),
+    chip: a.subcategory || a.section_name,
+    authorName: a.author_name_en || a.author_name || undefined,
+    authorAvatar: mediaUrl(a.author_avatar),
+    authorInitial: a.author_initial || undefined,
+  };
 }
 
 function toWorldCard(a: ArticleCardType) {
@@ -114,15 +123,15 @@ async function HomeEnContent() {
       getVideos("?page_size=12"),
       getArticles("?language=en&kind=opinion&ordering=-published_at&page_size=6"),
       getMostRead("en"),
-      getTags(),
+      getTrendingTags(),
       getMostCommented("en"),
       getStories(),
       getSections(),
       getMatches(),
       // «حصل إيه؟» / Catch Up — the same shelf the Arabic home carries. Reels
       // are one shared list, not a per-language one: a reel is a video with a
-      // title on it, and the desk publishes one Facebook page for both
-      // editions. Settings comes along for that page's URL.
+      // title on it, and the desk runs one YouTube channel for both
+      // editions. Settings comes along for that channel's URL.
       getReels(),
       getSiteSettings(),
     ]);
@@ -187,6 +196,7 @@ async function HomeEnContent() {
     href: `/en/article/${a.slug}`,
     initial: a.author_initial || "?",
     avatar: mediaUrl(a.author_avatar),
+    imageSrc: mediaUrl(a.cover_image),
   }));
 
   const newsLatest = recent.results.slice(0, 6).map((a) => ({
@@ -201,12 +211,13 @@ async function HomeEnContent() {
     title: r.title,
     thumbnail: mediaUrl(r.thumbnail),
     href: `/en/reel/${r.slug}`,
+    youtubeId: r.youtube_id,
   }));
 
-  /** Settings → social links. Undefined hides the rail's footer link rather
-   *  than shipping one that goes nowhere — mirrors the Arabic home. */
-  const facebookPage =
-    settings?.social_links?.find((l) => l.platform === "facebook" && l.url)?.url || undefined;
+  /** Settings → social links: the paper's YouTube channel. Undefined hides the
+   *  rail's «More» link rather than shipping one that goes nowhere. */
+  const youtubeChannel =
+    settings?.social_links?.find((l) => l.platform === "youtube" && l.url)?.url || undefined;
 
   const newsPopular = popular.results.map((a) => ({
     href: `/en/article/${a.slug}`,
@@ -214,7 +225,7 @@ async function HomeEnContent() {
     time: `${a.comment_count} comments`,
   }));
 
-  const enTags = tags.results.filter((t) => isLatinScript(t.name));
+  const enTags = tags.results.filter((t) => isLatinScript(t.name)).slice(0, 10);
   const enStories = stories.results.filter((s) => isLatinScript(s.title));
 
   return (
@@ -260,7 +271,7 @@ async function HomeEnContent() {
           after سياسة" call. Light-themed; see ReelsRail's own docstring. */}
       {!REELS_HIDDEN && reelCards.length ? (
         <>
-          <ReelsRail lang="en" reels={reelCards} facebookUrl={facebookPage} />
+          <ReelsRail lang="en" reels={reelCards} channelUrl={youtubeChannel} />
           <SectionDivider />
         </>
       ) : null}
@@ -291,12 +302,16 @@ async function HomeEnContent() {
       {art.results.length ? (
         <>
           <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("art")}>
-            <SectionHeading lang="en" title={T.art} href="/en/section/art" sectionKey="art" />
-            <ArrowCarousel lang="en" itemClassName="w-[480px] max-w-[88vw]" overlayArrows>
+            <SnapSlider
+              lang="en"
+              ariaLabel={T.art}
+              itemClassName="w-[82%] sm:w-[calc((100%-1rem)/2)] lg:w-[calc((100%-2rem)/3)]"
+              heading={<SectionHeading lang="en" title={T.art} href="/en/section/art" sectionKey="art" moreHref="/en/section/art" className="" />}
+            >
               {art.results.map((a) => (
-                <ArticleCard key={a.id} lang="en" variant="hero" {...toArtCard(a)} accent={sectionColor("art")} />
+                <CultureCard key={a.id} lang="en" {...toArtCard(a)} accent={sectionColor("art")} />
               ))}
-            </ArrowCarousel>
+            </SnapSlider>
           </section>
           <SectionDivider />
         </>
@@ -304,7 +319,7 @@ async function HomeEnContent() {
 
       {tech.results.length ? (
         <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle("tech")}>
-          <SectionHeading lang="en" title={T.tech} href="/en/section/tech" sectionKey="tech" />
+          <SectionHeading lang="en" title={T.tech} href="/en/section/tech" sectionKey="tech" moreHref="/en/section/tech" />
           <ArrowCarousel lang="en" itemClassName="w-[300px]">
             {tech.results.map((a) => (
               <ArticleCard key={a.id} lang="en" variant="standard" {...toCard(a)} accent={sectionColor("tech")} />
@@ -336,7 +351,7 @@ async function HomeEnContent() {
         </div>
       ))}
 
-      {opinionItems.length > 0 && <OpinionCarousel lang="en" items={opinionItems} seeAllHref="/en" />}
+      <OpinionSlider lang="en" items={opinionItems} seeAllHref="/en/section/opinion" />
 
       <div className="mx-auto flex max-w-container flex-wrap items-start gap-8 px-6 py-8">
         <LatestNewsTabs lang="en" latest={newsLatest} popular={newsPopular} />
@@ -355,22 +370,7 @@ async function HomeEnContent() {
               authorAvatar: mediaUrl(a.author_avatar),
             }))}
           />
-          {enTags.length > 0 && (
-            <div className="rounded-card border border-line bg-paper p-5">
-              <div className="rule-accent ps-3.5 font-display-en text-[15px] font-extrabold text-ink">{T.trendingTags}</div>
-              <div className="mt-3.5 flex flex-wrap gap-2">
-                {enTags.slice(0, 5).map((t) => (
-                  <Link
-                    key={t.id}
-                    href={`/en/tag/${encodeURIComponent(t.slug)}`}
-                    className="rounded-pill bg-brand-tint px-3.5 py-1.5 text-[13px] font-semibold text-brand no-underline hover:bg-brand hover:text-paper"
-                  >
-                    {t.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+          <TrendingTags lang="en" tags={enTags} heading={T.trendingTags} />
         </div>
       </div>
     </SiteShell>

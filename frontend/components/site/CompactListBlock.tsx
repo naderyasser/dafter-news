@@ -2,28 +2,41 @@ import Link from "next/link";
 
 import SectionHeading from "@/components/site/SectionHeading";
 import SectionMore from "@/components/site/SectionMore";
+import ListThumb from "@/components/ui/ListThumb";
 import TimeAgo from "@/components/ui/TimeAgo";
+import { articleCoverFallback } from "@/lib/coverFallback";
 import { articleHref } from "@/lib/routes";
+import { sectionColor, sectionStyle } from "@/lib/sections";
+import { standfirstFor } from "@/lib/format";
 import type { ArticleCard as ArticleCardType } from "@/lib/types";
 
 /**
- * Layout variant V3 — the headline-only compact list.
+ * Layout variant V3 — the compact block, in two shapes.
  *
- * This is where the page's height budget is won. «أمن ومحاكم» and «دليلك
- * الأول» were rendering as photo-led blocks costing ~1,200px EACH, for six
- * stories apiece; as a two-column headline list the same six stories cost
- * roughly a fifth of that. Nothing is dropped — the reader gets the same
- * headlines and the same links, without a 16:9 photograph attached to each
- * one.
+ * This is still where the page's height budget is won: «أمن ومحاكم» and
+ * «دليلك الأول» once cost ~1,200px each as photo-led blocks. But the plain
+ * numbered headline list that replaced them was the thing the client sent
+ * back — two desks in a row rendered as the same five bare lines, and
+ * «مينفعش نخلي الأقسام بالشكل ده» is a fair reading of that. Nothing here
+ * grows past ~420px, and nothing is dropped: every story, every link.
  *
- * Two columns on desktop, one on a phone. Numbered rows rather than
- * thumbnails: with no image to anchor them, the numerals give the eye
- * something to track down the column, and they cost no layout height beyond
- * the text itself.
+ * What changed: the block sits inside a panel tinted with the desk's own
+ * colour, every row carries the site's one square thumbnail (see ListThumb —
+ * the client's separate ask that thumbnails stop varying), and the rank
+ * numeral is a filled badge in the desk's colour rather than a red digit.
  *
- * The header is the same shared SectionHeading every other block uses — the
- * spec's point that header consistency and body variety are the two halves
- * of one component, not a contradiction.
+ * Two layouts so two adjacent desks never repeat:
+ *
+ *  - `cards`     — a two-column grid of bordered rows, each its own small
+ *                  card. Dense; the register-like desks («أمن ومحاكم»).
+ *  - `spotlight` — the newest story as a wider lead row with a larger
+ *                  thumbnail and its standfirst, then the rest as a ruled
+ *                  two-column list. Service desks («دليلك الأول»), where the
+ *                  one answer a reader came for deserves the extra line.
+ *
+ * `spotlight` with a single story is just the lead row, which is also what
+ * makes this the safe fallback for a photo-led desk on a quiet day (see the
+ * home page's MIN_FOR_PHOTO_LED).
  */
 export default function CompactListBlock({
   lang,
@@ -31,7 +44,7 @@ export default function CompactListBlock({
   href,
   sectionKey,
   cards,
-  tone = "light",
+  layout = "cards",
   showTime = true,
 }: {
   lang: "ar" | "en";
@@ -39,7 +52,7 @@ export default function CompactListBlock({
   href: string;
   sectionKey?: string;
   cards: ArticleCardType[];
-  tone?: "light" | "dark";
+  layout?: "cards" | "spotlight";
   /**
    * The home page passes false. A newsroom this size cannot refile every
    * hour, and a column of «منذ يومين» down the front page reads as an
@@ -52,54 +65,105 @@ export default function CompactListBlock({
   if (!cards.length) return null;
   const isAr = lang === "ar";
   const fontDisplay = isAr ? "font-display-ar" : "font-display-en";
+  const accent = sectionColor(sectionKey);
+  const accentVar = { "--card-accent": accent } as React.CSSProperties;
+
+  const rank = (n: number) => (
+    <span
+      aria-hidden
+      className="tnum flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-extrabold text-paper"
+      style={{ backgroundColor: accent }}
+    >
+      {n}
+    </span>
+  );
+
+  const thumb = (a: ArticleCardType, size: "sm" | "md" = "sm") => {
+    const fallback = articleCoverFallback(a.kind, a.author_avatar);
+    return (
+      <ListThumb src={a.cover_image} size={size} fallbackSrc={fallback.src} fallbackFit={fallback.fit} position={fallback.position} />
+    );
+  };
+
+  const stamp = (a: ArticleCardType) =>
+    showTime ? <TimeAgo iso={a.published_at} lang={lang} className="mt-1 block text-xs text-ink-3" /> : null;
+
+  const row = (a: ArticleCardType, i: number, ruled: boolean) => (
+    <li key={a.id} className={ruled ? "border-b border-line last:border-b-0 sm:[&:nth-last-child(2):nth-child(odd)]:border-b-0" : ""}>
+      <Link
+        href={articleHref(a, lang)}
+        className={`card-link flex items-center gap-3 no-underline ${
+          ruled ? "py-3" : "rounded-xl border border-line bg-paper p-3 transition-shadow duration-fast hover:shadow-1"
+        }`}
+        style={accentVar}
+      >
+        {rank(i + 1)}
+        <span className="min-w-0 flex-1">
+          <span className={`${fontDisplay} card-title block text-[15px] font-bold leading-[1.5] text-ink`}>{a.title}</span>
+          {stamp(a)}
+        </span>
+        {thumb(a)}
+      </Link>
+    </li>
+  );
+
+  const [lead, ...rest] = cards;
+  const standfirst = standfirstFor(lead.title, lead.standfirst);
 
   return (
-    <section className={`${tone === "dark" ? "bg-navy" : "bg-paper"} py-8`}>
-      <div className="mx-auto max-w-container px-6">
-        <SectionHeading lang={lang} title={title} href={href} sectionKey={sectionKey} tone={tone} />
+    <section className="section-watermark mx-auto max-w-container px-6 py-8" style={sectionStyle(sectionKey)}>
+      <SectionHeading lang={lang} title={title} href={href} sectionKey={sectionKey} />
 
-        {/* columns, not a grid: a two-column grid orders items across the row
-            (1,2 / 3,4), which reads wrong for a ranked list in any language.
-            CSS columns keep 1,2,3 down the first column — and inherit the
-            page's direction, so the first column is the RIGHT one in RTL
-            without a single directional property. */}
-        <ol className="m-0 list-none p-0 sm:columns-2 sm:gap-x-10">
-          {cards.map((a, i) => (
-            <li key={a.id} className="break-inside-avoid">
-              <Link
-                href={articleHref(a, lang)}
-                className="card-link flex items-baseline gap-3 border-b border-line py-2.5 no-underline"
-              >
-                <span
-                  aria-hidden
-                  className={`tnum w-5 flex-shrink-0 text-[13px] font-extrabold ${
-                    tone === "dark" ? "text-header-muted" : "text-brand"
-                  }`}
-                >
-                  {i + 1}
+      {/* The desk's colour at 5% as a panel, its border at 20%: enough to
+          read as "this desk's box" next to a white block, not enough to
+          compete with the photographs. */}
+      <div className="rounded-2xl border p-3 sm:p-4" style={{ borderColor: `${accent}33`, backgroundColor: `${accent}0D` }}>
+        {layout === "spotlight" ? (
+          <>
+            <Link
+              href={articleHref(lead, lang)}
+              className="card-link flex items-center gap-4 rounded-xl border border-line bg-paper p-3 no-underline transition-shadow duration-fast hover:shadow-1 sm:gap-5 sm:p-4"
+              style={accentVar}
+            >
+              <span className="min-w-0 flex-1">
+                <span className="text-[11.5px] font-extrabold" style={{ color: accent }}>
+                  {lead.subcategory || lead.section_name}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span
-                    className={`${fontDisplay} card-title block text-[15px] font-bold leading-[1.55] ${
-                      tone === "dark" ? "text-paper" : "text-ink"
-                    }`}
-                  >
-                    {a.title}
-                  </span>
-                  {showTime && (
-                    <TimeAgo
-                      iso={a.published_at}
-                      lang={lang}
-                      className={`mt-1 block text-xs ${tone === "dark" ? "text-header-muted" : "text-ink-3"}`}
-                    />
-                  )}
+                <span className={`${fontDisplay} card-title mt-1 block text-[16px] font-extrabold leading-[1.5] text-ink sm:text-[18px]`}>
+                  {lead.title}
                 </span>
-              </Link>
-            </li>
-          ))}
-        </ol>
-        <SectionMore lang={lang} href={href} tone={tone} />
+                {standfirst && <span className="mt-1.5 line-clamp-2 block text-[13.5px] leading-[1.7] text-ink-2">{standfirst}</span>}
+                {stamp(lead)}
+              </span>
+              <span className="[&>div]:w-[104px] sm:[&>div]:w-[132px]">{thumb(lead, "md")}</span>
+            </Link>
+            {rest.length > 0 && (
+              // CSS columns, not a grid: a grid orders items across the row
+              // (2,3 / 4,5), which reads wrong for a numbered list. Columns
+              // keep 2,3 down the first column, and follow the page's
+              // direction so that column is the RIGHT one in Arabic.
+              <ol className="m-0 mt-3 list-none p-0 sm:columns-2 sm:gap-x-8">
+                {rest.map((a, i) => (
+                  <li key={a.id} className="break-inside-avoid border-b border-line last:border-b-0">
+                    <Link href={articleHref(a, lang)} className="card-link flex items-center gap-3 py-3 no-underline" style={accentVar}>
+                      {rank(i + 2)}
+                      <span className="min-w-0 flex-1">
+                        <span className={`${fontDisplay} card-title block text-[15px] font-bold leading-[1.5] text-ink`}>{a.title}</span>
+                        {stamp(a)}
+                      </span>
+                      {thumb(a)}
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </>
+        ) : (
+          <ol className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">{cards.map((a, i) => row(a, i, false))}</ol>
+        )}
       </div>
+
+      <SectionMore lang={lang} href={href} />
     </section>
   );
 }

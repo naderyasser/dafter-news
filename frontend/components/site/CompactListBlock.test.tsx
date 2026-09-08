@@ -9,6 +9,10 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next/image", () => ({
+  default: ({ src, alt, fill: _fill, ...rest }: any) => <img src={src} alt={alt} {...rest} />,
+}));
+
 import CompactListBlock from "./CompactListBlock";
 import type { ArticleCard } from "@/lib/types";
 
@@ -98,12 +102,50 @@ describe("CompactListBlock", () => {
     expect(within(list).getByText("2")).toBeInTheDocument();
   });
 
-  it("renders no images at all — that is the entire point of the variant", () => {
+  it("gives every row the site's one square thumbnail — the client's uniformity ask", () => {
     const { container } = render(
-      <CompactListBlock lang="ar" title="أمن" href="/s" cards={[card(), card({ id: 2, slug: "b" })]} />,
+      <CompactListBlock lang="ar" title="أمن" href="/s" cards={[card({ cover_image: "/media/covers/a.jpg" }), card({ id: 2, slug: "b" })]} />,
     );
 
-    expect(container.querySelector("img")).toBeNull();
+    // Two rows, two square frames: the second falls to the site mark rather
+    // than to no image, so the column of thumbnails never has a hole in it.
+    expect(container.querySelectorAll(".aspect-square")).toHaveLength(2);
+    expect(container.querySelector('img[src="/media/covers/a.jpg"]')).not.toBeNull();
+    expect(container.querySelector('img[src="/icon.png"]')).not.toBeNull();
+  });
+
+  it("tints its panel with the desk's own colour so two desks never look alike", () => {
+    const { container } = render(
+      <CompactListBlock lang="ar" title="أمن" href="/s" sectionKey="security" cards={[card()]} />,
+    );
+
+    expect(container.querySelector(".rounded-2xl")).toHaveStyle({ backgroundColor: "#41556E0D" });
+  });
+
+  it("spotlight: leads with the newest story at a larger size, then numbers the rest from 2", () => {
+    render(
+      <CompactListBlock
+        lang="ar"
+        title="دليلك الأول"
+        href="/section/guide"
+        sectionKey="guide"
+        layout="spotlight"
+        cards={[card({ id: 1, standfirst: "الإجابة المختصرة" }), card({ id: 2, slug: "b", title: "خبر ثانٍ" }), card({ id: 3, slug: "c", title: "خبر ثالث" })]}
+      />,
+    );
+
+    expect(screen.getByText("الإجابة المختصرة")).toBeInTheDocument();
+    const list = screen.getByRole("list");
+    expect(within(list).getByText("2")).toBeInTheDocument();
+    expect(within(list).queryByText("1")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link")).toHaveLength(3 + 2);
+  });
+
+  it("spotlight with a single story is just the lead row", () => {
+    render(<CompactListBlock lang="ar" title="سياسة" href="/section/pol" layout="spotlight" cards={[card()]} />);
+
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /الداخلية/ })).toBeInTheDocument();
   });
 
   it("renders nothing rather than a heading over an empty grid", () => {
