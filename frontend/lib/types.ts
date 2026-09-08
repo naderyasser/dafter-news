@@ -192,9 +192,9 @@ export type Video = {
   created_at: string;
 };
 
-/** «حصل إيه؟» — a Facebook reel the home page posters, and deliberately does
- *  not play. Three editorial fields and an ordering handle; see the backend's
- *  video.models.Reel for why there is nothing else on it. */
+/** «حصل إيه؟» — a YouTube Short the home page shelf plays in a lightbox and
+ *  on its own /reel/<slug> page. The newsroom fills in `url` alone; the
+ *  backend derives `youtube_id` and fetches the title and poster. */
 export type Reel = {
   id: number;
   title: string;
@@ -202,7 +202,11 @@ export type Reel = {
    *  — read-only, never sent on write. Builds the /reel/<slug> watch page URL. */
   slug: string;
   thumbnail: string | null;
-  facebook_url: string;
+  /** The link as the newsroom pasted it. */
+  url: string;
+  /** Parsed from `url` by the backend; empty for a row whose link is not a
+   *  YouTube video (the public API never returns those). */
+  youtube_id: string;
   order: number;
   created_at: string;
 };

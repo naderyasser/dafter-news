@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from .models import Reel, Video, VideoComment
-from .og import UNTITLED_REEL_TITLE, attach_scraped_metadata
+from .youtube import UNTITLED_REEL_TITLE, attach_scraped_metadata, extract_video_id
 
 
 class VideoCommentSerializer(serializers.ModelSerializer):
@@ -51,43 +51,56 @@ class VideoDetailSerializer(VideoSerializer):
 class ReelSerializer(serializers.ModelSerializer):
     """
     What the shelf renders. ONE field is asked of an editor — the reel's
-    Facebook link — and both the title and the poster are read off that link's
-    own page (see video/og.py).
+    YouTube link — and both the title and the poster are read off YouTube
+    for it (see video/youtube.py).
 
-    `title` and `thumbnail` both stay writable, and both stay optional: an
-    editor can still set either by hand (for the reel whose page Facebook
-    won't serve, or whose scraped caption isn't the headline they want), and a
-    value sent this way always outranks whatever the scrape would have picked.
-    `thumbnail` comes back as a URL (DRF's ImageField default), which is what
-    the card's poster needs and what the brief calls `thumbnail_url`.
+    `title` and `thumbnail` stay writable and optional: an editor can set
+    either by hand (a caption that isn't the headline they want, a video
+    whose poster YouTube won't serve), and a value sent this way always
+    outranks whatever the fetch would have picked. `youtube_id` is read-only:
+    the model derives it from `url` on every save.
     """
 
     title = serializers.CharField(required=False, allow_blank=True, max_length=200)
     thumbnail = serializers.ImageField(required=False, allow_null=True)
-    # Read-only: unlike Video's own `slug`, there is no dashboard field for
-    # this and no reason to add one — the whole point of this model is that
-    # an editor manages none of its metadata by hand. It is system-derived
-    # from the title once that settles (see Reel.assign_slug and _finalize
-    # below), and exposed here only so the frontend can build /reel/<slug>.
+    # Read-only: system-derived from the title once that settles (see
+    # Reel.assign_slug and _finalize below), exposed so the frontend can
+    # build /reel/<slug>.
     slug = serializers.SlugField(read_only=True)
+    youtube_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = Reel
-        fields = ["id", "title", "slug", "thumbnail", "facebook_url", "order", "created_at"]
+        fields = ["id", "title", "slug", "thumbnail", "url", "youtube_id", "order", "created_at"]
+
+    def validate_url(self, value):
+        """
+        A link the player cannot embed is a dead card — refuse it at the edge
+        with a field error rather than saving a row the rail hides. The same
+        video pasted twice (the easiest slip on a one-field form) is refused
+        too: two cards for one reel is never what the desk meant.
+        """
+        video_id = extract_video_id(value)
+        if not video_id:
+            raise serializers.ValidationError(
+                "الرابط لازم يكون رابط فيديو على يوتيوب (youtube.com/shorts/… أو youtu.be/…)."
+            )
+        duplicates = Reel.objects.filter(youtube_id=video_id)
+        if self.instance is not None:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise serializers.ValidationError("هذا الفيديو مضاف بالفعل إلى «حصل إيه؟».")
+        return value
 
     def create(self, validated_data):
         """
-        Save first, then scrape.
+        Save first, then fetch.
 
-        In that order because the scrape is a network call to a third party: it
-        takes a second or two, it can fail, and a reel whose title or picture
+        In that order because the fetch is a network call to a third party:
+        it takes a moment, it can fail, and a reel whose title or picture
         could not be retrieved is still a reel the newsroom meant to publish.
-        Saving first means a Facebook outage costs the card its text and its
-        poster, never its row.
-
-        Only the fields the client left blank are asked for — a title or a
-        poster an editor set by hand in the same request outranks the scrape,
-        same as an update (see below).
+        Only the halves the client left blank are fetched — a title or a
+        poster set by hand in the same request outranks the fetch.
         """
         reel = super().create(validated_data)
         want_title = not reel.title
@@ -99,18 +112,15 @@ class ReelSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """
-        Re-scrape only when the link changed, and only the halves the same
-        request didn't set by hand.
-
-        Gated on the link changing at all — reordering the rail is one PATCH
-        per card, and without this every one of those would hit Facebook again
-        for text and a picture that have not changed.
+        Re-fetch only when the link changed, and only the halves the same
+        request didn't set by hand — reordering the rail is one PATCH per
+        card, and none of those should hit YouTube again.
         """
-        previous_url = instance.facebook_url
+        previous_url = instance.url
         manual_title = bool(validated_data.get("title"))
         manual_thumbnail = "thumbnail" in validated_data
         reel = super().update(instance, validated_data)
-        if reel.facebook_url != previous_url and (not manual_title or not manual_thumbnail):
+        if reel.url != previous_url and (not manual_title or not manual_thumbnail):
             attach_scraped_metadata(reel, want_title=not manual_title, want_image=not manual_thumbnail)
             self._finalize(reel)
         return reel
@@ -118,22 +128,11 @@ class ReelSerializer(serializers.ModelSerializer):
     @staticmethod
     def _finalize(reel):
         """
-        The one point in the write path where `reel.title` is actually
-        settled — scraped, manually supplied, or about to fall back to
-        UNTITLED_REEL_TITLE — which makes it also the first safe point to
-        derive a real slug from it. `reel.slug` already holds the temporary
-        `reel-<pk>` placeholder Reel.save() assigned on creation (see its own
-        docstring); this replaces it with one that actually reads as the
-        reel's own title, giving `/reel/<slug>` a real permalink instead of
-        an opaque id-based one.
-
-        The blank-title case is the one the scrape can leave unhandled: the
-        client sent no title and the page carried neither an og:description
-        nor an og:title (a deleted reel, a fetch that failed outright). A
-        blank cell in the dashboard list reads as the same "did this render"
-        doubt an unset thumbnail already caused once, so this is a
-        placeholder TEXT, not a placeholder image — there is nothing to draw
-        for a title.
+        The one point in the write path where `reel.title` is settled —
+        fetched, manually supplied, or about to fall back to
+        UNTITLED_REEL_TITLE — and so the first safe point to derive a real
+        slug from it, replacing the `reel-<pk>` placeholder Reel.save()
+        assigned on creation.
         """
         changed = []
         if not reel.title:

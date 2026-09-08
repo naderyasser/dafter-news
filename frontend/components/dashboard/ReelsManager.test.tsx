@@ -6,17 +6,23 @@ import type { Reel } from "@/lib/types";
 
 const dashMutate = vi.fn();
 const dashUpload = vi.fn();
-vi.mock("@/lib/api", () => ({
-  dashMutate: (...a: unknown[]) => dashMutate(...a),
-  dashUpload: (...a: unknown[]) => dashUpload(...a),
-  mediaUrl: (p?: string | null) => p ?? undefined,
-}));
+vi.mock("@/lib/api", async () => {
+  const real = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
+  return {
+    ApiError: real.ApiError,
+    describeApiError: real.describeApiError,
+    dashMutate: (...a: unknown[]) => dashMutate(...a),
+    dashUpload: (...a: unknown[]) => dashUpload(...a),
+    mediaUrl: (p?: string | null) => p ?? undefined,
+  };
+});
 
 const reel = (over: Partial<Reel> = {}): Reel => ({
   id: 1,
   title: "لقطة من المؤتمر",
   thumbnail: "/media/reels/a.jpg",
-  facebook_url: "https://facebook.com/reel/1",
+  url: "https://www.youtube.com/shorts/AAAAAAAAAA1",
+  youtube_id: "AAAAAAAAAA1",
   order: 0,
   created_at: "2026-08-01T00:00:00Z",
   ...over,
@@ -33,7 +39,7 @@ describe("ReelsManager", () => {
     render(<ReelsManager reels={[reel(), reel({ id: 2, title: "الحصاد" })]} />);
 
     expect(screen.getByText("2 ريل")).toBeInTheDocument();
-    expect(screen.getByText(/لا تُشغَّل عليها/)).toBeInTheDocument();
+    expect(screen.getByText(/يشغّل الريل في نافذة فوق الصفحة/)).toBeInTheDocument();
   });
 
   it("previews each poster in a fixed-width vertical tile, not a stretching grid track", () => {
@@ -60,8 +66,8 @@ describe("ReelsManager", () => {
     const save = screen.getByRole("button", { name: "حفظ" });
     expect(save).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText("رابط الريل على فيسبوك"), {
-      target: { value: "https://facebook.com/reel/9" },
+    fireEvent.change(screen.getByLabelText("رابط الريل على يوتيوب"), {
+      target: { value: "https://youtube.com/shorts/AAAAAAAAAA9" },
     });
     expect(save).toBeEnabled();
   });
@@ -73,14 +79,14 @@ describe("ReelsManager", () => {
     const dialog = screen.getByRole("dialog");
     expect(dialog.querySelector('input[type="file"]')).toBeNull();
     expect(screen.queryByLabelText("العنوان")).toBeNull();
-    expect(screen.getByText(/يُجلبان تلقائياً من الريل نفسه/)).toBeInTheDocument();
+    expect(screen.getByText(/يُجلبان تلقائياً من يوتيوب/)).toBeInTheDocument();
   });
 
   it("puts the link field first and focuses it, since it's now the only field", async () => {
     render(<ReelsManager reels={[]} />);
     await act(async () => screen.getByRole("button", { name: /إضافة ريل/ }).click());
 
-    expect(screen.getByLabelText("رابط الريل على فيسبوك")).toHaveFocus();
+    expect(screen.getByLabelText("رابط الريل على يوتيوب")).toHaveFocus();
   });
 
   it("says a poster-less card is a failed fetch, not a blank screen", () => {
@@ -88,7 +94,33 @@ describe("ReelsManager", () => {
     // render. It has to say which of the two it is.
     render(<ReelsManager reels={[reel({ thumbnail: null })]} />);
 
-    expect(screen.getByText("تعذّر جلب الصورة من فيسبوك")).toBeInTheDocument();
+    expect(screen.getByText("تعذّر جلب الصورة من يوتيوب")).toBeInTheDocument();
+  });
+
+  it("flags a row whose link is not a YouTube video as unsupported and off the site", () => {
+    // The Facebook-era rows the migration kept: the public API never serves
+    // them, so the dashboard has to say so rather than let the tile look live.
+    render(<ReelsManager reels={[reel({ url: "https://www.facebook.com/reel/1/", youtube_id: "" })]} />);
+
+    expect(screen.getByRole("status")).toHaveTextContent("رابط غير مدعوم");
+  });
+
+  it("does not flag a normal YouTube reel", () => {
+    render(<ReelsManager reels={[reel()]} />);
+
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("surfaces the API's own reason when a link is refused", async () => {
+    const { ApiError } = await import("@/lib/api");
+    dashUpload.mockRejectedValue(new ApiError("/reels/", 400, "Bad Request", { url: ["الرابط لازم يكون رابط فيديو على يوتيوب."] }));
+    render(<ReelsManager reels={[]} />);
+    await act(async () => screen.getByRole("button", { name: /إضافة ريل/ }).click());
+    fireEvent.change(screen.getByLabelText("رابط الريل على يوتيوب"), { target: { value: "https://example.com/x" } });
+
+    await act(async () => screen.getByRole("button", { name: "حفظ" }).click());
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("رابط فيديو على يوتيوب");
   });
 
   it("posts the link and nothing else", async () => {
@@ -98,8 +130,8 @@ describe("ReelsManager", () => {
     render(<ReelsManager reels={[]} />);
     await act(async () => screen.getByRole("button", { name: /إضافة ريل/ }).click());
 
-    fireEvent.change(screen.getByLabelText("رابط الريل على فيسبوك"), {
-      target: { value: "https://facebook.com/reel/9" },
+    fireEvent.change(screen.getByLabelText("رابط الريل على يوتيوب"), {
+      target: { value: "https://youtube.com/shorts/AAAAAAAAAA9" },
     });
     await act(async () => screen.getByRole("button", { name: "حفظ" }).click());
 
@@ -107,9 +139,9 @@ describe("ReelsManager", () => {
     const [path, method, form] = dashUpload.mock.calls[0] as [string, string, FormData];
     expect(path).toBe("/reels/");
     expect(method).toBe("POST");
-    expect(form.get("facebook_url")).toBe("https://facebook.com/reel/9");
+    expect(form.get("url")).toBe("https://youtube.com/shorts/AAAAAAAAAA9");
     // No `title` key, no `thumbnail` key: neither is the editor's job.
-    expect([...form.keys()]).toEqual(["facebook_url"]);
+    expect([...form.keys()]).toEqual(["url"]);
     expect(await screen.findByText("صرف مستشفى العامرية")).toBeInTheDocument();
   });
 

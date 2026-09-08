@@ -18,8 +18,8 @@ vi.mock("next/link", () => ({
 }));
 
 const reels = [
-  { id: 1, title: "لقطة من المؤتمر", thumbnail: "/media/reels/a.jpg", href: "/reel/lqta-mn-almwtmr" },
-  { id: 2, title: "الحصاد في دقيقة", thumbnail: null, href: "/reel/alhsad-fy-dqyqt" },
+  { id: 1, title: "لقطة من المؤتمر", thumbnail: "/media/reels/a.jpg", href: "/reel/lqta-mn-almwtmr", youtubeId: "AAAAAAAAAA1" },
+  { id: 2, title: "الحصاد في دقيقة", thumbnail: null, href: "/reel/alhsad-fy-dqyqt", youtubeId: "AAAAAAAAAA2" },
 ];
 
 describe("ReelsRail", () => {
@@ -63,21 +63,21 @@ describe("ReelsRail", () => {
     expect(container.querySelector(".aspect-\\[9\\/16\\]")!.className).toContain("bg-board-stage");
   });
 
-  it("puts the «المزيد» link under the title, pointed at the paper's Facebook page", () => {
-    render(<ReelsRail lang="ar" reels={reels} facebookUrl="https://facebook.com/aldaftar" />);
+  it("puts the «المزيد» link under the title, pointed at the paper's YouTube channel", () => {
+    render(<ReelsRail lang="ar" reels={reels} channelUrl="https://youtube.com/@aldaftar" />);
 
     const more = screen.getByRole("link", { name: /المزيد من الريلز/ });
-    expect(more).toHaveAttribute("href", "https://facebook.com/aldaftar");
+    expect(more).toHaveAttribute("href", "https://youtube.com/@aldaftar");
     expect(more).toHaveAttribute("target", "_blank");
     expect(more.getAttribute("rel")).toContain("noopener");
     expect(more).toHaveTextContent("المزيد");
   });
 
-  it("omits the «المزيد» link entirely when no page is configured", () => {
+  it("omits the «المزيد» link entirely when no channel is configured", () => {
     render(<ReelsRail lang="ar" reels={reels} />);
 
     // The only links left are the cards themselves, each pointed at its own
-    // watch page rather than at Facebook.
+    // watch page rather than at YouTube.
     for (const link of screen.getAllByRole("link")) {
       expect(link.getAttribute("href")).toMatch(/^\/reel\//);
     }
@@ -96,16 +96,17 @@ describe("ReelsRail", () => {
     expect(segments[1].className).not.toContain("white/15");
   });
 
-  it("navigates cards to their own watch page, not a modal or an in-place player", () => {
+  it("keeps every card a real link to its own watch page — the no-script and crawler path", () => {
     render(<ReelsRail lang="ar" reels={reels} />);
 
     const card = screen.getByRole("link", { name: /لقطة من المؤتمر/ });
     expect(card).toHaveAttribute("href", "/reel/lqta-mn-almwtmr");
-    // No button, no iframe, no dialog — a plain link is the whole mechanism.
+    // Nothing but the posters until a card is pressed: no button, no dialog.
     expect(screen.queryAllByRole("button")).toHaveLength(0);
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 
-  it("mounts no iframe or video anywhere — playback lives on the watch page now", () => {
+  it("mounts no iframe until a reel is actually opened", () => {
     const { container } = render(<ReelsRail lang="ar" reels={reels} />);
 
     expect(container.querySelector("iframe")).toBeNull();
@@ -148,12 +149,12 @@ describe("ReelsRail", () => {
   it("keeps the rail a real list, so the count is announced", () => {
     render(<ReelsRail lang="ar" reels={reels} />);
 
-    const rail = screen.getByRole("list", { name: "ريلز فيسبوك" });
+    const rail = screen.getByRole("list", { name: "ريلز يوتيوب" });
     expect(within(rail).getAllByRole("listitem")).toHaveLength(2);
   });
 
   it("speaks English on the English edition", () => {
-    render(<ReelsRail lang="en" reels={reels} facebookUrl="https://facebook.com/aldaftar" />);
+    render(<ReelsRail lang="en" reels={reels} channelUrl="https://youtube.com/@aldaftar" />);
 
     expect(screen.getByRole("heading", { level: 2, name: "Catch Up" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /More reels/ })).toHaveTextContent("More");

@@ -3,12 +3,12 @@
  * single row.
  *
  * «لقطة وتعليق» (the `video` desk and every /video route) and «حصل إيه؟»
- * (the Facebook reels shelf and every /reel route) are hidden from readers
- * on the newsroom's instruction, with their content, their sections and
- * their dashboard screens left exactly as they were. Nothing here deletes
- * anything: the videos, the reels and the `video` Section row are all still
- * in the database, the newsroom can still see and manage them under the
- * dashboard, and the API still serves them.
+ * (the reels shelf and every /reel route) can each be hidden from readers
+ * with one flag, with their content, their sections and their dashboard
+ * screens left exactly as they were. Nothing here deletes anything: the
+ * videos, the reels and the `video` Section row all stay in the database,
+ * the newsroom can still manage them under the dashboard, and the API still
+ * serves them.
  *
  * TO BRING A DESK BACK: flip its flag below to `false`. That is the whole
  * restore — every surface reads this file rather than deciding for itself,
@@ -32,10 +32,9 @@
  */
 
 export const VIDEO_DESK_HIDDEN = false;
-// Permanently: the client does not want the reels desk on the platform at
-// all — the public shelf and routes stay off, and the dashboard screen and
-// its nav entry are gone too (AdminSidebar, app/daftardashboard1595/reels).
-export const REELS_HIDDEN = true;
+// Back on: the shelf was taken off while it ran on Facebook embeds; it now
+// plays YouTube Shorts (see components/site/ReelsRail.tsx) and is public.
+export const REELS_HIDDEN = false;
 
 /** The `Section.key` of the desk hidden by VIDEO_DESK_HIDDEN. */
 const VIDEO_DESK_KEY = "video";

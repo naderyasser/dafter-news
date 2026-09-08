@@ -44,20 +44,31 @@ class VideoCommentViewSet(viewsets.ModelViewSet):
 
 class ReelViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):
     """
-    «بالمختصر» — the Facebook shorts shelf, and its own watch page.
+    «حصل إيه؟» — the YouTube shorts shelf, and its own watch page.
 
     ReadOnlyOrEditor, matching the rest of home-page curation (the stories
     rail, the breaking strip, the ticker): what sits on the front page is an
     editor's call, not every staff account's. Reads stay public because the
     home page renders this without a session, and so does /reel/<slug>.
 
-    SlugOrPkLookupMixin + `lookup_field = "slug"`, same pairing as Video:
     `GET /api/reels/<slug>/` is what the public watch page calls, while the
     dashboard still reorders and deletes by numeric id.
     """
 
-    queryset = Reel.objects.all()
     serializer_class = ReelSerializer
     permission_classes = [ReadOnlyOrEditor]
     search_fields = ["title"]
     lookup_field = "slug"
+
+    def get_queryset(self):
+        """
+        Readers only ever see reels the player can embed. A row whose link is
+        not a YouTube video (the Facebook-era rows kept by migration 0008)
+        has no youtube_id; it stays visible to staff so the dashboard can
+        flag it for deletion, and is invisible to everyone else.
+        """
+        qs = Reel.objects.all()
+        user = self.request.user
+        if not (user.is_authenticated and (user.is_staff or user.is_superuser)):
+            qs = qs.exclude(youtube_id="")
+        return qs

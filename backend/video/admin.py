@@ -18,10 +18,11 @@ class VideoAdmin(admin.ModelAdmin):
 
 @admin.register(Reel)
 class ReelAdmin(admin.ModelAdmin):
-    list_display = ("title", "slug", "facebook_url", "order", "created_at")
+    list_display = ("title", "slug", "url", "youtube_id", "order", "created_at")
     list_editable = ("order",)
-    search_fields = ("title",)
-    # Same as VideoAdmin: a JS convenience while typing in this form only —
-    # it does not cover the dashboard's own one-field create flow, which
-    # never shows a slug field at all and relies on Reel.assign_slug instead.
+    search_fields = ("title", "url")
+    readonly_fields = ("youtube_id",)
+    # A JS convenience while typing in this form only — the dashboard's
+    # one-field create flow never shows a slug field and relies on
+    # Reel.assign_slug instead.
     prepopulated_fields = {"slug": ("title",)}

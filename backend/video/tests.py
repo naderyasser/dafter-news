@@ -210,7 +210,7 @@ class ShortSlugBaseTests(TestCase):
     that Article/Video's own slugs deliberately do not (see the constant's
     own comment in video/models.py). Verified against real scraped og:title
     text, not invented samples: these exact strings came off real reels this
-    project scraped from Facebook.
+    project fetched from YouTube.
     """
 
     def test_caps_at_six_words(self):
@@ -271,14 +271,14 @@ class ReelSlugTests(TestCase):
     """
 
     def test_derives_a_slug_from_the_title(self):
-        reel = Reel(title="عنوان الريل", facebook_url="https://facebook.com/reel/1")
+        reel = Reel(title="عنوان الريل", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
 
         reel.assign_slug()
 
         self.assertEqual(reel.slug, "عنوان-الريل")
 
     def test_a_second_reel_with_the_same_title_gets_a_distinct_slug(self):
-        first = Reel.objects.create(title="نفس العنوان", facebook_url="https://facebook.com/reel/1")
+        first = Reel.objects.create(title="نفس العنوان", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
         # A freshly-created row holds its `reel-<pk>` placeholder (see
         # test_a_brand_new_row_gets_a_placeholder_slug_immediately) until
         # something finalizes it — done here explicitly so this test's
@@ -286,14 +286,14 @@ class ReelSlugTests(TestCase):
         # ReelSerializer._finalize does moments after create() in practice.
         first.assign_slug()
         first.save(update_fields=["slug"])
-        second = Reel(title="نفس العنوان", facebook_url="https://facebook.com/reel/2")
+        second = Reel(title="نفس العنوان", url="https://www.youtube.com/shorts/AAAAAAAAAA2")
 
         second.assign_slug()
 
         self.assertEqual(second.slug, "نفس-العنوان-2")
 
     def test_falls_back_to_a_literal_when_the_title_yields_nothing_slugifiable(self):
-        reel = Reel(title="!!!", facebook_url="https://facebook.com/reel/1")
+        reel = Reel(title="!!!", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
 
         reel.assign_slug()
 
@@ -302,7 +302,7 @@ class ReelSlugTests(TestCase):
     def test_re_assigning_does_not_collide_with_its_own_previous_slug(self):
         """`.exclude(pk=self.pk)` — re-deriving a slug for a row that already
         holds one must not treat its own old value as a collision."""
-        reel = Reel.objects.create(title="عنوان أول", facebook_url="https://facebook.com/reel/1")
+        reel = Reel.objects.create(title="عنوان أول", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
         reel.title = "عنوان أول"
 
         reel.assign_slug()
@@ -318,7 +318,7 @@ class ReelSlugTests(TestCase):
         reels created moments apart could both try to persist slug="" and
         collide on the unique constraint.
         """
-        reel = Reel.objects.create(facebook_url="https://facebook.com/reel/1")
+        reel = Reel.objects.create(url="https://www.youtube.com/shorts/AAAAAAAAAA1")
 
         self.assertEqual(reel.slug, f"reel-{reel.pk}")
 
@@ -329,12 +329,12 @@ class ReelSlugTests(TestCase):
         is what replaces the placeholder with a real one right after,
         regardless of how the row got its title. See Reel.save()'s docstring.
         """
-        reel = Reel.objects.create(title="عنوان معروف مسبقاً", facebook_url="https://facebook.com/reel/1")
+        reel = Reel.objects.create(title="عنوان معروف مسبقاً", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
 
         self.assertEqual(reel.slug, f"reel-{reel.pk}")
 
     def test_updating_an_existing_row_does_not_re_placeholder_its_slug(self):
-        reel = Reel.objects.create(title="عنوان", facebook_url="https://facebook.com/reel/1")
+        reel = Reel.objects.create(title="عنوان", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
         reel.assign_slug()
         reel.save(update_fields=["slug"])
         real_slug = reel.slug
@@ -347,12 +347,12 @@ class ReelSlugTests(TestCase):
 
 class ReelApiTests(APITestCase):
     """
-    «بالمختصر» — the Facebook shorts shelf on the home page.
+    «بالمختصر» — the YouTube shorts shelf on the home page.
 
     Permissions, ordering and validation — not the scrape itself, which is
     OgImageExtractionTests/OgTitleExtractionTests/ReelMetadataFetchTests' job.
     `attach_scraped_metadata` is patched out for the whole class so a create()
-    here never fires a real request at facebook.com; ordinary Django test runs
+    here never fires a real request at youtube.com; ordinary Django test runs
     have no network access at all, so an unpatched create would simply hang
     until it timed out rather than fail fast.
     """
@@ -370,7 +370,7 @@ class ReelApiTests(APITestCase):
 
     def test_list_is_public(self):
         """The home page renders this shelf with no session at all."""
-        Reel.objects.create(title="ريل", facebook_url="https://facebook.com/reel/1")
+        Reel.objects.create(title="ريل", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
 
         response = self.client.get("/api/reels/")
 
@@ -379,9 +379,9 @@ class ReelApiTests(APITestCase):
 
     def test_ordering_is_order_then_newest(self):
         """`order` pins a reel to the head of the rail; the rest run newest-first."""
-        Reel.objects.create(title="أول", facebook_url="https://facebook.com/reel/a", order=1)
-        Reel.objects.create(title="ثاني", facebook_url="https://facebook.com/reel/b", order=1)
-        Reel.objects.create(title="مثبّت", facebook_url="https://facebook.com/reel/c", order=0)
+        Reel.objects.create(title="أول", url="https://www.youtube.com/shorts/AAAAAAAAAAa", order=1)
+        Reel.objects.create(title="ثاني", url="https://www.youtube.com/shorts/AAAAAAAAAAb", order=1)
+        Reel.objects.create(title="مثبّت", url="https://www.youtube.com/shorts/AAAAAAAAAAc", order=0)
 
         titles = [r["title"] for r in self.client.get("/api/reels/").data["results"]]
 
@@ -389,7 +389,7 @@ class ReelApiTests(APITestCase):
 
     def test_anonymous_cannot_create(self):
         response = self.client.post(
-            "/api/reels/", {"title": "x", "facebook_url": "https://facebook.com/reel/x"}
+            "/api/reels/", {"title": "x", "url": "https://www.youtube.com/shorts/AAAAAAAAAAx"}
         )
 
         self.assertIn(response.status_code, (401, 403))
@@ -400,7 +400,7 @@ class ReelApiTests(APITestCase):
         self.client.force_authenticate(self.writer)
 
         response = self.client.post(
-            "/api/reels/", {"title": "x", "facebook_url": "https://facebook.com/reel/x"}
+            "/api/reels/", {"title": "x", "url": "https://www.youtube.com/shorts/AAAAAAAAAAx"}
         )
 
         self.assertEqual(response.status_code, 403)
@@ -410,7 +410,7 @@ class ReelApiTests(APITestCase):
         self.client.force_authenticate(self.editor)
 
         response = self.client.post(
-            "/api/reels/", {"title": "ريل جديد", "facebook_url": "https://facebook.com/reel/9"}
+            "/api/reels/", {"title": "ريل جديد", "url": "https://www.youtube.com/shorts/AAAAAAAAAA9"}
         )
 
         self.assertEqual(response.status_code, 201)
@@ -420,305 +420,277 @@ class ReelApiTests(APITestCase):
         """The dashboard form asks for nothing else — the API has to accept nothing else."""
         self.client.force_authenticate(self.editor)
 
-        response = self.client.post("/api/reels/", {"facebook_url": "https://facebook.com/reel/9"})
+        response = self.client.post("/api/reels/", {"url": "https://www.youtube.com/shorts/AAAAAAAAAA9"})
 
         self.assertEqual(response.status_code, 201)
+
+    def test_a_link_that_is_not_youtube_is_refused(self):
+        """A Facebook link, a channel page, a tweet — none of them can play in
+        the rail, so none of them may become a card."""
+        self.client.force_authenticate(self.editor)
+
+        response = self.client.post("/api/reels/", {"url": "https://www.facebook.com/reel/1776867636680978/"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("يوتيوب", response.data["url"][0])
+        self.assertEqual(Reel.objects.count(), 0)
+
+    def test_the_same_video_cannot_be_added_twice(self):
+        self.client.force_authenticate(self.editor)
+        Reel.objects.create(title="موجود", url="https://youtu.be/eF44mfjFjW8")
+
+        response = self.client.post("/api/reels/", {"url": "https://www.youtube.com/shorts/eF44mfjFjW8?feature=share"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("مضاف بالفعل", response.data["url"][0])
+        self.assertEqual(Reel.objects.count(), 1)
+
+    def test_editing_a_reel_does_not_trip_over_its_own_link(self):
+        self.client.force_authenticate(self.editor)
+        reel = Reel.objects.create(title="موجود", url="https://youtu.be/eF44mfjFjW8")
+
+        response = self.client.patch(f"/api/reels/{reel.id}/", {"url": "https://youtu.be/eF44mfjFjW8", "order": 2})
+
+        self.assertEqual(response.status_code, 200)
 
     def test_a_malformed_link_is_refused(self):
         """The link is the only thing the card does — a broken one is a dead card."""
         self.client.force_authenticate(self.editor)
 
-        response = self.client.post("/api/reels/", {"title": "ريل", "facebook_url": "ليس رابطاً"})
+        response = self.client.post("/api/reels/", {"title": "ريل", "url": "ليس رابطاً"})
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn("facebook_url", response.data)
+        self.assertIn("url", response.data)
 
 
 
 
-class OgImageExtractionTests(TestCase):
-    """Reading the poster out of Facebook's markup."""
+class VideoIdExtractionTests(TestCase):
+    """`extract_video_id` — the pure parser everything else is built on."""
 
-    def test_finds_og_image(self):
-        from video.og import extract_og_image
+    def test_every_link_shape_youtube_hands_out(self):
+        from video.youtube import extract_video_id
 
-        html = '<meta property="og:image" content="https://cdn.example/a.jpg" />'
+        for url in [
+            "https://www.youtube.com/shorts/eF44mfjFjW8",
+            "https://youtube.com/shorts/eF44mfjFjW8?feature=share",
+            "https://www.youtube.com/watch?v=eF44mfjFjW8&t=12s",
+            "https://m.youtube.com/watch?v=eF44mfjFjW8",
+            "https://youtu.be/eF44mfjFjW8?si=Ab12-_xyz",
+            "https://www.youtube.com/embed/eF44mfjFjW8",
+            "https://www.youtube.com/live/eF44mfjFjW8",
+            "  https://www.youtube.com/shorts/eF44mfjFjW8/  ",
+        ]:
+            with self.subTest(url=url):
+                self.assertEqual(extract_video_id(url), "eF44mfjFjW8")
 
-        self.assertEqual(extract_og_image(html), "https://cdn.example/a.jpg")
+    def test_refuses_anything_that_is_not_a_youtube_video(self):
+        from video.youtube import extract_video_id
 
-    def test_finds_og_image_with_the_attributes_the_other_way_round(self):
-        """Facebook's markup is minified and does not promise an order."""
-        from video.og import extract_og_image
-
-        html = '<meta content="https://cdn.example/b.jpg" property="og:image">'
-
-        self.assertEqual(extract_og_image(html), "https://cdn.example/b.jpg")
-
-    def test_unescapes_the_query_string(self):
-        """
-        An fbcdn poster URL is a dozen query parameters. Left HTML-escaped, the
-        &amp; entities make an address that 404s rather than one merely ugly.
-        """
-        from video.og import extract_og_image
-
-        html = '<meta property="og:image" content="https://cdn.example/c.jpg?a=1&amp;b=2&amp;oe=6A9E">'
-
-        self.assertEqual(extract_og_image(html), "https://cdn.example/c.jpg?a=1&b=2&oe=6A9E")
-
-    def test_falls_back_to_secure_url(self):
-        from video.og import extract_og_image
-
-        html = '<meta property="og:image:secure_url" content="https://cdn.example/d.jpg">'
-
-        self.assertEqual(extract_og_image(html), "https://cdn.example/d.jpg")
-
-    def test_a_login_wall_has_no_poster(self):
-        """A private, deleted or blocked reel renders a valid page with no tag."""
-        from video.og import extract_og_image
-
-        self.assertIsNone(extract_og_image("<html><body>Log in to continue</body></html>"))
-
-
-class OgTitleExtractionTests(TestCase):
-    """
-    Reading the caption out of Facebook's markup.
-
-    Built against a real reel's markup, not an invented sample: og:title on
-    that page was "2,2 тыс. просмотров | <the real headline> | الدفتر -
-    aldaftar" — a Facebook-generated view-count in whatever locale it
-    rendered with, wrapped around the real caption, wrapped again in the
-    page's own site-name suffix — while og:description on the same page was
-    the headline alone. That is the concrete reason fetch_og_metadata prefers
-    description over title rather than trying to pattern-strip the wrapper.
-    """
-
-    REAL_OG_TITLE = (
-        '<meta property="og:title" content="2,2&#xa0;&#x442;&#x44b;&#x441;.&#xa0;'
-        "&#x43f;&#x440;&#x43e;&#x441;&#x43c;&#x43e;&#x442;&#x440;&#x43e;&#x432; | "
-        "&#x635;&#x631;&#x641; &#x645;&#x633;&#x62a;&#x634;&#x641;&#x649; "
-        "&#x627;&#x644;&#x639;&#x627;&#x645;&#x631;&#x64a;&#x629; | "
-        '&#x627;&#x644;&#x62f;&#x641;&#x62a;&#x631; - aldaftar" />'
-    )
-    REAL_OG_DESCRIPTION = (
-        '<meta property="og:description" content="&#x635;&#x631;&#x641; '
-        '&#x645;&#x633;&#x62a;&#x634;&#x641;&#x649; &#x627;&#x644;&#x639;&#x627;&#x645;&#x631;&#x64a;&#x629;" />'
-    )
-
-    def test_finds_og_title(self):
-        from video.og import extract_og_title
-
-        html = '<meta property="og:title" content="عنوان الريل" />'
-
-        self.assertEqual(extract_og_title(html), "عنوان الريل")
-
-    def test_finds_og_description(self):
-        from video.og import extract_og_description
-
-        html = '<meta property="og:description" content="الوصف" />'
-
-        self.assertEqual(extract_og_description(html), "الوصف")
-
-    def test_decodes_numeric_character_references(self):
-        """
-        Facebook does not emit raw UTF-8 in this tag — an Arabic caption
-        arrives as a run of &#xHEX; references, not just the &amp; a URL gets.
-        """
-        from video.og import extract_og_title
-
-        self.assertEqual(extract_og_title(self.REAL_OG_TITLE), "2,2\xa0тыс.\xa0просмотров | صرف مستشفى العامرية | الدفتر - aldaftar")
-
-    def test_metadata_prefers_the_clean_description_over_the_wrapped_title(self):
-        from video.og import fetch_og_metadata_from_html
-
-        title, _ = fetch_og_metadata_from_html(self.REAL_OG_TITLE + self.REAL_OG_DESCRIPTION)
-
-        self.assertEqual(title, "صرف مستشفى العامرية")
-        self.assertNotIn("просмотров", title)
-        self.assertNotIn("aldaftar", title)
-
-    def test_metadata_falls_back_to_title_when_there_is_no_description(self):
-        """A post with a caption in og:title and nothing in og:description
-        still has to produce a title — cleaned up, not thrown away."""
-        from video.og import fetch_og_metadata_from_html
-
-        title, _ = fetch_og_metadata_from_html('<meta property="og:title" content="عنوان فقط">')
-
-        self.assertEqual(title, "عنوان فقط")
-
-    def test_cleanup_collapses_whitespace_including_nbsp(self):
-        from video.og import _clean_title
-
-        self.assertEqual(_clean_title("a\xa0\xa0 b   c\n\nd"), "a b c d")
-
-    def test_cleanup_truncates_to_the_column_width(self):
-        """
-        The model column is varchar(200); Postgres enforces that at the
-        database layer (unlike SQLite), so an untruncated caption would turn a
-        successful scrape into a 500 on save rather than a long title.
-        """
-        from video.og import MAX_TITLE_LENGTH, _clean_title
-
-        self.assertEqual(len(_clean_title("س" * 500)), MAX_TITLE_LENGTH)
-
-    def test_a_login_wall_has_no_title_either(self):
-        from video.og import extract_og_title
-
-        self.assertIsNone(extract_og_title("<html><body>Log in to continue</body></html>"))
-
-
-class OgHostAllowListTests(TestCase):
-    """
-    `facebook_url` is typed by a member of staff and then fetched by this
-    server, so without a host gate the field is a server-side request to
-    anything reachable from inside this network.
-    """
-
-    def test_refuses_a_host_that_is_not_facebook(self):
-        from video.og import OgScrapeError, fetch_og_metadata
-
-        for url in (
-            "http://169.254.169.254/latest/meta-data/",
-            "http://127.0.0.1:8300/api/articles/",
-            "https://evil.example/reel/1",
-            "file:///etc/passwd",
-        ):
-            with self.assertRaises(OgScrapeError, msg=url):
-                fetch_og_metadata(url)
-
-    def test_accepts_the_facebook_hosts_a_reel_link_actually_uses(self):
-        from video import og
-
-        for url in (
-            "https://www.facebook.com/reel/123",
-            "https://facebook.com/reel/123",
-            "https://m.facebook.com/reel/123",
-            "https://fb.watch/abc/",
-        ):
-            self.assertTrue(og._host_allowed(url), url)
-
-
-class CanonicalizeFacebookUrlTests(TestCase):
-    """
-    _canonicalize_facebook_url is the actual fix for the embed plugin's
-    "Video Unavailable" error on a reel that plays fine on Facebook itself:
-    verified live, a `/plugins/video.php?href=` request built from a
-    `/share/r/<id>/` link — what staff's own "Share" button hands out — came
-    back Facebook's own error box; the same reel's resolved `/reel/<id>/`
-    permalink came back the real player. These test the URL cleanup alone,
-    with no network involved.
-    """
-
-    def test_strips_the_tracking_query_string_facebooks_own_redirect_adds(self):
-        from video.og import _canonicalize_facebook_url
-
-        self.assertEqual(
-            _canonicalize_facebook_url(
-                "https://www.facebook.com/reel/1776867636680978/?rdid=yIeN6fX3mtQ3mjoL&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2Fr%2F1DTnCmMnfE%2F"
-            ),
+        for url in [
             "https://www.facebook.com/reel/1776867636680978/",
-        )
-
-    def test_folds_the_mobile_host_onto_www(self):
-        from video.og import _canonicalize_facebook_url
-
-        self.assertEqual(
-            _canonicalize_facebook_url("https://m.facebook.com/reel/123/"),
-            "https://www.facebook.com/reel/123/",
-        )
-
-    def test_folds_the_bare_host_onto_www(self):
-        from video.og import _canonicalize_facebook_url
-
-        self.assertEqual(
-            _canonicalize_facebook_url("https://facebook.com/reel/123/"),
-            "https://www.facebook.com/reel/123/",
-        )
-
-    def test_leaves_an_already_canonical_url_untouched(self):
-        from video.og import _canonicalize_facebook_url
-
-        self.assertEqual(
-            _canonicalize_facebook_url("https://www.facebook.com/reel/123/"),
-            "https://www.facebook.com/reel/123/",
-        )
-
-    def test_refuses_a_host_facebook_url_may_not_even_hold(self):
-        """Defence in depth: a redirect that somehow left every Facebook
-        host must never be adopted as the reel's new link."""
-        from video.og import _canonicalize_facebook_url
-
-        self.assertIsNone(_canonicalize_facebook_url("https://evil.example/reel/123"))
+            "https://evil.example/shorts/eF44mfjFjW8",
+            "https://www.youtube.com/@aldaftar",
+            "https://www.youtube.com/shorts/too-short",
+            "ftp://youtu.be/eF44mfjFjW8",
+            "ليس رابطاً",
+            "",
+            None,
+        ]:
+            with self.subTest(url=url):
+                self.assertIsNone(extract_video_id(url))
 
 
-class AttachScrapedMetadataUrlNormalizationTests(TestCase):
-    """
-    attach_scraped_metadata is where the canonical URL actually lands on the
-    row — end to end, with a mocked `requests.get` standing in for
-    Facebook's redirect chain.
-    """
+class _FakeResponse:
+    def __init__(self, status=200, body=b"", json_data=None):
+        self.status_code = status
+        self._body = body
+        self._json = json_data
 
-    @staticmethod
-    def _response(*, url, text="<html></html>", status_code=200):
-        return mock.Mock(status_code=status_code, text=text, url=url)
+    def iter_content(self, size):
+        for i in range(0, len(self._body), size):
+            yield self._body[i : i + size]
 
-    def test_a_share_link_is_replaced_by_the_resolved_canonical_url(self):
-        from video import og
+    def json(self):
+        if self._json is None:
+            raise ValueError("not json")
+        return self._json
 
-        reel = Reel.objects.create(
-            title="ريل", facebook_url="https://www.facebook.com/share/r/1DTnCmMnfE/"
-        )
-        resolved = "https://www.facebook.com/reel/1776867636680978/?rdid=abc&share_url=x"
-        with mock.patch("video.og.requests.get", return_value=self._response(url=resolved)):
-            title_set, image_set = og.attach_scraped_metadata(
-                reel, want_title=False, want_image=False
-            )
 
-        self.assertFalse(title_set)
-        self.assertFalse(image_set)
+def _jpeg(width, height):
+    """A real, decodable JPEG of the given size — the thumbnail picker checks
+    dimensions, not just status codes."""
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (width, height), "red").save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+class TitleFetchTests(TestCase):
+    """oEmbed — the keyless endpoint the title comes from."""
+
+    def test_reads_the_title_out_of_the_oembed_answer(self):
+        from video import youtube
+
+        with mock.patch(
+            "video.youtube.requests.get",
+            return_value=_FakeResponse(json_data={"title": "  الجزء\xa0التاني  من  الحكاية "}),
+        ) as get:
+            title = youtube.fetch_title("eF44mfjFjW8")
+
+        self.assertEqual(title, "الجزء التاني من الحكاية")
+        _, kwargs = get.call_args
+        self.assertEqual(kwargs["params"]["url"], "https://www.youtube.com/watch?v=eF44mfjFjW8")
+
+    def test_truncates_to_the_column_width(self):
+        from video import youtube
+
+        with mock.patch("video.youtube.requests.get", return_value=_FakeResponse(json_data={"title": "ع" * 500})):
+            title = youtube.fetch_title("eF44mfjFjW8")
+
+        self.assertEqual(len(title), youtube.MAX_TITLE_LENGTH)
+
+    def test_a_private_video_answers_no_title(self):
+        from video import youtube
+
+        with mock.patch("video.youtube.requests.get", return_value=_FakeResponse(status=401)):
+            with self.assertRaises(youtube.YouTubeError):
+                youtube.fetch_title("eF44mfjFjW8")
+
+
+class ThumbnailFetchTests(TestCase):
+    """The poster picker: best variant first, placeholders skipped."""
+
+    def _serve(self, variants):
+        """A requests.get stand-in answering each variant from `variants`
+        (a dict of variant name -> _FakeResponse); anything else is a 404."""
+
+        def get(url, **kwargs):
+            name = url.rsplit("/", 1)[-1].removesuffix(".jpg")
+            return variants.get(name, _FakeResponse(status=404))
+
+        return mock.patch("video.youtube.requests.get", side_effect=get)
+
+    def test_prefers_the_vertical_shorts_frame(self):
+        from video import youtube
+
+        with self._serve({"oar1": _FakeResponse(body=_jpeg(720, 1280)), "maxresdefault": _FakeResponse(body=_jpeg(1280, 720))}):
+            raw, ext = youtube.fetch_thumbnail("eF44mfjFjW8")
+
+        self.assertEqual(ext, "jpg")
+        self.assertEqual(raw, _jpeg(720, 1280))
+
+    def test_falls_through_to_the_landscape_frame_when_no_vertical_one_exists(self):
+        from video import youtube
+
+        with self._serve({"maxresdefault": _FakeResponse(body=_jpeg(1280, 720)), "hqdefault": _FakeResponse(body=_jpeg(480, 360))}):
+            raw, _ = youtube.fetch_thumbnail("eF44mfjFjW8")
+
+        self.assertEqual(raw, _jpeg(1280, 720))
+
+    def test_skips_the_grey_placeholder_ytimg_serves_with_a_200(self):
+        from video import youtube
+
+        with self._serve({"maxresdefault": _FakeResponse(body=_jpeg(120, 90)), "hqdefault": _FakeResponse(body=_jpeg(480, 360))}):
+            raw, _ = youtube.fetch_thumbnail("eF44mfjFjW8")
+
+        self.assertEqual(raw, _jpeg(480, 360))
+
+    def test_skips_bytes_that_are_not_an_image(self):
+        from video import youtube
+
+        with self._serve({"maxresdefault": _FakeResponse(body=b"<html>not a picture</html>"), "hqdefault": _FakeResponse(body=_jpeg(480, 360))}):
+            raw, _ = youtube.fetch_thumbnail("eF44mfjFjW8")
+
+        self.assertEqual(raw, _jpeg(480, 360))
+
+    def test_answers_none_when_no_variant_qualifies(self):
+        from video import youtube
+
+        with self._serve({}):
+            self.assertIsNone(youtube.fetch_thumbnail("eF44mfjFjW8"))
+
+    def test_only_ever_fetches_from_youtubes_own_thumbnail_host(self):
+        from video import youtube
+
+        with mock.patch("video.youtube.requests.get", return_value=_FakeResponse(status=404)) as get:
+            youtube.fetch_thumbnail("eF44mfjFjW8")
+
+        for call in get.call_args_list:
+            self.assertTrue(call.args[0].startswith("https://i.ytimg.com/vi/eF44mfjFjW8/"), call.args[0])
+
+
+class AttachScrapedMetadataTests(TestCase):
+    """The seam the serializer and the backfill command both call."""
+
+    def test_fills_both_halves_and_saves(self):
+        from video import youtube
+
+        reel = Reel.objects.create(url="https://youtu.be/eF44mfjFjW8")
+        with mock.patch("video.youtube.fetch_title", return_value="عنوان من يوتيوب"), mock.patch(
+            "video.youtube.fetch_thumbnail", return_value=(_jpeg(720, 1280), "jpg")
+        ):
+            title_set, image_set = youtube.attach_scraped_metadata(reel)
+
+        self.assertTrue(title_set)
+        self.assertTrue(image_set)
         reel.refresh_from_db()
-        self.assertEqual(reel.facebook_url, "https://www.facebook.com/reel/1776867636680978/")
+        self.assertEqual(reel.title, "عنوان من يوتيوب")
+        self.assertTrue(reel.thumbnail.name.startswith("reels/eF44mfjFjW8"))
 
-    def test_an_already_canonical_url_is_not_rewritten_or_resaved(self):
-        from video import og
+    def test_asks_only_for_the_halves_it_was_told_to(self):
+        from video import youtube
 
-        canonical = "https://www.facebook.com/reel/999/"
-        reel = Reel.objects.create(title="ريل", facebook_url=canonical)
-        with mock.patch("video.og.requests.get", return_value=self._response(url=canonical)):
-            og.attach_scraped_metadata(reel, want_title=False, want_image=False)
+        reel = Reel.objects.create(title="عنوان يدوي", url="https://youtu.be/eF44mfjFjW8")
+        with mock.patch("video.youtube.fetch_title") as fetch_title, mock.patch(
+            "video.youtube.fetch_thumbnail", return_value=None
+        ):
+            youtube.attach_scraped_metadata(reel, want_title=False, want_image=True)
 
-        reel.refresh_from_db()
-        self.assertEqual(reel.facebook_url, canonical)
+        fetch_title.assert_not_called()
+        self.assertEqual(Reel.objects.get().title, "عنوان يدوي")
 
-    def test_url_normalization_can_be_turned_off(self):
-        """The management backfill's picture-only counterpart, and any other
-        caller that means to touch just one field, must still be able to."""
-        from video import og
+    def test_a_row_without_a_youtube_id_is_left_alone(self):
+        from video import youtube
 
-        share_link = "https://www.facebook.com/share/r/xyz/"
-        reel = Reel.objects.create(title="ريل", facebook_url=share_link)
-        resolved = "https://www.facebook.com/reel/42/"
-        with mock.patch("video.og.requests.get", return_value=self._response(url=resolved)):
-            og.attach_scraped_metadata(
-                reel, want_title=True, want_image=False, want_url_normalize=False
-            )
+        # A Facebook-era row kept by migration 0008: nothing to fetch from.
+        reel = Reel.objects.create(title="قديم", url="https://www.facebook.com/reel/1/")
+        with mock.patch("video.youtube.requests.get") as get:
+            self.assertEqual(youtube.attach_scraped_metadata(reel), (False, False))
 
-        reel.refresh_from_db()
-        self.assertEqual(reel.facebook_url, share_link)
+        get.assert_not_called()
 
-    def test_a_failed_fetch_leaves_the_link_untouched(self):
-        from video import og
+    def test_a_network_failure_never_raises(self):
+        from video import youtube
 
-        share_link = "https://www.facebook.com/share/r/down/"
-        reel = Reel.objects.create(title="ريل", facebook_url=share_link)
-        with mock.patch("video.og.requests.get", side_effect=OSError("network down")):
-            title_set, image_set = og.attach_scraped_metadata(
-                reel, want_title=False, want_image=False
-            )
+        reel = Reel.objects.create(url="https://youtu.be/eF44mfjFjW8")
+        with mock.patch("video.youtube.requests.get", side_effect=OSError("network down")):
+            self.assertEqual(youtube.attach_scraped_metadata(reel), (False, False))
 
-        self.assertFalse(title_set)
-        self.assertFalse(image_set)
-        reel.refresh_from_db()
-        self.assertEqual(reel.facebook_url, share_link)
+
+class ReelYoutubeIdTests(TestCase):
+    """`youtube_id` is stamped by the model on every save."""
+
+    def test_derived_from_the_link_on_save(self):
+        reel = Reel.objects.create(title="ريل", url="https://www.youtube.com/shorts/eF44mfjFjW8?feature=share")
+
+        self.assertEqual(reel.youtube_id, "eF44mfjFjW8")
+
+    def test_re_derived_when_the_link_changes(self):
+        reel = Reel.objects.create(title="ريل", url="https://youtu.be/eF44mfjFjW8")
+        reel.url = "https://youtu.be/dQw4w9WgXcQ"
+        reel.save()
+
+        self.assertEqual(Reel.objects.get().youtube_id, "dQw4w9WgXcQ")
+
+    def test_blank_for_a_link_that_is_not_a_youtube_video(self):
+        reel = Reel.objects.create(title="قديم", url="https://www.facebook.com/reel/1/")
+
+        self.assertEqual(reel.youtube_id, "")
+
 
 
 class ReelMetadataFetchTests(APITestCase):
@@ -738,7 +710,7 @@ class ReelMetadataFetchTests(APITestCase):
             "video.serializers.attach_scraped_metadata", return_value=(True, True)
         ) as attach:
             response = self.client.post(
-                "/api/reels/", {"facebook_url": "https://www.facebook.com/reel/1"}
+                "/api/reels/", {"url": "https://www.youtube.com/shorts/AAAAAAAAAA1"}
             )
 
         self.assertEqual(response.status_code, 201)
@@ -754,7 +726,7 @@ class ReelMetadataFetchTests(APITestCase):
         ) as attach:
             response = self.client.post(
                 "/api/reels/",
-                {"title": "عنوان اخترته بنفسي", "facebook_url": "https://www.facebook.com/reel/2"},
+                {"title": "عنوان اخترته بنفسي", "url": "https://www.youtube.com/shorts/AAAAAAAAAA2"},
             )
 
         self.assertEqual(response.status_code, 201)
@@ -772,11 +744,11 @@ class ReelMetadataFetchTests(APITestCase):
         """
         with mock.patch("video.serializers.attach_scraped_metadata", return_value=(False, False)):
             response = self.client.post(
-                "/api/reels/", {"facebook_url": "https://www.facebook.com/reel/3"}
+                "/api/reels/", {"url": "https://www.youtube.com/shorts/AAAAAAAAAA3"}
             )
 
         self.assertEqual(response.status_code, 201)
-        from video.og import UNTITLED_REEL_TITLE
+        from video.youtube import UNTITLED_REEL_TITLE
 
         self.assertEqual(Reel.objects.get().title, UNTITLED_REEL_TITLE)
 
@@ -784,21 +756,21 @@ class ReelMetadataFetchTests(APITestCase):
         with mock.patch(
             "video.serializers.attach_scraped_metadata",
             return_value=(True, False),
-            side_effect=lambda reel, **kw: setattr(reel, "title", "عنوان حقيقي من فيسبوك") or (True, False),
+            side_effect=lambda reel, **kw: setattr(reel, "title", "عنوان حقيقي من يوتيوب") or (True, False),
         ):
             response = self.client.post(
-                "/api/reels/", {"facebook_url": "https://www.facebook.com/reel/scraped"}
+                "/api/reels/", {"url": "https://www.youtube.com/shorts/AAAAscraped"}
             )
 
         self.assertEqual(response.status_code, 201)
         reel = Reel.objects.get()
-        self.assertEqual(reel.slug, "عنوان-حقيقي-من-فيسبوك")
+        self.assertEqual(reel.slug, "عنوان-حقيقي-من-يوتيوب")
         self.assertEqual(response.data["slug"], reel.slug)
 
     def test_a_reel_with_no_scraped_title_still_gets_a_real_slug_not_the_placeholder(self):
         with mock.patch("video.serializers.attach_scraped_metadata", return_value=(False, False)):
             response = self.client.post(
-                "/api/reels/", {"facebook_url": "https://www.facebook.com/reel/no-title"}
+                "/api/reels/", {"url": "https://www.youtube.com/shorts/AAAAnotitle"}
             )
 
         reel = Reel.objects.get()
@@ -811,12 +783,12 @@ class ReelMetadataFetchTests(APITestCase):
 
     def test_a_failed_fetch_still_saves_the_reel(self):
         """
-        A Facebook outage or a private video must cost the card its text and
+        A YouTube outage or a private video must cost the card its text and
         its picture, never its row — the newsroom still meant to publish it.
         """
         with mock.patch("video.serializers.attach_scraped_metadata", return_value=(False, False)):
             response = self.client.post(
-                "/api/reels/", {"facebook_url": "https://www.facebook.com/reel/4"}
+                "/api/reels/", {"url": "https://www.youtube.com/shorts/AAAAAAAAAA4"}
             )
 
         self.assertEqual(response.status_code, 201)
@@ -824,18 +796,18 @@ class ReelMetadataFetchTests(APITestCase):
         self.assertFalse(Reel.objects.get().thumbnail)
 
     def test_a_scrape_that_raises_cannot_break_the_save(self):
-        with mock.patch("video.og.requests.get", side_effect=OSError("network down")):
+        with mock.patch("video.youtube.requests.get", side_effect=OSError("network down")):
             response = self.client.post(
-                "/api/reels/", {"facebook_url": "https://www.facebook.com/reel/5"}
+                "/api/reels/", {"url": "https://www.youtube.com/shorts/AAAAAAAAAA5"}
             )
 
         self.assertEqual(response.status_code, 201)
 
     def test_reordering_does_not_rescrape(self):
-        """The rail is reordered one PATCH per card; each must not hit Facebook."""
+        """The rail is reordered one PATCH per card; each must not hit YouTube."""
         with mock.patch("video.serializers.attach_scraped_metadata", return_value=(True, True)):
             reel = Reel.objects.create(
-                title="ريل", facebook_url="https://www.facebook.com/reel/6"
+                title="ريل", url="https://www.youtube.com/shorts/AAAAAAAAAA6"
             )
 
         with mock.patch("video.serializers.attach_scraped_metadata") as attach:
@@ -847,14 +819,14 @@ class ReelMetadataFetchTests(APITestCase):
     def test_changing_the_link_rescrapes_both_halves(self):
         with mock.patch("video.serializers.attach_scraped_metadata", return_value=(True, True)):
             reel = Reel.objects.create(
-                title="ريل", facebook_url="https://www.facebook.com/reel/7"
+                title="ريل", url="https://www.youtube.com/shorts/AAAAAAAAAA7"
             )
 
         with mock.patch(
             "video.serializers.attach_scraped_metadata", return_value=(True, True)
         ) as attach:
             response = self.client.patch(
-                f"/api/reels/{reel.id}/", {"facebook_url": "https://www.facebook.com/reel/8"}
+                f"/api/reels/{reel.id}/", {"url": "https://www.youtube.com/shorts/AAAAAAAAAA8"}
             )
 
         self.assertEqual(response.status_code, 200)
@@ -866,7 +838,7 @@ class ReelMetadataFetchTests(APITestCase):
     def test_changing_the_link_while_also_setting_a_title_keeps_that_title(self):
         with mock.patch("video.serializers.attach_scraped_metadata", return_value=(True, True)):
             reel = Reel.objects.create(
-                title="ريل", facebook_url="https://www.facebook.com/reel/9"
+                title="ريل", url="https://www.youtube.com/shorts/AAAAAAAAAA9"
             )
 
         with mock.patch(
@@ -874,7 +846,7 @@ class ReelMetadataFetchTests(APITestCase):
         ) as attach:
             response = self.client.patch(
                 f"/api/reels/{reel.id}/",
-                {"facebook_url": "https://www.facebook.com/reel/10", "title": "عنوان جديد"},
+                {"url": "https://www.youtube.com/shorts/AAAAAAAAA10", "title": "عنوان جديد"},
             )
 
         self.assertEqual(response.status_code, 200)
@@ -902,12 +874,12 @@ class RevalidationSignalTests(TestCase):
 
     def test_creating_a_reel_revalidates(self):
         with mock.patch("video.signals.revalidate_site") as revalidate:
-            Reel.objects.create(title="ريل", facebook_url="https://facebook.com/reel/1")
+            Reel.objects.create(title="ريل", url="https://www.youtube.com/shorts/AAAAAAAAAA1")
 
         revalidate.assert_called_once()
 
     def test_updating_a_reel_revalidates(self):
-        reel = Reel.objects.create(title="ريل", facebook_url="https://facebook.com/reel/2")
+        reel = Reel.objects.create(title="ريل", url="https://www.youtube.com/shorts/AAAAAAAAAA2")
 
         with mock.patch("video.signals.revalidate_site") as revalidate:
             reel.order = 3
@@ -916,7 +888,7 @@ class RevalidationSignalTests(TestCase):
         revalidate.assert_called_once()
 
     def test_deleting_a_reel_revalidates(self):
-        reel = Reel.objects.create(title="ريل", facebook_url="https://facebook.com/reel/3")
+        reel = Reel.objects.create(title="ريل", url="https://www.youtube.com/shorts/AAAAAAAAAA3")
 
         with mock.patch("video.signals.revalidate_site") as revalidate:
             reel.delete()

@@ -1,23 +1,11 @@
 from django.db import models
 from django.utils.text import slugify
 
-#: How much of a title a REEL's own slug keeps.
-#:
-#: Deliberately NOT the same convention Article/Video use (see
-#: Reel.assign_slug's own docstring for why this can't just be their
-#: save()-on-every-row pattern either way) — those keep effectively the
-#: whole headline, capped only at 290 characters, which is fine for a slug a
-#: reader never looks at closely on an article page. A reel's slug is
-#: different: it is the visible destination printed on the homepage card AND
-#: the thing a reader actually shares (see ReelPlayer's Share button, which
-#: shares the Facebook link rather than this URL, but the reel's OWN page
-#: still needs to read as a real address rather than a full sentence). A
-#: scraped og:title is very often a full sentence, and the un-truncated
-#: version of one turns into a wall of percent-encoded Arabic the instant it
-#: is copied into a WhatsApp share sheet — exactly the "massive, unreadable
-#: URL" the newsroom reported. Six words or fifty characters, whichever
-#: comes first, is short enough to read as an address and still say
-#: something recognisable about the reel it points to.
+#: How much of a title a reel's slug keeps: six words or fifty characters,
+#: whichever comes first. Article/Video keep effectively the whole headline,
+#: which is fine for a slug nobody looks at closely; a reel's slug is the
+#: address a reader actually shares, and a full sentence turns into a wall of
+#: percent-encoded Arabic the moment it lands in a WhatsApp share sheet.
 REEL_SLUG_MAX_WORDS = 6
 REEL_SLUG_MAX_CHARS = 50
 
@@ -27,19 +15,12 @@ def short_slug_base(title: str) -> str:
     A slugified, word-and-length-capped base for a Reel's slug — not yet
     made unique (see Reel.assign_slug, which appends the -2/-3 suffix).
 
-    A plain module-level function, not a method, so the migration that
-    recalculates every existing reel's slug to this shape (see
-    video/migrations/0007_reel_slug_shorten.py) can import and reuse this
-    EXACT logic against its own frozen historical model, rather than a
-    second hand-copied version silently drifting from this one over time.
+    A module-level function rather than a method so the migration that
+    recalculated existing slugs (0007) could import this exact logic against
+    its frozen historical model instead of carrying a drifting copy.
 
-    Django's own `slugify(allow_unicode=True)` already drops emoji,
-    punctuation and extra whitespace before this ever sees the result (it
-    keeps only word characters and hyphens) — confirmed against a real
-    scraped title carrying both: "صرف مستشفى العامرية 🔥😱 بالإسكندرية"
-    slugifies straight to "صرف-مستشفى-العامرية-بالإسكندرية", already emoji-
-    free. This only adds the word/character cap on top of that; it does not
-    need to strip anything by hand.
+    Django's `slugify(allow_unicode=True)` already drops emoji, punctuation
+    and extra whitespace; this only adds the word/character cap on top.
     """
     base = slugify(title, allow_unicode=True) or "reel"
     words = [w for w in base.split("-") if w]
@@ -53,10 +34,6 @@ def short_slug_base(title: str) -> str:
         kept.append(word)
         length += addition
 
-    # `.strip("-")` guards the case that produced the "trailing dashes"
-    # complaint: cutting the word list short can leave nothing behind it,
-    # but never a stray separator, so this is defensive rather than load-
-    # bearing given `kept` only ever holds whole words already.
     return "-".join(kept).strip("-") or "reel"
 
 
@@ -109,49 +86,43 @@ class Video(models.Model):
 
 class Reel(models.Model):
     """
-    «بالمختصر» — a vertical shorts shelf on the home page.
+    «حصل إيه؟» — a vertical shorts shelf on the home page, fed by YouTube.
 
-    Originally built to deliberately NOT play here at all — the client's
-    first brief was a traffic one, a poster whose only job was to open the
-    reel on the paper's Facebook page, with no page of its own on this site.
-    That brief moved: the client asked first for the reel to play inline,
-    then for a proper lightbox player, then explicitly for an Asharq-style
-    dedicated watch page (a real, shareable, indexable URL per reel — see
-    `slug` below). This model has grown to match each step rather than being
-    rewritten from scratch, which is why the comments in this file still
-    narrate that history in places — it is what actually happened to this
-    feature, not a design mistake to paper over.
+    The one field an editor fills in is `url`, a link to a YouTube Short (or
+    any YouTube video). Everything else is derived from it: `youtube_id` is
+    parsed out in save() and is what the public player embeds; `title` and
+    `thumbnail` are read off YouTube's own oEmbed/thumbnail endpoints by
+    video/youtube.py at create time, and stay writable only as an override
+    for the reel whose scraped caption isn't the headline the desk wants.
 
-    `title` and `thumbnail` are both populated from `facebook_url` itself
-    (video/og.py) rather than typed by an editor — the field an editor
-    actually fills in is the link alone, with the other two writable only as
-    an override.
+    Each reel has a real, shareable page at /reel/<slug>, and the home page
+    rail opens it in a lightbox player on top of the page it is on.
 
-    Ordering: `order` first so the desk can pin a reel to the head of the rail,
-    then newest. Both are set by the dashboard, neither is asked of the editor
-    on the upload form — `order` defaults to 0, which leaves the rail purely
+    Ordering: `order` first so the desk can pin a reel to the head of the
+    rail, then newest. `order` defaults to 0, which leaves the rail purely
     chronological until someone deliberately reorders it.
     """
 
-    # blank=True: the dashboard's add form asks for only the Facebook link now
-    # — the title is scraped from that link's own page (see video/og.py and
-    # ReelSerializer). A blank submission is the normal path, not an edge
-    # case, so the model has to agree, or the Django admin's own add form
-    # (a second write path onto this same table) would demand a field the
-    # newsroom is no longer shown.
+    # blank=True: the dashboard's add form asks for the link alone — the
+    # title is fetched from YouTube after the row exists (see
+    # ReelSerializer). A blank submission is the normal path, so the model
+    # has to agree, or the Django admin's own add form would demand a field
+    # the newsroom is never shown.
     title = models.CharField(max_length=200, blank=True)
-    # Also blank on write, same reasoning as Video/Article — but UNLIKE
-    # either of them, this is deliberately NOT auto-derived in save() on
-    # every row. See assign_slug()'s own docstring for why: a reel's title
-    # is not known yet at its own first save.
+    # Blank on write, like Video/Article — but NOT auto-derived in save() on
+    # every row: a reel's title is not known yet at its own first save. See
+    # assign_slug().
     slug = models.SlugField(max_length=300, unique=True, allow_unicode=True, blank=True)
     thumbnail = models.ImageField(upload_to="reels/", blank=True, null=True)
-    # A URLField, not a plain CharField: a mistyped link here is a dead card on
-    # the home page, and it is the ONLY thing the card does.
-    facebook_url = models.URLField(
+    # A URLField, not a plain CharField: a mistyped link is a dead card.
+    url = models.URLField(
         max_length=500,
-        help_text="رابط الريل على فيسبوك — البطاقة تفتحه في تبويب جديد",
+        help_text="رابط الفيديو على يوتيوب (Short أو فيديو عادي) — العنوان والصورة يُجلبان منه تلقائياً",
     )
+    # Derived from `url` on every save (see save()). Blank means the stored
+    # link is not a YouTube video link at all — such rows are hidden from the
+    # public rail and flagged in the dashboard rather than deleted.
+    youtube_id = models.CharField(max_length=16, blank=True, default="", db_index=True, editable=False)
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -160,17 +131,15 @@ class Reel(models.Model):
 
     def assign_slug(self):
         """
-        Derive this reel's slug from its CURRENT title, guaranteed unique
-        against every other reel.
+        Derive this reel's slug from its CURRENT title, unique against every
+        other reel.
 
-        Not wired into save() the way Video.save()/Article.save() auto-slug
-        every row — those always know their real title at the very first
-        save, because an editor types it before anything is written at all.
-        A reel does not: ReelSerializer.create() saves the row first, THEN
-        scrapes the title off Facebook a moment later (video/og.py), so
-        slugifying automatically on that first save would freeze the slug
-        against a title that is still blank. This is called explicitly once
-        the title is actually settled instead — see ReelSerializer._finalize.
+        Not wired into save() the way Video/Article auto-slug every row —
+        those know their real title at the very first save. A reel does not:
+        ReelSerializer.create() saves the row first, THEN fetches the title
+        from YouTube, so slugifying on that first save would freeze the slug
+        against a blank title. Called explicitly once the title has settled
+        instead — see ReelSerializer._finalize.
         """
         base = short_slug_base(self.title)
         slug = base
@@ -181,30 +150,31 @@ class Reel(models.Model):
         self.slug = slug
 
     def save(self, *args, **kwargs):
+        # Re-derived on every save rather than only when blank, so a link
+        # edited in the Django admin can never leave a stale id behind.
+        from .youtube import extract_video_id
+
+        self.youtube_id = extract_video_id(self.url) or ""
         is_new = self._state.adding
         super().save(*args, **kwargs)
         if is_new and not self.slug:
             # A brand-new row needs SOME unique slug the instant it exists,
             # title or no title — two reels created moments apart, both
-            # still mid-scrape with a blank title, would otherwise both try
+            # still mid-fetch with a blank title, would otherwise both try
             # to persist slug="" and collide on the unique constraint. The
-            # row's own freshly-assigned pk is unique by construction, so it
-            # is a safe placeholder until ReelSerializer._finalize replaces
-            # it with one actually derived from the title.
+            # pk is unique by construction, so it is a safe placeholder until
+            # ReelSerializer._finalize replaces it with the real one.
+            #
+            # A queryset .update(), not self.save(): this placeholder is
+            # bookkeeping between the insert above and _finalize's own save
+            # moments later in the SAME request, and calling .save() here
+            # would fire post_save (see signals.py) a second time for a reel
+            # that has neither its title nor its poster yet.
             self.slug = f"reel-{self.pk}"
-            # A queryset .update(), not self.save(update_fields=["slug"]):
-            # this placeholder is purely internal bookkeeping between the
-            # insert above and _finalize's own save moments later in the
-            # SAME request, never a state worth telling the world about —
-            # calling .save() here would fire post_save (see signals.py) a
-            # second time for a reel that has neither its real title, its
-            # thumbnail, nor its real slug yet, flushing the home page's
-            # cache a beat before there is anything new worth showing on it.
-            # .update() writes straight to the row with no signal at all.
             Reel.objects.filter(pk=self.pk).update(slug=self.slug)
 
     def __str__(self):
-        return self.title
+        return self.title or self.url
 
 
 class VideoComment(models.Model):

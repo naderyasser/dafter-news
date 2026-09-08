@@ -8,19 +8,16 @@ import { notFound } from "next/navigation";
 export const revalidate = 0;
 
 export default async function DashReelsPage() {
-  // The client dropped the reels desk from the platform entirely — see
-  // lib/hiddenDesks.ts. The screen answers 404 like the public routes do,
-  // rather than staying reachable by URL after its nav entry went.
+  // A hidden desk's screen answers 404 like its public routes do — see
+  // lib/hiddenDesks.ts.
   if (REELS_HIDDEN) notFound();
   // Same capability as the video desk rather than a fourteenth one: this IS
-  // «لقطة وتعليق»'s shelf, and whoever runs that desk runs this. A separate
-  // capability would mean a migration on the accounts model and a new column
-  // in the roles matrix for a screen with three fields on it.
+  // «لقطة وتعليق»'s shelf, and whoever runs that desk runs this.
   await requireCapability("videos");
 
   const reels = await getReels(60, FRESH);
   return (
-    <DashboardShell active="reels" breadcrumb="لوحة التحكم / الوسائط" title="حصل إيه؟ — ريلز فيسبوك">
+    <DashboardShell active="reels" breadcrumb="لوحة التحكم / الوسائط" title="حصل إيه؟ — ريلز يوتيوب">
       <ReelsManager reels={reels.results} />
     </DashboardShell>
   );

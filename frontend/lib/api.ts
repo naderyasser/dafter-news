@@ -68,6 +68,9 @@ async function readErrorBody(res: Response): Promise<unknown> {
 const DRF_FIELD_LABELS_AR: Record<string, string> = {
   title: "العنوان",
   slug: "الرابط الدائم",
+  // Every `url` validation message already names the link ("الرابط لازم
+  // يكون…", "أدخل عنوان URL صالحاً"), so a label would double the word.
+  url: "",
   section: "القسم",
   standfirst: "المقدمة",
   blocks: "المحتوى",
@@ -360,7 +363,7 @@ export const getBreakingNews = (query = "?active=true", opts: FetchOptions = { r
 
 export const getVideos = (query = "", opts?: FetchOptions) => safeGet<Paginated<Video>>(`/videos/${query}`, { count: 0, next: null, previous: null, results: [] }, opts);
 
-/** «حصل إيه؟» — the Facebook shorts shelf. 60s like the rest of the media
+/** «حصل إيه؟» — the YouTube shorts shelf. 60s like the rest of the media
  *  desk: this is a curated rail an editor reorders, not a live feed. */
 export const getReels = (limit = 10, opts?: FetchOptions) =>
   safeGet<Paginated<Reel>>(

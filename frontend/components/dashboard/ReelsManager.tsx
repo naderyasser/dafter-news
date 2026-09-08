@@ -2,21 +2,19 @@
 
 import { useState } from "react";
 
-import { dashMutate, dashUpload, mediaUrl } from "@/lib/api";
+import { dashMutate, dashUpload, describeApiError, mediaUrl } from "@/lib/api";
 import type { Reel } from "@/lib/types";
 
 const input = "w-full rounded-lg border border-line bg-paper px-3 py-2 text-[14px] outline-none focus:border-brand";
 
 /**
- * «حصل إيه؟» — the Facebook shorts shelf on the home page.
+ * «حصل إيه؟» — the YouTube shorts shelf on the home page.
  *
- * ONE field on the form: the reel's Facebook link. Both the title and the
- * poster are read off that link's own page (see the backend's video/og.py),
- * so pasting the URL is the whole job.
- *
- * No upload, no duration, no player: the reel does not live on this site. The
- * card is a poster that sends the reader to the paper's Facebook page, and any
- * field implying otherwise would be a promise the shelf does not keep.
+ * ONE field on the form: the reel's YouTube link. Both the title and the
+ * poster are read off YouTube for it (see the backend's video/youtube.py),
+ * so pasting the URL is the whole job. No upload, no duration: the video
+ * lives on YouTube and plays through YouTube's own player, in the home page
+ * lightbox and on the reel's own /reel/<slug> page.
  */
 export default function ReelsManager({ reels: initial }: { reels: Reel[] }) {
   const [reels, setReels] = useState(initial);
@@ -81,8 +79,8 @@ export default function ReelsManager({ reels: initial }: { reels: Reel[] }) {
       </div>
 
       <p className="m-0 rounded-card border border-line bg-surface px-4 py-3 text-[13.5px] leading-[1.7] text-ink-3">
-        بطاقات «حصل إيه؟» تظهر في الصفحة الرئيسية ولا تُشغَّل عليها — الضغط عليها يفتح الريل على صفحة الجريدة في
-        فيسبوك مباشرةً. الترتيب هنا هو ترتيب الشريط نفسه، من البداية.
+        بطاقات «حصل إيه؟» تظهر في الصفحة الرئيسية، والضغط على أي بطاقة يشغّل الريل في نافذة فوق الصفحة، ولكل ريل
+        صفحته الخاصة أيضاً. الترتيب هنا هو ترتيب الشريط نفسه، من البداية.
       </p>
 
       {error && (
@@ -109,7 +107,7 @@ export default function ReelsManager({ reels: initial }: { reels: Reel[] }) {
         {reels.map((reel, i) => (
           <div key={reel.id} className="w-48 overflow-hidden rounded-card border border-line bg-paper">
             <a
-              href={reel.facebook_url}
+              href={reel.url}
               target="_blank"
               rel="noopener noreferrer"
               className="relative block aspect-[9/16] overflow-hidden bg-surface-2 no-underline"
@@ -120,15 +118,25 @@ export default function ReelsManager({ reels: initial }: { reels: Reel[] }) {
               ) : (
                 // A tall grey rectangle with nothing in it reads as a screen
                 // that failed to render rather than as a card awaiting its
-                // picture — which is exactly how this was reported. Say which
-                // one it is, and say what to do about it.
+                // picture. Say which one it is.
                 <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-3 text-center">
                   <span className="text-[22px] leading-none text-ink-3" aria-hidden>
                     ▶
                   </span>
                   <span className="text-[12.5px] font-bold leading-[1.6] text-ink-3">
-                    تعذّر جلب الصورة من فيسبوك
+                    تعذّر جلب الصورة من يوتيوب
                   </span>
+                </span>
+              )}
+              {/* A row whose link is not a YouTube video — the older rows the
+                  migration kept — never reaches the public shelf. Say so on
+                  the tile rather than let it look live. */}
+              {!reel.youtube_id && (
+                <span
+                  role="status"
+                  className="absolute inset-x-0 bottom-0 bg-down px-2 py-1.5 text-center text-[12px] font-bold leading-[1.5] text-paper"
+                >
+                  رابط غير مدعوم — لا يظهر على الموقع، احذفه وأضف رابط يوتيوب
                 </span>
               )}
             </a>
@@ -201,15 +209,14 @@ function AddDialog({
     setBusy(true);
     try {
       const form = new FormData();
-      form.append("facebook_url", url.trim());
-      // No title, no poster field: the server reads the reel's own Facebook
-      // page and takes both the caption and the frame it already advertises
-      // (see the backend's video/og.py). The row comes back with `title` and
-      // `thumbnail` already filled in, so the card below shows the real
+      form.append("url", url.trim());
+      // No title, no poster field: the server reads both off YouTube (see
+      // the backend's video/youtube.py). The row comes back with `title`
+      // and `thumbnail` already filled in, so the card below shows the real
       // picture and text without a second step.
       onCreated(await dashUpload<Reel>("/reels/", "POST", form));
-    } catch {
-      onError("تعذّر حفظ الريل. تأكد من الرابط وحاول مرة أخرى.");
+    } catch (err) {
+      onError(describeApiError(err, "تعذّر حفظ الريل. تأكد أن الرابط رابط يوتيوب صحيح وحاول مرة أخرى."));
       onCancel();
     } finally {
       setBusy(false);
@@ -238,12 +245,12 @@ function AddDialog({
 
         <div className="flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-[13px] font-bold text-ink-3">رابط الريل على فيسبوك</span>
+            <span className="text-[13px] font-bold text-ink-3">رابط الريل على يوتيوب</span>
             {/* dir="ltr" so a URL doesn't reorder itself inside an RTL form. */}
             <input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://www.facebook.com/reel/…"
+              placeholder="https://youtube.com/shorts/…"
               dir="ltr"
               autoFocus
               className={`${input} text-start`}
@@ -251,8 +258,9 @@ function AddDialog({
           </label>
 
           <p className="m-0 rounded-lg border border-line bg-surface px-3 py-2.5 text-[13px] leading-[1.7] text-ink-3">
-            العنوان والصورة المصغّرة يُجلبان تلقائياً من الريل نفسه بعد الحفظ — لا حاجة لكتابتهما. إن تعذّر
-            جلبهما (ريل خاص أو محذوف) تظهر البطاقة بعنوان وصورة بديلين، ويمكن حذفها والمحاولة مرة أخرى.
+            يُقبل رابط Short أو فيديو عادي أو رابط youtu.be. العنوان والصورة المصغّرة يُجلبان تلقائياً من يوتيوب
+            بعد الحفظ — لا حاجة لكتابتهما. إن تعذّر جلبهما (فيديو خاص أو محذوف) تظهر البطاقة بعنوان وصورة بديلين،
+            ويمكن حذفها والمحاولة مرة أخرى.
           </p>
         </div>
 
