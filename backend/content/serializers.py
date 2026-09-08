@@ -19,6 +19,20 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "slug"]
 
 
+class TrendingTagSerializer(TagSerializer):
+    """A tag as /api/tags/trending/ ranks it — see content/trending_tags.py.
+    Only ever fed rows that carry those annotations; the plain TagSerializer
+    stays what the dashboard's taxonomy screen reads."""
+
+    article_count = serializers.IntegerField(source="recent_count", read_only=True)
+    week_count = serializers.IntegerField(read_only=True)
+    last_used = serializers.DateTimeField(read_only=True)
+    is_hot = serializers.BooleanField(read_only=True)
+
+    class Meta(TagSerializer.Meta):
+        fields = TagSerializer.Meta.fields + ["article_count", "week_count", "last_used", "is_hot"]
+
+
 class ArticleBlockSerializer(serializers.ModelSerializer):
     related_article_slug = serializers.CharField(source="related_article.slug", read_only=True, default=None)
     # The "اقرأ أيضاً" box links straight to the related article's slug — an

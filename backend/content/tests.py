@@ -18,6 +18,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from content.models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
 from content.serializers import ArticleWriteSerializer
+from content.trending_tags import WINDOW_DAYS
 
 User = get_user_model()
 
@@ -1483,3 +1484,91 @@ class StoryAPITests(APITestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()["count"], 0)
+
+
+class TrendingTagsTests(APITestCase):
+    """
+    «وسوم رائجة» — /api/tags/trending/.
+
+    The home page used to take the first five tags of the plain list, whose
+    Meta.ordering is by NAME, so the newsroom saw the same alphabetical five
+    for weeks. These pin the replacement: rank by recent published use, let
+    this week count extra, and never pad the list with idle tags.
+    """
+
+    def setUp(self):
+        self.now = timezone.now()
+
+    def _story(self, *tags, days_ago=1, status=Article.Status.PUBLISHED, title="خبر"):
+        article = Article.objects.create(
+            title=f"{title} {days_ago}", status=status, published_at=self.now - datetime.timedelta(days=days_ago)
+        )
+        article.tags.add(*tags)
+        return article
+
+    def _names(self):
+        res = self.client.get("/api/tags/trending/")
+        self.assertEqual(res.status_code, 200)
+        return [t["name"] for t in res.json()["results"]]
+
+    def test_ranks_by_recent_use_not_by_name(self):
+        first_by_name = Tag.objects.create(name="آثار", slug="athar")
+        busy = Tag.objects.create(name="يمن", slug="yemen")
+        quiet = Tag.objects.create(name="بورصة", slug="borsa")
+        for d in (1, 2, 3):
+            self._story(busy, days_ago=d)
+        self._story(quiet, days_ago=4)
+        # The alphabetically-first tag has NO recent story: it must not appear.
+        self._story(first_by_name, days_ago=WINDOW_DAYS + 5)
+
+        self.assertEqual(self._names(), ["يمن", "بورصة"])
+
+    def test_drafts_and_old_stories_do_not_count(self):
+        tag = Tag.objects.create(name="مسودة", slug="draft")
+        self._story(tag, days_ago=1, status=Article.Status.DRAFT)
+        self._story(tag, days_ago=WINDOW_DAYS + 1)
+
+        self.assertEqual(self._names(), [])
+
+    def test_this_week_outranks_an_equal_count_from_earlier_in_the_month(self):
+        stale = Tag.objects.create(name="قديم", slug="old")
+        fresh = Tag.objects.create(name="جديد", slug="new")
+        self._story(stale, days_ago=20)
+        self._story(stale, days_ago=21)
+        self._story(fresh, days_ago=20)
+        self._story(fresh, days_ago=1)
+
+        self.assertEqual(self._names(), ["جديد", "قديم"])
+
+    def test_counts_and_hot_flag_are_reported(self):
+        hot = Tag.objects.create(name="ساخن", slug="hot")
+        warm = Tag.objects.create(name="فاتر", slug="warm")
+        self._story(hot, days_ago=1)
+        self._story(hot, days_ago=2)
+        self._story(warm, days_ago=1)
+
+        rows = {t["name"]: t for t in self.client.get("/api/tags/trending/").json()["results"]}
+
+        self.assertEqual(rows["ساخن"]["article_count"], 2)
+        self.assertEqual(rows["ساخن"]["week_count"], 2)
+        self.assertTrue(rows["ساخن"]["is_hot"])
+        self.assertEqual(rows["فاتر"]["article_count"], 1)
+        self.assertFalse(rows["فاتر"]["is_hot"])
+        self.assertIn("slug", rows["ساخن"])
+
+    def test_limit_is_honoured_and_a_bad_one_falls_back(self):
+        for i in range(4):
+            self._story(Tag.objects.create(name=f"وسم {i}", slug=f"t{i}"), days_ago=1)
+
+        self.assertEqual(len(self.client.get("/api/tags/trending/?limit=2").json()["results"]), 2)
+        self.assertEqual(len(self.client.get("/api/tags/trending/?limit=abc").json()["results"]), 4)
+        self.assertEqual(self.client.get("/api/tags/trending/").json()["window_days"], WINDOW_DAYS)
+
+    def test_the_plain_tag_list_is_untouched(self):
+        """The dashboard's taxonomy screen reads /api/tags/ by name; the
+        ranking must not leak into it."""
+        Tag.objects.create(name="ب", slug="b")
+        Tag.objects.create(name="أ", slug="a")
+
+        names = [t["name"] for t in self.client.get("/api/tags/").json()["results"]]
+        self.assertEqual(names, ["أ", "ب"])

@@ -20,6 +20,7 @@ import type {
   Section,
   SiteSettings,
   Tag,
+  TrendingTag,
   TickerModule,
   TickerPayload,
   UrgentNotification,
@@ -353,6 +354,22 @@ export const getSections = (opts?: FetchOptions) => safeGet<Paginated<Section>>(
 export const getSection = (key: string) => safeGet<Section | null>(`/sections/${encodeSlug(key)}/`, null);
 
 export const getTags = (opts?: FetchOptions) => safeGet<Paginated<Tag>>(`/tags/`, { count: 0, next: null, previous: null, results: [] }, opts);
+
+/**
+ * «وسوم رائجة» — tags ranked by recent published use, not by name.
+ *
+ * The home page used to slice the first five of `getTags()`, whose order is
+ * alphabetical, so the block never changed. Tag names are mixed-language in
+ * one column, so ask for more than a block shows and let each edition keep
+ * its own script (see the home pages). Five minutes: the ranking moves with
+ * publishing, not with reads, and a story lands on it via revalidation anyway.
+ */
+export const getTrendingTags = (limit = 16) =>
+  safeGet<Paginated<TrendingTag>>(
+    `/tags/trending/?limit=${limit}`,
+    { count: 0, next: null, previous: null, results: [] },
+    { revalidate: 300 },
+  );
 
 export const getAuthors = (opts?: FetchOptions) => safeGet<Paginated<Author>>(`/authors/`, { count: 0, next: null, previous: null, results: [] }, opts);
 

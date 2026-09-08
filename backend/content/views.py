@@ -21,6 +21,7 @@ from aldaftar.mixins import SlugOrPkLookupMixin
 from . import import_url
 from .filters import ArticleFilterSet
 from .models import Article, ArticleBlock, BreakingNewsItem, Comment, Section, Story, Tag
+from .trending_tags import DEFAULT_LIMIT as DEFAULT_TRENDING_LIMIT, WINDOW_DAYS as TRENDING_WINDOW_DAYS, trending_tags
 from .tts import TtsError, generate_for_article
 from .serializers import (
     ArticleCardSerializer,
@@ -31,7 +32,10 @@ from .serializers import (
     SectionSerializer,
     StorySerializer,
     TagSerializer,
+    TrendingTagSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 #: The comment tally every public surface prints — «الأكثر تعليقاً» on the home
@@ -101,6 +105,26 @@ class TagViewSet(viewsets.ModelViewSet):
     serializer_class = TagSerializer
     permission_classes = [ReadOnlyOrEditor]
     lookup_field = "slug"
+
+    @action(detail=False, methods=["get"])
+    def trending(self, request):
+        """
+        /api/tags/trending/?limit=N — «وسوم رائجة», ranked by recent
+        published use rather than by name (see content/trending_tags.py for
+        the ranking and why the plain list was the staleness bug).
+
+        Answers in the paginated list shape the frontend's fetch helpers
+        already understand, plus the window so a UI can caption the counts.
+        """
+        try:
+            limit = int(request.query_params.get("limit", DEFAULT_TRENDING_LIMIT))
+        except (TypeError, ValueError):
+            limit = DEFAULT_TRENDING_LIMIT
+        tags = trending_tags(limit=limit)
+        data = TrendingTagSerializer(tags, many=True).data
+        return Response(
+            {"count": len(data), "next": None, "previous": None, "window_days": TRENDING_WINDOW_DAYS, "results": data}
+        )
 
 
 class ArticleViewSet(SlugOrPkLookupMixin, viewsets.ModelViewSet):

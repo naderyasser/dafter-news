@@ -31,6 +31,17 @@ export type Section = {
 
 export type Tag = { id: number; name: string; slug: string };
 
+/** A tag as /api/tags/trending/ ranks it — see backend content/trending_tags.py. */
+export type TrendingTag = Tag & {
+  /** Published stories carrying the tag inside the ranking window (30 days). */
+  article_count: number;
+  /** …of which this week. */
+  week_count: number;
+  last_used: string | null;
+  /** The backend's own "high velocity" call, so both editions agree. */
+  is_hot: boolean;
+};
+
 export type Author = {
   id: number;
   username: string;
