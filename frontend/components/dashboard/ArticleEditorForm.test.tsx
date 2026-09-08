@@ -867,3 +867,44 @@ describe("ArticleEditorForm unified body — one static toolbar for every paragr
     expect(document.querySelector(".divide-y")).toBeNull();
   });
 });
+
+describe("ArticleEditorForm bulk delete", () => {
+  /**
+   * The body is one `ArticleBlock` per paragraph — there is no single box a
+   * native Ctrl+A/Cmd+A could select across the way it would in a plain
+   * textarea, so «حذف كل المحتوى» is the actual bulk-delete an editor wants:
+   * clear every block back to the one empty paragraph a brand-new article
+   * starts with, in one click, confirmed first since it can't be undone.
+   */
+  it("clears every block back to one empty paragraph, after confirming", () => {
+    const confirm = vi.fn().mockReturnValue(true);
+    vi.stubGlobal("confirm", confirm);
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fillBody("فقرة أولى");
+    fireEvent.click(screen.getByText("+ المحتوى"));
+    const second = screen.getAllByRole("textbox", { name: "نص الفقرة" })[1];
+    second.textContent = "فقرة ثانية";
+    fireEvent.input(second);
+    expect(screen.getAllByRole("textbox", { name: "نص الفقرة" })).toHaveLength(2);
+
+    fireEvent.click(screen.getByTitle("مسح كل فقرات وصور الخبر دفعة واحدة"));
+
+    expect(confirm).toHaveBeenCalled();
+    const fields = screen.getAllByRole("textbox", { name: "نص الفقرة" });
+    expect(fields).toHaveLength(1);
+    expect(fields[0].textContent).toBe("");
+    vi.unstubAllGlobals();
+  });
+
+  it("does nothing when the confirmation is declined", () => {
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+    render(<ArticleEditorForm initial={null} sections={sections} />);
+
+    fillBody("فقرة أولى");
+    fireEvent.click(screen.getByTitle("مسح كل فقرات وصور الخبر دفعة واحدة"));
+
+    expect(screen.getByRole("textbox", { name: "نص الفقرة" }).textContent).toBe("فقرة أولى");
+    vi.unstubAllGlobals();
+  });
+});

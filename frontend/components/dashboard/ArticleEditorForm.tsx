@@ -235,6 +235,24 @@ export default function ArticleEditorForm({
   const removeBlock = (id: number) => setBlocks((bs) => bs.filter((b) => b.id !== id));
 
   /**
+   * «حذف كل المحتوى» — the body is one `ArticleBlock` per paragraph under
+   * the hood (see the comment above the body box below), so there is no
+   * single box a native Ctrl+A/Cmd+A could ever select across to delete the
+   * whole article at once the way it would in a plain textarea. This is the
+   * actual bulk-delete an editor wants — clear every block back to the one
+   * empty paragraph a brand-new article starts with — without needing to
+   * flatten the per-paragraph architecture (alignment, captions/credit,
+   * mid-article images, pagination) that box gives the public page.
+   */
+  const clearAllContent = () => {
+    if (!window.confirm("مسح كل محتوى الخبر؟ لا يمكن التراجع عن هذا.")) return;
+    const id = nextId;
+    setBlocks([blankBlock(id, "paragraph")]);
+    setNextId(id + 1);
+    setActiveBlockId(id);
+  };
+
+  /**
    * «ضبط المسافات»: split the paragraph at the cursor into two blocks. Long
    * walls of text become separately movable paragraphs with the standard
    * spacing between them, instead of the editor faking distance with blank
@@ -692,7 +710,16 @@ export default function ArticleEditorForm({
           unified; nothing about how a saved article renders changes.
         */}
         <div className="rounded-card border border-line">
-          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-t-card border-b border-line bg-surface px-3.5 py-2.5">
+          {/*
+            Sticky, not fixed — it rides along the viewport as the body is
+            scrolled instead of only ever living at the article's own top
+            edge, which is what forced a scroll back to the top of a long
+            article just to reach it. Turned off below 860px: the admin
+            topbar (AdminTopbar) becomes sticky at that width too, at a
+            higher z-index, and would otherwise sit on top of this one at
+            the exact same offset, hiding it behind itself while scrolling.
+          */}
+          <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 rounded-t-card border-b border-line bg-surface px-3.5 py-2.5 max-[860px]:static">
             {/* B/I/U/«فقرة»/colour — the exact set every paragraph used to
                 render its own copy of underneath its own field. One shared
                 instance now, driven by whichever block is active. */}
@@ -729,6 +756,17 @@ export default function ArticleEditorForm({
               className={`${BLOCK_TOOL_PRIMARY_CLASS} disabled:cursor-not-allowed disabled:opacity-40`}
             >
               ⬆ صورة داخل المقال
+            </button>
+            <span className="h-5 w-px bg-line" aria-hidden />
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={clearAllContent}
+              disabled={blocks.length === 0}
+              title="مسح كل فقرات وصور الخبر دفعة واحدة"
+              className="rounded-md border border-down px-2 py-1 text-[12.5px] font-semibold text-down transition-colors duration-fast hover:bg-down-tint disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              🗑 حذف كل المحتوى
             </button>
             <input
               ref={inlineImageFileRef}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { domToTokens, getVisibleSelection, renderTokensInto, setVisibleSelection } from "./richTextDom";
+import { domToTokens, getVisibleSelection, htmlToTokenParagraphs, renderTokensInto, setVisibleSelection } from "./richTextDom";
 
 function box(html?: string) {
   const el = document.createElement("div");
@@ -172,5 +172,43 @@ describe("getVisibleSelection / setVisibleSelection", () => {
     renderTokensInto(el, "نص");
     window.getSelection()!.removeAllRanges();
     expect(getVisibleSelection(el)).toBeNull();
+  });
+});
+
+describe("htmlToTokenParagraphs", () => {
+  it("turns one <p> per paragraph into one token-grammar string each", () => {
+    expect(htmlToTokenParagraphs("<p>فقرة أولى</p><p>فقرة ثانية</p>")).toEqual(["فقرة أولى", "فقرة ثانية"]);
+  });
+
+  it("carries bold/italic/underline through as this editor's own stacked token, not the source tags", () => {
+    expect(htmlToTokenParagraphs("<p><b>غامق</b> و<i>مائل</i> و<u>تحته خط</u></p>")).toEqual(["{b|غامق} و{i|مائل} و{u|تحته خط}"]);
+  });
+
+  it("stacks nested styles into one token, matching mergeColorWrap's own stacked shape", () => {
+    expect(htmlToTokenParagraphs("<p><b><i>غامق ومائل معاً</i></b></p>")).toEqual(["{b|i|غامق ومائل معاً}"]);
+  });
+
+  it("reads inline style attributes the same as the semantic tags", () => {
+    expect(htmlToTokenParagraphs('<p><span style="font-weight: 700">غامق</span></p>')).toEqual(["{b|غامق}"]);
+  });
+
+  it("recurses through a wrapping <div> to reach the paragraphs actually nested inside it", () => {
+    expect(htmlToTokenParagraphs("<div><p>فقرة أولى</p><p>فقرة ثانية</p></div>")).toEqual(["فقرة أولى", "فقرة ثانية"]);
+  });
+
+  it("treats a bare <div> with no paragraph tags of its own as one paragraph", () => {
+    expect(htmlToTokenParagraphs("<div>فقرة بلا وسم p</div>")).toEqual(["فقرة بلا وسم p"]);
+  });
+
+  it("keeps a <br> as the same soft in-paragraph break Enter itself inserts, not a new paragraph", () => {
+    expect(htmlToTokenParagraphs("<p>سطر أول<br>سطر ثانٍ</p>")).toEqual(["سطر أول\nسطر ثانٍ"]);
+  });
+
+  it("drops literal braces from pasted text so they can never be misread as this editor's own token markup", () => {
+    expect(htmlToTokenParagraphs("<p>سعر {b|مزيف} اليوم</p>")).toEqual(["سعر b|مزيف اليوم"]);
+  });
+
+  it("returns nothing for HTML with no actual text — the caller falls back to the plain-text path", () => {
+    expect(htmlToTokenParagraphs("<meta charset=\"utf-8\">")).toEqual([]);
   });
 });

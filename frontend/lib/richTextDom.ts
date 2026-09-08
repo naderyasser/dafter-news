@@ -163,6 +163,114 @@ export function domToTokens(root: HTMLElement): string {
   return out;
 }
 
+/** Block-level tags a pasted article's paragraph breaks actually come from —
+ *  walked by htmlToTokenParagraphs below, one output string per tag. */
+const BLOCK_TAGS = new Set(["P", "DIV", "LI", "H1", "H2", "H3", "H4", "H5", "H6", "BLOCKQUOTE", "TR", "SECTION", "ARTICLE"]);
+
+/** Strips the two characters this editor's token grammar is built out of —
+ *  pasted third-party content is the one place a literal `{`/`}` is actually
+ *  likely (quoted code, a stray bracket), and letting one through would have
+ *  it misread as `{b|…}`-style markup the next time this value is painted. */
+const stripBraces = (s: string) => s.replace(/[{}]/g, "");
+
+type PasteStyle = { bold: boolean; italic: boolean; underline: boolean };
+
+function inlineStyleOf(el: HTMLElement): PasteStyle {
+  const weight = el.style.fontWeight;
+  const decoration = `${el.style.textDecorationLine} ${el.style.textDecoration}`;
+  return {
+    bold: el.tagName === "B" || el.tagName === "STRONG" || weight === "bold" || /^[6-9]00$/.test(weight),
+    italic: el.tagName === "I" || el.tagName === "EM" || el.style.fontStyle === "italic",
+    underline: el.tagName === "U" || decoration.includes("underline"),
+  };
+}
+
+/** Walks one paragraph's worth of inline nodes into this editor's own token
+ *  grammar (`{b|…}` / `{i|…}` / `{u|…}`, stacked as `{b|i|…}` — see
+ *  lib/richtext.ts) — the bold/italic/underline runs a real article actually
+ *  carries, which the plain-text clipboard mirror has already flattened out
+ *  by the time RichTextEditor's onPaste would otherwise see it. */
+function inlineToTokens(node: Node, active: PasteStyle): string {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = stripBraces(node.textContent ?? "");
+    if (!text) return "";
+    let prefix = "";
+    if (active.bold) prefix += "b|";
+    if (active.italic) prefix += "i|";
+    if (active.underline) prefix += "u|";
+    return prefix ? `{${prefix}${text}}` : text;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  const el = node as HTMLElement;
+  if (el.tagName === "BR") return "\n";
+  if (el.tagName === "SCRIPT" || el.tagName === "STYLE") return "";
+  const own = inlineStyleOf(el);
+  const merged: PasteStyle = { bold: active.bold || own.bold, italic: active.italic || own.italic, underline: active.underline || own.underline };
+  let out = "";
+  for (const child of Array.from(el.childNodes)) out += inlineToTokens(child, merged);
+  return out;
+}
+
+/**
+ * Clipboard HTML → one token-grammar string per paragraph, so a pasted news
+ * article keeps both its paragraph breaks and its bold/italic/underline runs
+ * — the two things `onPaste`'s plain-text-only path (RichTextEditor) has no
+ * way to see at all. `DOMParser` builds a detached document that is walked
+ * for text and known tags only; nothing here is ever assigned to
+ * `innerHTML` or attached to the live page, so this carries none of the
+ * stored-XSS risk the token grammar itself exists to avoid (see
+ * lib/richtext.ts's own doc comment).
+ *
+ * A wrapping `<div>` with no paragraph tags of its own (a bare `<div>text</div>`
+ * some sources emit instead of `<p>`) is itself treated as one paragraph;
+ * one that only wraps further block tags is walked through instead, so
+ * nested markup (`<div><p>…</p><p>…</p></div>`) still yields two paragraphs,
+ * not one flattened block.
+ */
+export function htmlToTokenParagraphs(html: string): string[] {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const paragraphs: string[] = [];
+  let current = "";
+
+  const flush = () => {
+    const trimmed = current.trim();
+    if (trimmed) paragraphs.push(trimmed);
+    current = "";
+  };
+
+  const hasBlockDescendant = (el: HTMLElement) => Array.from(el.querySelectorAll("*")).some((d) => BLOCK_TAGS.has(d.tagName));
+
+  const walkTop = (node: Node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      current += stripBraces(node.textContent ?? "");
+      return;
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return;
+    const el = node as HTMLElement;
+    if (el.tagName === "SCRIPT" || el.tagName === "STYLE") return;
+    if (el.tagName === "BR") {
+      current += "\n";
+      return;
+    }
+    if (BLOCK_TAGS.has(el.tagName)) {
+      if (hasBlockDescendant(el)) {
+        for (const child of Array.from(el.childNodes)) walkTop(child);
+        return;
+      }
+      flush();
+      current = inlineToTokens(el, { bold: false, italic: false, underline: false });
+      flush();
+      return;
+    }
+    current += inlineToTokens(el, { bold: false, italic: false, underline: false });
+  };
+
+  for (const child of Array.from(doc.body.childNodes)) walkTop(child);
+  flush();
+
+  return paragraphs;
+}
+
 /**
  * The current selection inside `root`, as plain-text offsets — exactly what
  * rawOffsetFromVisible expects. Null when there's no selection in this

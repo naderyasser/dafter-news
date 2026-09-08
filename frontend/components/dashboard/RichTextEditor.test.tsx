@@ -196,7 +196,7 @@ describe("RichTextEditor", () => {
     expect(bold).toBe(false);
   });
 
-  it("pastes as plain text even when the clipboard carries HTML", () => {
+  it("keeps a pasted bold run bold — the clipboard's own HTML, not just its plain-text mirror", () => {
     const onChange = vi.fn();
     render(<RichTextEditor value="" onChange={onChange} placeholder="نص الفقرة" />);
     field().focus();
@@ -204,8 +204,37 @@ describe("RichTextEditor", () => {
     const clipboardData = { getData: (type: string) => (type === "text/plain" ? "نص ملصق" : "<b>نص ملصق</b>") };
     fireEvent.paste(field(), { clipboardData });
 
-    expect(onChange).toHaveBeenCalledWith("نص ملصق");
-    expect(field().querySelector("b")).toBeNull();
+    expect(onChange).toHaveBeenCalledWith("{b|نص ملصق}");
+    expect(screen.getByText("نص ملصق")).toHaveStyle({ fontWeight: "700" });
+  });
+
+  it("a multi-paragraph HTML paste (one <p> per paragraph) hands each paragraph to onSplitPaste, formatting kept", () => {
+    const onChange = vi.fn();
+    const onSplitPaste = vi.fn();
+    render(<RichTextEditor value="" onChange={onChange} onSplitPaste={onSplitPaste} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const clipboardData = {
+      getData: (type: string) =>
+        type === "text/html" ? "<p>فقرة <b>أولى</b></p><p>فقرة ثانية</p>" : "فقرة أولى\nفقرة ثانية",
+    };
+    fireEvent.paste(field(), { clipboardData });
+
+    expect(onSplitPaste).toHaveBeenCalledWith("", ["فقرة {b|أولى}", "فقرة ثانية"], "");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("an HTML paste with no onSplitPaste lands in this one field, paragraph breaks kept as soft breaks", () => {
+    const onChange = vi.fn();
+    render(<RichTextEditor value="" onChange={onChange} placeholder="نص الفقرة" />);
+    field().focus();
+
+    const clipboardData = {
+      getData: (type: string) => (type === "text/html" ? "<p>فقرة أولى</p><p>فقرة ثانية</p>" : "فقرة أولى\nفقرة ثانية"),
+    };
+    fireEvent.paste(field(), { clipboardData });
+
+    expect(onChange).toHaveBeenCalledWith("فقرة أولى\nفقرة ثانية");
   });
 
   it("a multi-line paste with no onSplitPaste falls back to one field with the breaks kept as \\n", () => {

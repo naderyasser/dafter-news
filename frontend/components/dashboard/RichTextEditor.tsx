@@ -3,8 +3,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 
 import TextColorToolbar from "@/components/dashboard/TextColorToolbar";
-import { domToTokens, getVisibleSelection, renderTokensInto, setVisibleSelection } from "@/lib/richTextDom";
-import { COLOR_OPEN, clearRangeInSegments, mergeColorWrap, parseInline, rawOffsetFromVisible, serializeSegments } from "@/lib/richtext";
+import { domToTokens, getVisibleSelection, htmlToTokenParagraphs, renderTokensInto, setVisibleSelection } from "@/lib/richTextDom";
+import { COLOR_OPEN, clearRangeInSegments, mergeColorWrap, parseInline, rawOffsetFromVisible, serializeSegments, stripInline } from "@/lib/richtext";
 
 /** Imperative handle for a shared, lifted-out toolbar (ArticleEditorForm's
  *  single static one) to drive whichever field currently has focus, without
@@ -131,10 +131,49 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, {
 
   const onPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
+    const html = e.clipboardData.getData("text/html");
     const text = e.clipboardData.getData("text/plain");
     const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0 || !text) return;
+    if (!sel || sel.rangeCount === 0) return;
 
+    // A source that still carries its clipboard HTML (a real article, not a
+    // plain .txt/WhatsApp copy) is walked into this editor's own token
+    // grammar — bold/italic/underline runs and per-paragraph breaks —
+    // instead of the plain-text mirror below, which has already flattened
+    // both away by the time this handler ever sees it. A source with no
+    // HTML (or one that resolves to nothing usable) falls straight through
+    // to the existing plain-text path, unchanged.
+    const htmlParagraphs = html ? htmlToTokenParagraphs(html) : [];
+    if (htmlParagraphs.length > 0) {
+      const el = elRef.current;
+      const vis = el ? getVisibleSelection(el) : null;
+      const visStart = vis ? vis.start : 0;
+      const visEnd = vis ? vis.end : visStart;
+
+      if (htmlParagraphs.length > 1 && onSplitPaste) {
+        onSplitPaste(value.slice(0, rawOffsetFromVisible(value, visStart)), htmlParagraphs, value.slice(rawOffsetFromVisible(value, visEnd)));
+        return;
+      }
+
+      // Either one paragraph, or several with nowhere to split them to (this
+      // field's own caller never set onSplitPaste) — either way it lands
+      // right here, paragraph breaks kept as the same soft "\n" Enter itself
+      // inserts (see insertLineBreak).
+      const inserted = htmlParagraphs.join("\n");
+      const rawStart = rawOffsetFromVisible(value, visStart);
+      const rawEnd = rawOffsetFromVisible(value, visEnd);
+      const next = value.slice(0, rawStart) + inserted + value.slice(rawEnd);
+      if (el) {
+        renderTokensInto(el, next);
+        el.focus();
+        const caret = visStart + stripInline(inserted).length;
+        setVisibleSelection(el, caret, caret);
+      }
+      commit(next);
+      return;
+    }
+
+    if (!text) return;
     const normalized = text.replace(/\r\n?/g, "\n");
 
     // A blank line — two or more consecutive breaks — is the one signal
