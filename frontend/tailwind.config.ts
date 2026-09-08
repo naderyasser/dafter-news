@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 
 /**
  * Design tokens transcribed 1:1 from the Claude Design brief (§2 Design
- * Tokens) — chats/chat1.md. This file is the single source of truth for
+ * Tokens) — design/chats/chat1.md. This file is the single source of truth for
  * color/type/spacing/radius across the app; components must reference
  * these tokens (bg-brand, text-ink-3, rounded-card, ...) and never inline
  * raw hex, per brief §10.1 "hex خام في المكونات — التوكنز فقط".

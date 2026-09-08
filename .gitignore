@@ -1,4 +1,4 @@
-# آثار تشغيل start.sh
+# آثار تشغيل scripts/start-dev.sh
 backend.log
 frontend.log
 backend/.seeded
@@ -13,6 +13,7 @@ frontend/.next-new/
 frontend/.next-old/
 frontend/.next-dev/
 frontend/.next-verify/
+frontend/.next-qa/
 frontend/out/
 
 # بايثون

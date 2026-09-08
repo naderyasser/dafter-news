@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 #
-# تشغيل الدفتر نيوز محلياً بأمر واحد:  ./start.sh
+# تشغيل الدفتر نيوز محلياً بأمر واحد:  scripts/start-dev.sh
 #
 # آمن للتكرار: كل خطوة تتخطى نفسها لو خلصت قبل كده، فتقدر تشغّله كل مرة.
 # بيجهّز البيئة الافتراضية، الحزم، قاعدة البيانات، البيانات التجريبية،
 # ثم يشغّل الخادمين معاً.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# The script lives in scripts/; the project root is one level up.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BACKEND="$ROOT/backend"
 FRONTEND="$ROOT/frontend"
 # This box is shared with other apps — 8000 is wasla-backend.service and 3000
 # is ELECTRQ. The kill step below frees whatever holds our ports, so defaulting
 # to 8000/3000 would take those neighbours down every run. Keep these off the
-# common ports; override with BACKEND_PORT=… FRONTEND_PORT=… ./start.sh
+# common ports; override with BACKEND_PORT=… FRONTEND_PORT=… scripts/start-dev.sh
 BACKEND_PORT="${BACKEND_PORT:-8891}"
 FRONTEND_PORT="${FRONTEND_PORT:-3891}"
 
@@ -54,7 +55,7 @@ for PORT in "$BACKEND_PORT" "$FRONTEND_PORT"; do
         ;;
       *)
         die "المنفذ $PORT مشغول بعملية من خارج المشروع (pid $PID — ${PID_CWD:-غير معروف}).
-    لن يتم إنهاؤها. شغّل على منفذ آخر:  BACKEND_PORT=… FRONTEND_PORT=… ./start.sh"
+    لن يتم إنهاؤها. شغّل على منفذ آخر:  BACKEND_PORT=… FRONTEND_PORT=… scripts/start-dev.sh"
         ;;
     esac
   done

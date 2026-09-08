@@ -2,8 +2,8 @@
 Django settings for the Al Daftar News (الدفتر نيوز) project.
 
 Backs the public bilingual (AR RTL / EN LTR) news site and its admin
-dashboard, per the Claude Design handoff brief in ../README.md and
-../chats/chat1.md.
+dashboard, per the Claude Design handoff brief in ../design/README.md and
+../design/chats/chat1.md.
 """
 import os
 from pathlib import Path
@@ -197,7 +197,7 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
 
 # The dev frontend runs on 3891, not 3000 — 3000 belongs to another service on
-# this host (see start.sh). Both localhost and 127.0.0.1 are listed because a
+# this host (see scripts/start-dev.sh). Both localhost and 127.0.0.1 are listed because a
 # browser treats them as different origins, and which one you land on depends
 # on how you opened the page.
 _DEV_ORIGINS = [

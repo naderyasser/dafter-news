@@ -15,8 +15,8 @@ https://github.com/naderyasser/dafter-news
 بنية المشروع:
 
 - `backend/` — Django 5.2 + DRF (8 تطبيقات، ~30 endpoint)
-- `frontend/` — Next.js 14 App Router + TypeScript + Tailwind (35 route)
-- `start.sh` — ⚠️ سكربت **تطوير** فقط (`runserver` + `npm run dev`).
+- `frontend/` — Next.js 16 App Router + React 19 + TypeScript + Tailwind
+- `scripts/start-dev.sh` — ⚠️ سكربت **تطوير** فقط (`runserver` + `npm run dev`).
   لا تستخدمه للإنتاج.
 
 ## المطلوب: نشر إنتاجي كامل
@@ -79,15 +79,14 @@ NEXT_PUBLIC_API_URL=https://aldaftarnews.com/api
 ## بعد النشر — تحقق من هذا تحديداً
 
 ```sh
-cd backend  && .venv/bin/python manage.py test   # يجب أن تمر 199
-cd frontend && npm test                          # يجب أن تمر 153
+make check-fast   # هجرات + tsc + eslint + اختبارات الخلفية (~490) والواجهة (~1000)
 ```
 
 ثم:
 
 - `https://aldaftarnews.com/` — الرئيسية
-- `https://aldaftarnews.com/dashboard` — لوحة التحكم
-- `https://aldaftarnews.com/dashboard/feeds` — حالة المصادر الخارجية.
+- لوحة التحكم — مسارها في `frontend/lib/routes.ts` (ليس `/dashboard` عمداً)
+- صفحة «المصادر الخارجية» داخل اللوحة — حالة التغذيات.
   عمود **«آخر تحديث ناجح»** هو المهم: مصدر فاشل يُبقي آخر بيانات ناجحة ظاهرة
   على الموقع، فلن ترى العطل في الواجهة إطلاقاً — هذه الصفحة هي المكان الوحيد
   الذي يظهر فيه الفرق.

@@ -1,25 +1,71 @@
-# CODING AGENTS: READ THIS FIRST
+# الدفتر نيوز — aldaftarnews.com
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+بوابة إخبارية مصرية ثنائية اللغة (عربي RTL افتراضياً + طبعة إنجليزية) مع لوحة تحرير كاملة.
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+- **الخلفية:** Django 5.2 + Django REST Framework + PostgreSQL — `backend/`
+- **الواجهة:** Next.js 16 (App Router) + React 19 + TypeScript + Tailwind — `frontend/`
+- **الإنتاج:** nginx ← Next على `127.0.0.1:3300` + gunicorn على `127.0.0.1:8300` (انظر `docs/DEPLOY.md`)
 
-## What you should do — IMPORTANT
+## بنية المستودع
 
-**Read the chat transcripts first.** There are 1 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+```
+backend/    Django: 8 تطبيقات (accounts, content, media_library, video, ads, market, siteconfig, integrations)
+frontend/   Next.js: app/ (المسارات) · components/site (الموقع) · components/dashboard (اللوحة) · lib/
+scripts/    backup.sh · healthcheck.sh · start-dev.sh (تشغيل محلي) · hooks/pre-push
+docs/       DEPLOY.md (النشر والتشغيل) · CLEANUP_REPORT.md (مراجعة سبتمبر 2026)
+design/     حزمة التصميم الأصلية من Claude Design (chats/ + project/*.dc.html) — مرجع، ليست كوداً
+Makefile    make check — كل الفحوصات قبل أي push
+```
 
-**Read `project/DashOverview.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+## التشغيل محلياً
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
+بأمر واحد (يجهّز الـvenv والحزم وقاعدة البيانات والبيانات التجريبية ثم يشغّل الخادمين):
 
-## About the design files
+```sh
+scripts/start-dev.sh
+```
 
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
+- الموقع: http://localhost:3891 · الـAPI: http://localhost:8891/api/
+- مسار لوحة التحكم مكتوب في `frontend/lib/routes.ts` (ليس `/dashboard` عمداً).
+- `scripts/start-dev.sh --check` يجهّز ويتأكد أن الصفحات تستجيب ثم يخرج.
 
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
+يدوياً:
 
-## Bundle contents
+```sh
+cd backend
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env            # بدون POSTGRES_DB يعمل على sqlite للتجربة السريعة فقط
+python manage.py migrate
+python manage.py seed_demo_data # محتوى تجريبي (كلمة مرور الحسابات التجريبية: aldaftar-demo)
+python manage.py runserver 0.0.0.0:8891
 
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `Arabic news website design` project files (HTML prototypes, assets, components)
+cd frontend
+npm install
+cp .env.local.example .env.local   # NEXT_PUBLIC_API_URL
+npm run dev -- -p 3891
+```
+
+## الفحوصات
+
+```sh
+make check        # انحراف الهجرات ← tsc ← eslint ← اختبارات الخلفية ← اختبارات الواجهة ← بناء تحقق
+make check-fast   # كل ما سبق عدا البناء
+make install-hooks   # مرة واحدة: خطّاف pre-push يشغّل check-fast
+```
+
+البناء في `make check` يذهب إلى `.next-verify` ولا يمس `.next` الحيّة إطلاقاً — هذا المستودع هو نسخة الإنتاج نفسها. النشر الفعلي عبر `frontend/scripts/deploy-frontend.sh` فقط (انظر `docs/DEPLOY.md`).
+
+## أهم ما يميّز البنية
+
+- **المتن بلوكات منظّمة لا HTML:** `content.ArticleBlock`، والتنسيق الداخلي بصيغة توكنات (`frontend/lib/richtext.ts`) تمنع XSS.
+- **الصلاحيات على محورين:** `is_staff` يفتح اللوحة، و`role` (admin/editor/author/moderator) يحدد ما يُسمح به داخلها — `backend/aldaftar/permissions.py`، والافتراضي «مرفوض».
+- **الكاش:** ISR بنوافذ قصيرة + إشارات `post_save` تنادي `/revalidate` في Next بتوكن، فأي مسار نشر (اللوحة، الأدمن، الـcron) يُبطل الكاش فوراً.
+- **التغذيات الخارجية:** ست مصادر معزولة (`backend/integrations/providers/`) يديرها `sync_feeds` على cron، وسجل حالة لكل مصدر في اللوحة.
+- **«حصل إيه؟» (الريلز):** رابط يوتيوب واحد في اللوحة؛ العنوان والصورة يُجلبان تلقائياً (`backend/video/youtube.py`)، والريل يُشغَّل في نافذة فوق الرئيسية وله صفحته `/reel/<slug>`.
+- **الصوت:** «استمع للمقال» عبر edge-tts (`backend/content/tts.py`)، يُولَّد عند النشر وعبر `generate_tts` على cron.
+- **الأقسام المخفية:** مفتاح واحد لكل قسم في `frontend/lib/hiddenDesks.ts` يُخفيه من كل الواجهات دون حذف بيانات.
+
+## المتغيرات والأسرار
+
+`backend/.env` و`frontend/.env.local` (انسخ من ملفات `.example`). القائمة الكاملة وتفسيرها في `docs/DEPLOY.md`. لا تُرفع الملفات الحقيقية إلى git.
