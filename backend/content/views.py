@@ -401,8 +401,6 @@ class DashboardOverviewView(APIView):
     permission_classes = [StaffOnly]
 
     def get(self, request):
-        import datetime
-
         from integrations.models import SyncLog
         from siteconfig.models import DailyVisit
         from video.models import Video
@@ -418,7 +416,7 @@ class DashboardOverviewView(APIView):
         # stored column — the seed wrote 4.2 there once and nothing updates
         # it. The stored value stays as the fallback for day one, when there
         # is no yesterday to compare against.
-        yesterday = DailyVisit.objects.filter(date=today - datetime.timedelta(days=1)).first()
+        yesterday = DailyVisit.objects.filter(date=today - timedelta(days=1)).first()
         if visits_today and yesterday and yesterday.visits:
             change_pct = round((visits_today.visits - yesterday.visits) / yesterday.visits * 100, 1)
         else:
@@ -477,9 +475,6 @@ class DashboardOverviewView(APIView):
                 for a in queue
             ],
         })
-
-
-logger = logging.getLogger(__name__)
 
 
 class ImportFromUrlView(APIView):

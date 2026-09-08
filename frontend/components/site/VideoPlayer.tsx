@@ -76,7 +76,6 @@ export default function VideoPlayer({
   if (playing && src) {
     return (
       <div className="relative aspect-video overflow-hidden rounded-card bg-header-bg">
-        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video src={src} poster={poster} controls autoPlay className="h-full w-full" />
       </div>
     );
@@ -87,7 +86,6 @@ export default function VideoPlayer({
     return (
       <div className="relative aspect-video overflow-hidden rounded-card bg-header-bg">
         {direct ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
           <video src={embed} poster={poster} controls autoPlay className="h-full w-full" />
         ) : (
           <iframe

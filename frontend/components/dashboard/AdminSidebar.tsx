@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { DASHBOARD } from "@/lib/routes";
 import { useEffect, useState } from "react";
 
-import type { Capability, DashboardPermissions } from "@/lib/api";
+import { logout, type Capability, type DashboardPermissions } from "@/lib/api";
 import { ROLE_LABELS, type Role } from "@/lib/types";
 
 /** `cap` is the capability the screen needs — the same key the route guard
@@ -27,7 +28,9 @@ const GROUPS: Group[] = [
     label: "الوسائط",
     items: [
       { key: "videos", label: "الفيديوهات", href: `${DASHBOARD}/videos`, icon: "▶", cap: "videos" },
-      // «حصل إيه؟» (reels) is deliberately absent — see lib/hiddenDesks.ts.
+      // Same capability as the video desk: whoever runs «لقطة وتعليق» runs
+      // the shorts shelf too.
+      { key: "reels", label: "حصل إيه؟ — ريلز", href: `${DASHBOARD}/reels`, icon: "▮", cap: "videos" },
       { key: "opinion", label: "بالعقل والمنطق", href: `${DASHBOARD}/opinion`, icon: '"', cap: "authors" },
     ],
   },
@@ -74,6 +77,23 @@ export default function AdminSidebar({
   const allowed = (item: Item) => !item.cap || !permissions || permissions[item.cap];
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const router = useRouter();
+  const [leaving, setLeaving] = useState(false);
+
+  // The one way out of the newsroom that isn't clearing cookies by hand.
+  // The session is ended on the API first; `refresh` then re-runs the
+  // dashboard layout's own gate, which bounces to /login.
+  const signOut = async () => {
+    setLeaving(true);
+    try {
+      await logout();
+    } catch {
+      // The session may already be gone (expired, or ended in another tab)
+      // — either way the right place to land is the login card.
+    }
+    router.push("/login");
+    router.refresh();
+  };
 
   useEffect(() => {
     const onResize = () => {
@@ -138,10 +158,24 @@ export default function AdminSidebar({
           <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full bg-ink-2 font-bold text-header-ink">
             {initial}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-[14px] font-bold text-header-ink">{displayName}</div>
             <div className="text-[12px] text-header-muted">{roleLabel}</div>
           </div>
+          <button
+            type="button"
+            onClick={signOut}
+            disabled={leaving}
+            title="تسجيل الخروج"
+            aria-label="تسجيل الخروج"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-header-muted transition-colors hover:bg-[rgba(255,255,255,.06)] hover:text-header-ink disabled:opacity-50"
+          >
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="m16 17 5-5-5-5" />
+              <path d="M21 12H9" />
+            </svg>
+          </button>
         </div>
       </aside>
     </>

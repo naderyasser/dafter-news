@@ -28,6 +28,11 @@ const nextConfig = {
     // .next/cache/images across deploys, this is what keeps a thumbnail from
     // ever being re-encoded in front of a reader.
     minimumCacheTTL: 2678400,
+    // The optimizer refuses upstreams that resolve to a private IP (an SSRF
+    // guard). In development the API — and so every /media/ photo — lives on
+    // 127.0.0.1, which left every image on the dev site a 400. Development
+    // only: production reads its photos through the public hostname.
+    dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
   },
 };
 

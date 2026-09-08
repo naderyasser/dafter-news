@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { DASHBOARD } from "@/lib/routes";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { login, register } from "@/lib/api";
+import { PASSWORD_HELP_HREF } from "@/lib/contact";
 
 type Mode = "login" | "register";
 
@@ -142,10 +142,13 @@ export default function LoginForm() {
         </button>
       </div>
 
+      {/* No self-service reset exists (the host sends no mail — see
+          lib/contact.ts), so this is honest: it opens a pre-addressed
+          message to the newsroom rather than a page that can't help. */}
       <div className="mb-5 text-end">
-        <Link href="/about" className="text-[13px] font-semibold text-brand no-underline">
-          نسيت كلمة المرور؟
-        </Link>
+        <a href={PASSWORD_HELP_HREF} className="text-[13px] font-semibold text-brand no-underline">
+          نسيت كلمة المرور؟ تواصل مع إدارة الموقع
+        </a>
       </div>
 
       <button

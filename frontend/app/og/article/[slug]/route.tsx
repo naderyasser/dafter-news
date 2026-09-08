@@ -87,7 +87,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
           }}
         />
         {avatar ? (
+          // A plain <img>, deliberately: this JSX is rendered by next/og's
+          // Satori into a PNG, where next/image does not exist. Decorative —
+          // the card's text carries the name.
+          // eslint-disable-next-line @next/next/no-img-element
           <img
+            alt=""
             src={avatar}
             width={470}
             height={470}

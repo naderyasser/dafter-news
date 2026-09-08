@@ -152,7 +152,6 @@ export default function SearchBox({ lang, sections = [] }: { lang: "ar" | "en"; 
       window.clearTimeout(id);
       document.body.style.overflow = prev;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const load = useCallback(

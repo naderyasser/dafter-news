@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { AR_LOCALE } from "@/lib/format";
+import { AR_LOCALE, isArabicScript } from "@/lib/format";
 import Link from "next/link";
 
 import BetaBadge from "@/components/site/BetaBadge";
@@ -9,7 +9,8 @@ import BreakingAlertsToggle from "@/components/site/BreakingAlertsToggle";
 import MainNav from "@/components/site/MainNav";
 import SearchBox from "@/components/site/SearchBox";
 import StickyHeader from "@/components/site/StickyHeader";
-import { getBreakingNews, getPrayerTimes, getSections, getSiteSettings, mediaUrl } from "@/lib/api";
+import { getBreakingNews, getLatest, getPrayerTimes, getSections, getSiteSettings, mediaUrl } from "@/lib/api";
+import { articleHref } from "@/lib/routes";
 import { visibleSections } from "@/lib/hiddenDesks";
 
 type NavItem = { key: string; label: string; href: string };
@@ -26,11 +27,14 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
   const homeHref = isAr ? "/" : "/en";
   const altLangHref = isAr ? "/en" : "/";
 
-  const [breakingRes, sectionsRes, prayer, settings] = await Promise.all([
+  const [breakingRes, sectionsRes, prayer, settings, latest] = await Promise.all([
     getBreakingNews(),
     getSections(),
     getPrayerTimes(),
     getSiteSettings(),
+    // The strip's fallback when the desk has no «عاجل» items live: the
+    // newest real headlines, never invented copy.
+    getLatest(lang, 3),
   ]);
   const logoSrc = mediaUrl(settings?.logo);
   const breaking = breakingRes;
@@ -63,21 +67,15 @@ export default async function SiteHeader({ lang, active = "" }: { lang: "ar" | "
       ];
   // BreakingNewsItem.text is a single column and every row in it is Arabic,
   // so the English masthead was running an Arabic marquee. Take only the rows
-  // written in this page's script; when none match, the per-language default
-  // below still gives the bar something to say. Each row keeps its href so
-  // the strip is a set of links to the stories, not decoration.
-  const matching = breaking.results.filter((b) => /[؀-ۿ]/.test(b.text) === isAr);
+  // written in this page's script. When none match, the strip carries the
+  // newest published headlines instead — real stories a reader can open,
+  // never placeholder copy: this is a live news site, and an invented
+  // «الرئيس يفتتح…» line in a red «عاجل» bar is a false report. Each row
+  // keeps its href so the strip is a set of links, not decoration.
+  const matching = breaking.results.filter((b) => isArabicScript(b.text) === isAr);
   const tickerItems: { text: string; href: string }[] = matching.length
     ? matching.map((b) => ({ text: b.text, href: b.href || "" }))
-    : isAr
-      ? [
-          { text: "الرئيس يفتتح المرحلة الثانية من محور الدلتا الجديد", href: "" },
-          { text: "البنك المركزي يثبّت أسعار الفائدة", href: "" },
-        ]
-      : [
-          { text: "President opens second phase of new Delta corridor", href: "" },
-          { text: "Central bank holds interest rates steady", href: "" },
-        ];
+    : latest.results.map((a) => ({ text: a.title, href: articleHref(a, lang) }));
 
   const today = new Intl.DateTimeFormat(isAr ? AR_LOCALE : "en-US", {
     weekday: "long",

@@ -3,12 +3,9 @@ import Link from "next/link";
 
 import { ThreadsGlyph } from "@/components/ui/BrandIcons";
 import { getSections, getSiteSettings, mediaUrl } from "@/lib/api";
+import { CONTACT_EMAIL, WHATSAPP_HREF } from "@/lib/contact";
 import { visibleSections } from "@/lib/hiddenDesks";
 
-const CONTACT_EMAIL = "aldaftarnews@gmail.com";
-// wa.me takes digits only, no "+" and no spaces.
-const WHATSAPP_NUMBER = "201035682002";
-const WHATSAPP_HREF = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 // «لقطة وتعليق» and «بالعقل والمنطق» live at their own routes, not
 // /section/<key> — same mapping the old hardcoded footer list used.

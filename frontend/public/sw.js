@@ -21,8 +21,8 @@ self.addEventListener("push", (event) => {
       lang: "ar",
       tag: data.tag || "breaking",
       renotify: true,
-      badge: "/icon-badge.png",
-      icon: "/icon-192.png",
+      badge: "/icon.png",
+      icon: "/icon.png",
       data: { url: data.url || "/" },
     }),
   );
