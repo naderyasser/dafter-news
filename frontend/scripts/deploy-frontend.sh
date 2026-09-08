@@ -14,6 +14,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "── building into .next-new"
+# Generated route types from earlier builds (.next/types of the LIVE build,
+# .next-old, .next-verify) describe routes that may no longer exist, and
+# tsconfig's `.next*/types` glob pulls every one of them into the type check
+# — after a route rename the next build fails on the previous build's
+# validator.ts (found while forking this tree for AlexGate). Those files are
+# TypeScript only; the running server never reads them, so clearing them
+# before the build is safe.
+rm -rf .next-old .next-new .next-verify .next/types
 NEXT_DIST_DIR=.next-new npm run build
 
 echo "── carrying the optimizer cache across"
